@@ -99,7 +99,7 @@ export default function Professionals() {
                   <span className="chip !py-1 !px-2.5 text-xs !bg-[var(--secondary-fixed)]/30 !text-[var(--secondary)]"><MessageCircle size={11} /> Chat</span>
                   {prof.available && <span className="text-xs bg-[var(--primary-fixed)] text-[var(--primary)] px-2.5 py-1 rounded-full font-medium">Available</span>}
                 </div>
-                <button className="w-full btn-primary !py-3 text-sm">Book Session</button>
+                <Link href="/book-session" className="block w-full btn-primary !py-3 text-sm text-center">Book Session</Link>
               </div>
             ))}
           </div>

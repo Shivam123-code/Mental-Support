@@ -24,7 +24,7 @@ export default function Footer() {
             <Link href="/community" className="px-6 py-3.5 bg-white/15 text-white font-semibold rounded-lg hover:bg-white/25 transition-all border border-white/20">
               Join Community
             </Link>
-            <Link href="/professionals" className="px-6 py-3.5 border border-white/40 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">
+            <Link href="/book-session" className="px-6 py-3.5 border border-white/40 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">
               Book Session
             </Link>
             <Link href="/sos" className="px-6 py-3.5 bg-[var(--error)] text-white font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all">
@@ -57,6 +57,7 @@ export default function Footer() {
               <li><Link href="/programs" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Programs</Link></li>
               <li><Link href="/professionals" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Find Professional</Link></li>
               <li><Link href="/sos" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Crisis Support</Link></li>
+              <li><Link href="/book-session" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Book Session</Link></li>
             </ul>
           </div>
 
@@ -71,6 +72,8 @@ export default function Footer() {
               <li><Link href="/about" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">About Us</Link></li>
               <li><Link href="/trust" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Trust Center</Link></li>
               <li><Link href="/careers" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Join as Professional</Link></li>
+              <li><Link href="/pricing" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Pricing</Link></li>
+              <li><Link href="/faq" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">FAQ</Link></li>
             </ul>
           </div>
 
@@ -101,8 +104,9 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-6 text-xs text-[var(--inverse-on-surface)]/40">
             <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</Link>
-            <span className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Terms of Service</span>
+            <Link href="/contact" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Contact</Link>
             <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Trust Center</Link>
+            <Link href="/faq" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">FAQ</Link>
           </div>
           <p className="text-xs text-[var(--inverse-on-surface)]/30 flex items-center gap-1.5">
             Made with <Heart size={11} className="text-[var(--tertiary-bright)]" /> for Humanity

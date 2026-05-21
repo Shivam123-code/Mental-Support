@@ -27,6 +27,7 @@ const navGroups: NavGroup[] = [
       { name: "Assessments", href: "/assessments", desc: "Understand your wellbeing", icon: Brain },
       { name: "Programs", href: "/programs", desc: "Guided wellbeing journeys", icon: BookOpen },
       { name: "Professionals", href: "/professionals", desc: "Verified therapists & coaches", icon: Users },
+      { name: "Book Session", href: "/book-session", desc: "Schedule a session now", icon: Heart },
     ],
   },
   {
@@ -44,6 +45,9 @@ const navGroups: NavGroup[] = [
       { name: "About Us", href: "/about", desc: "Our mission & story", icon: Heart },
       { name: "Trust Center", href: "/trust", desc: "Safety & privacy", icon: Shield },
       { name: "Join Us", href: "/careers", desc: "Become a professional", icon: Users },
+      { name: "Pricing", href: "/pricing", desc: "Plans & pricing", icon: BookOpen },
+      { name: "Contact", href: "/contact", desc: "Get in touch", icon: Heart },
+      { name: "FAQ", href: "/faq", desc: "Common questions", icon: BookOpen },
     ],
   },
 ];

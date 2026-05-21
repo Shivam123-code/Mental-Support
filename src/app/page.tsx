@@ -70,7 +70,7 @@ export default function Home() {
                 <Link href="/assessments" className="btn-primary">
                   Start Free Assessment
                 </Link>
-                <Link href="/professionals" className="btn-secondary">
+                <Link href="/book-session" className="btn-secondary">
                   Book a Session
                 </Link>
                 <Link href="/sos" className="flex items-center gap-2 px-6 py-3.5 bg-[var(--error)] text-white font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all">

@@ -40,8 +40,8 @@ export default function Enterprise() {
                 Reduce burnout. Improve workforce wellbeing. Increase productivity with KleverKlues Enterprise.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/enterprise" className="px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">Schedule Demo</Link>
-                <Link href="/enterprise" className="px-8 py-4 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">Download Brochure</Link>
+                <Link href="/contact" className="px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">Schedule Demo</Link>
+                <Link href="/contact" className="px-8 py-4 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">Download Brochure</Link>
               </div>
             </div>
             <div className="hidden lg:block">
@@ -109,7 +109,7 @@ export default function Enterprise() {
                   <li key={i} className="flex items-center gap-3 text-[var(--on-surface-variant)]"><CheckCircle size={16} className="text-[var(--primary-bright)]" />{i}</li>
                 ))}
               </ul>
-              <Link href="/enterprise" className="btn-primary inline-flex items-center gap-2 mt-8">Request Demo <ArrowRight size={16} /></Link>
+              <Link href="/contact" className="btn-primary inline-flex items-center gap-2 mt-8">Request Demo <ArrowRight size={16} /></Link>
             </div>
             <div><Image src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=450&fit=crop" alt="Dashboard" width={600} height={450} className="rounded-xl shadow-ambient" /></div>
           </div>
