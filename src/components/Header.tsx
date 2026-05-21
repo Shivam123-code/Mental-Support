@@ -126,7 +126,7 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
               <Image
-                src="/logo.svg"
+                src="/logo.jpeg"
                 alt="KleverKlues"
                 width={40}
                 height={40}
