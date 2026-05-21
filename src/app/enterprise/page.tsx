@@ -12,92 +12,69 @@ const sectors = [
 ];
 
 const features = [
-  { title: "Employee Assistance Program (EAP)", desc: "Comprehensive emotional support for your entire workforce with anonymous access", icon: Users },
+  { title: "Employee Assistance Program", desc: "Comprehensive emotional support for your entire workforce with anonymous access", icon: Users },
   { title: "Burnout Analytics", desc: "Real-time burnout risk detection and prevention with AI-powered insights", icon: BarChart3 },
-  { title: "Workforce Wellbeing Dashboards", desc: "Track engagement, wellness trends, and emotional health metrics", icon: TrendingUp },
+  { title: "Wellbeing Dashboards", desc: "Track engagement, wellness trends, and emotional health metrics", icon: TrendingUp },
   { title: "Leadership Support", desc: "Specialized coaching and support for leaders and managers", icon: Building2 },
-  { title: "Anonymous Emotional Support", desc: "Employees can access help without fear of judgment or exposure", icon: Shield },
-  { title: "Workshops & Programs", desc: "Customized wellness workshops, training sessions, and team programs", icon: GraduationCap },
+  { title: "Anonymous Support", desc: "Employees can access help without fear of judgment", icon: Shield },
+  { title: "Workshops & Programs", desc: "Customized wellness workshops and team programs", icon: GraduationCap },
 ];
 
-const stats = [
-  { value: "43%", label: "Reduction in Burnout" },
-  { value: "67%", label: "Improved Engagement" },
-  { value: "89%", label: "User Satisfaction" },
-  { value: "3.5x", label: "ROI on Wellness" },
-];
 
 export default function Enterprise() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-br from-gray-900 to-purple-900 text-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative py-24 md:py-32 bg-[var(--inverse-surface)] text-white overflow-hidden">
+        <div className="absolute top-1/2 right-[10%] -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full pointer-events-none" />
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-purple-200 rounded-full text-sm font-medium mb-6">
-                <Building2 size={16} />
-                Enterprise Solutions
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-[var(--primary-fixed-dim)] rounded-full text-sm font-medium mb-6">
+                <Building2 size={14} /> Enterprise Solutions
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Build Emotionally <span className="text-purple-300">Resilient</span> Teams
+              <h1 className="text-display-xl text-white mb-6">
+                Build Emotionally Resilient Teams
               </h1>
-              <p className="text-lg text-gray-300 mb-8 max-w-lg">
-                Reduce burnout. Improve workforce wellbeing. Increase productivity. Build emotionally resilient organizations with KleverKlues Enterprise.
+              <p className="text-body-lg text-white/60 mb-10 max-w-lg">
+                Reduce burnout. Improve workforce wellbeing. Increase productivity with KleverKlues Enterprise.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/enterprise" className="px-8 py-4 bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
-                  Schedule Demo
-                </Link>
-                <Link href="/enterprise" className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all">
-                  Download Brochure
-                </Link>
+                <Link href="/enterprise" className="px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">Schedule Demo</Link>
+                <Link href="/enterprise" className="px-8 py-4 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">Download Brochure</Link>
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image
-                src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=550&h=450&fit=crop"
-                alt="Enterprise team wellness"
-                width={550}
-                height={450}
-                className="rounded-3xl shadow-xl"
-              />
+              <Image src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=550&h=450&fit=crop" alt="Enterprise team" width={550} height={450} className="rounded-xl shadow-ambient" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="py-12 bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="py-16 bg-[var(--surface-container-lowest)] border-b border-[var(--outline-variant)]">
+        <div className="max-w-[1280px] mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <p className="text-3xl md:text-4xl font-bold text-purple-700">{stat.value}</p>
-                <p className="text-sm text-gray-600 mt-1">{stat.label}</p>
-              </div>
+            {[{ value: "43%", label: "Reduction in Burnout" }, { value: "67%", label: "Improved Engagement" }, { value: "89%", label: "User Satisfaction" }, { value: "3.5x", label: "ROI on Wellness" }].map((s) => (
+              <div key={s.label}><p className="text-3xl md:text-4xl font-display font-medium text-[var(--primary)]">{s.value}</p><p className="text-sm text-[var(--on-surface-variant)] mt-1">{s.label}</p></div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Sectors */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Serving Every <span className="text-gradient">Sector</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Tailored wellbeing solutions for organizations of every size and sector.
-            </p>
+      <section className="section-gap bg-[var(--surface)]">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Serving Every Sector</h2>
+            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">Tailored wellbeing solutions for organizations of every size.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sectors.map((sector) => (
-              <div key={sector.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200">
-                <sector.icon className="text-purple-600 mb-4" size={32} />
-                <h3 className="font-semibold text-lg mb-2">{sector.name}</h3>
-                <p className="text-gray-600 text-sm">{sector.desc}</p>
+            {sectors.map((s) => (
+              <div key={s.name} className="card group hover:-translate-y-1 transition-all duration-300">
+                <div className="w-10 h-10 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center mb-5"><s.icon className="text-[var(--primary)]" size={20} /></div>
+                <h3 className="font-semibold text-[var(--on-surface)] mb-2">{s.name}</h3>
+                <p className="text-sm text-[var(--on-surface-variant)]">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -105,57 +82,36 @@ export default function Enterprise() {
       </section>
 
       {/* Features */}
-      <section className="py-16 md:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Enterprise <span className="text-gradient">Features</span>
-            </h2>
-          </div>
+      <section className="section-gap bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="text-center mb-16"><h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Enterprise Features</h2></div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div key={feature.title} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all">
-                <feature.icon className="text-purple-600 mb-4" size={28} />
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.desc}</p>
+            {features.map((f) => (
+              <div key={f.title} className="card group hover:-translate-y-1 transition-all duration-300">
+                <div className="w-10 h-10 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center mb-5"><f.icon className="text-[var(--primary)]" size={20} /></div>
+                <h3 className="font-semibold text-[var(--on-surface)] mb-2">{f.title}</h3>
+                <p className="text-sm text-[var(--on-surface-variant)]">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Dashboard Preview */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      {/* Dashboard */}
+      <section className="section-gap bg-[var(--surface)]">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Enterprise <span className="text-gradient">Dashboard</span>
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Get real-time insights into your organization&apos;s emotional health with our comprehensive analytics dashboard.
-              </p>
+              <h2 className="text-headline-lg text-[var(--on-surface)] mb-6">Enterprise Dashboard</h2>
+              <p className="text-body-lg text-[var(--on-surface-variant)] mb-8">Real-time insights into your organization&apos;s emotional health.</p>
               <ul className="space-y-4">
-                {["Utilization trends", "Burnout indicators", "Emotional wellness analytics", "Engagement metrics", "Risk insights & alerts"].map((item) => (
-                  <li key={item} className="flex items-center gap-3">
-                    <CheckCircle size={18} className="text-green-500" />
-                    <span className="text-gray-700">{item}</span>
-                  </li>
+                {["Utilization trends", "Burnout indicators", "Emotional wellness analytics", "Engagement metrics", "Risk insights & alerts"].map((i) => (
+                  <li key={i} className="flex items-center gap-3 text-[var(--on-surface-variant)]"><CheckCircle size={16} className="text-[var(--primary-bright)]" />{i}</li>
                 ))}
               </ul>
-              <Link href="/enterprise" className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
-                Request Demo <ArrowRight size={18} />
-              </Link>
+              <Link href="/enterprise" className="btn-primary inline-flex items-center gap-2 mt-8">Request Demo <ArrowRight size={16} /></Link>
             </div>
-            <div className="relative">
-              <Image
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=450&fit=crop"
-                alt="Analytics dashboard"
-                width={600}
-                height={450}
-                className="rounded-3xl shadow-xl"
-              />
-            </div>
+            <div><Image src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=450&fit=crop" alt="Dashboard" width={600} height={450} className="rounded-xl shadow-ambient" /></div>
           </div>
         </div>
       </section>

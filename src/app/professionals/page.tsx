@@ -3,72 +3,12 @@ import Link from "next/link";
 import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight } from "lucide-react";
 
 const professionals = [
-  {
-    name: "Dr. Ananya Sharma",
-    role: "Clinical Psychologist",
-    specialization: "Anxiety, Depression, Trauma",
-    experience: "12 years",
-    languages: "English, Hindi",
-    rating: 4.9,
-    reviews: 234,
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop",
-    available: true,
-  },
-  {
-    name: "Rahul Mehta",
-    role: "Counsellor",
-    specialization: "Relationships, Career, Burnout",
-    experience: "8 years",
-    languages: "English, Hindi, Marathi",
-    rating: 4.8,
-    reviews: 189,
-    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop",
-    available: true,
-  },
-  {
-    name: "Dr. Priya Nair",
-    role: "Psychologist",
-    specialization: "Children, ADHD, Learning",
-    experience: "15 years",
-    languages: "English, Malayalam, Tamil",
-    rating: 4.9,
-    reviews: 312,
-    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=300&fit=crop",
-    available: false,
-  },
-  {
-    name: "Kavita Desai",
-    role: "Wellness Coach",
-    specialization: "Stress, Mindfulness, Sleep",
-    experience: "6 years",
-    languages: "English, Hindi, Gujarati",
-    rating: 4.7,
-    reviews: 156,
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop",
-    available: true,
-  },
-  {
-    name: "Dr. Arun Patel",
-    role: "Clinical Psychologist",
-    specialization: "Addiction, Trauma, Crisis",
-    experience: "18 years",
-    languages: "English, Hindi, Bengali",
-    rating: 4.9,
-    reviews: 278,
-    image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop",
-    available: true,
-  },
-  {
-    name: "Sneha Iyer",
-    role: "Mentor & EQ Coach",
-    specialization: "Leadership, EQ, Communication",
-    experience: "10 years",
-    languages: "English, Tamil, Kannada",
-    rating: 4.8,
-    reviews: 201,
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop",
-    available: true,
-  },
+  { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", specialization: "Anxiety, Depression, Trauma", experience: "12 years", languages: "English, Hindi", rating: 4.9, reviews: 234, image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop", available: true },
+  { name: "Rahul Mehta", role: "Counsellor", specialization: "Relationships, Career, Burnout", experience: "8 years", languages: "English, Hindi, Marathi", rating: 4.8, reviews: 189, image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop", available: true },
+  { name: "Dr. Priya Nair", role: "Psychologist", specialization: "Children, ADHD, Learning", experience: "15 years", languages: "English, Malayalam, Tamil", rating: 4.9, reviews: 312, image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=300&fit=crop", available: false },
+  { name: "Kavita Desai", role: "Wellness Coach", specialization: "Stress, Mindfulness, Sleep", experience: "6 years", languages: "English, Hindi, Gujarati", rating: 4.7, reviews: 156, image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop", available: true },
+  { name: "Dr. Arun Patel", role: "Clinical Psychologist", specialization: "Addiction, Trauma, Crisis", experience: "18 years", languages: "English, Hindi, Bengali", rating: 4.9, reviews: 278, image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop", available: true },
+  { name: "Sneha Iyer", role: "Mentor & EQ Coach", specialization: "Leadership, EQ, Communication", experience: "10 years", languages: "English, Tamil, Kannada", rating: 4.8, reviews: 201, image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop", available: true },
 ];
 
 const categories = [
@@ -81,24 +21,26 @@ const categories = [
   { name: "Trainers", count: "35+" },
 ];
 
+
 export default function Professionals() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden bg-[var(--surface)] section-gap">
+        <div className="absolute top-10 right-[8%] w-[280px] h-[280px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-display-xl text-[var(--on-surface)] mb-6">
                 Find Your <span className="text-gradient">Perfect Match</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                Connect with verified, experienced professionals who understand your unique needs. Every professional is carefully vetted and supervised.
+              <p className="text-body-lg text-[var(--on-surface-variant)] mb-10 max-w-lg">
+                Connect with verified, experienced professionals who understand your unique needs.
               </p>
               <div className="flex flex-wrap gap-3">
                 {categories.map((cat) => (
-                  <span key={cat.name} className="px-4 py-2 bg-white rounded-full text-sm text-gray-700 shadow-sm border border-gray-100">
-                    {cat.name} <span className="text-purple-600 font-medium">({cat.count})</span>
+                  <span key={cat.name} className="chip">
+                    {cat.name} <span className="opacity-60">({cat.count})</span>
                   </span>
                 ))}
               </div>
@@ -109,84 +51,72 @@ export default function Professionals() {
                 alt="Professional counselling session"
                 width={550}
                 height={450}
-                className="rounded-3xl shadow-xl"
+                className="rounded-xl shadow-ambient"
               />
             </div>
           </div>
         </div>
       </section>
 
+
       {/* Professionals Grid */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Our <span className="text-gradient">Professionals</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+      <section className="section-gap bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Our Professionals</h2>
+            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
               Every professional is verified, qualified, and committed to your wellbeing.
             </p>
           </div>
-
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {professionals.map((prof) => (
-              <div key={prof.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all group">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+              <div key={prof.name} className="card group hover:-translate-y-1 transition-all duration-300">
+                <div className="flex items-start gap-4 mb-5">
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-[var(--primary-fixed)]">
                     <Image src={prof.image} alt={prof.name} fill className="object-cover" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{prof.name}</h3>
-                      <CheckCircle size={16} className="text-blue-500" />
+                      <h3 className="font-semibold text-[var(--on-surface)] text-sm truncate">{prof.name}</h3>
+                      <CheckCircle size={14} className="text-[var(--primary-bright)] flex-shrink-0" />
                     </div>
-                    <p className="text-sm text-purple-600">{prof.role}</p>
+                    <p className="text-xs text-[var(--primary)]">{prof.role}</p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Star size={14} className="text-amber-400 fill-amber-400" />
-                      <span className="text-sm font-medium">{prof.rating}</span>
-                      <span className="text-xs text-gray-400">({prof.reviews} reviews)</span>
+                      <Star size={12} className="text-[var(--tertiary-bright)] fill-[var(--tertiary-bright)]" />
+                      <span className="text-xs font-medium text-[var(--on-surface)]">{prof.rating}</span>
+                      <span className="text-xs text-[var(--on-surface-variant)]">({prof.reviews})</span>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2 mb-4 text-sm text-gray-600">
-                  <p><span className="font-medium text-gray-800">Specialization:</span> {prof.specialization}</p>
-                  <p className="flex items-center gap-1"><Globe size={14} /> {prof.languages}</p>
-                  <p className="flex items-center gap-1"><Clock size={14} /> {prof.experience} experience</p>
+                <div className="space-y-2 mb-5 text-sm text-[var(--on-surface-variant)]">
+                  <p><span className="font-medium text-[var(--on-surface)]">Specialization:</span> {prof.specialization}</p>
+                  <p className="flex items-center gap-1.5"><Globe size={13} /> {prof.languages}</p>
+                  <p className="flex items-center gap-1.5"><Clock size={13} /> {prof.experience}</p>
                 </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
-                    <Video size={12} /> Video
-                  </span>
-                  <span className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-                    <MessageCircle size={12} /> Chat
-                  </span>
-                  {prof.available && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      Available Now
-                    </span>
-                  )}
+                <div className="flex items-center gap-2 mb-5">
+                  <span className="chip !py-1 !px-2.5 text-xs"><Video size={11} /> Video</span>
+                  <span className="chip !py-1 !px-2.5 text-xs !bg-[var(--secondary-fixed)]/30 !text-[var(--secondary)]"><MessageCircle size={11} /> Chat</span>
+                  {prof.available && <span className="text-xs bg-[var(--primary-fixed)] text-[var(--primary)] px-2.5 py-1 rounded-full font-medium">Available</span>}
                 </div>
-                <button className="w-full py-3 bg-purple-700 text-white font-medium rounded-full hover:bg-purple-800 transition-all text-sm">
-                  Book Session
-                </button>
+                <button className="w-full btn-primary !py-3 text-sm">Book Session</button>
               </div>
             ))}
           </div>
-
           <div className="text-center mt-12">
-            <Link href="/professionals" className="inline-flex items-center gap-2 px-8 py-4 border-2 border-purple-700 text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
-              View All Professionals <ArrowRight size={18} />
+            <Link href="/professionals" className="btn-secondary inline-flex items-center gap-2">
+              View All Professionals <ArrowRight size={16} />
             </Link>
           </div>
         </div>
       </section>
 
+
       {/* Verification Process */}
-      <section className="py-16 bg-purple-50">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="section-gap bg-[var(--surface-container)]">
+        <div className="max-w-[1280px] mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Our Verification Promise</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-headline-md text-[var(--on-surface)] mb-4">Our Verification Promise</h2>
+            <p className="text-[var(--on-surface-variant)] max-w-2xl mx-auto">
               Every professional on KleverKlues goes through a rigorous verification process.
             </p>
           </div>
@@ -197,10 +127,12 @@ export default function Professionals() {
               { title: "Clinically Supervised", desc: "Regular clinical supervision" },
               { title: "Continuously Monitored", desc: "Ongoing quality and feedback review" },
             ].map((item) => (
-              <div key={item.title} className="bg-white rounded-xl p-6 text-center">
-                <CheckCircle className="mx-auto text-green-500 mb-3" size={32} />
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              <div key={item.title} className="card text-center">
+                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center">
+                  <CheckCircle className="text-[var(--primary)]" size={22} />
+                </div>
+                <h3 className="font-semibold text-[var(--on-surface)] mb-2">{item.title}</h3>
+                <p className="text-sm text-[var(--on-surface-variant)]">{item.desc}</p>
               </div>
             ))}
           </div>

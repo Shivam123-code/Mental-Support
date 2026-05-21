@@ -55,27 +55,28 @@ export default function Programs() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden bg-[var(--surface)] section-gap">
+        <div className="absolute bottom-0 left-[5%] w-[250px] h-[250px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-display-xl text-[var(--on-surface)] mb-6">
                 Guided Wellbeing <span className="text-gradient">Journeys</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg">
+              <p className="text-body-lg text-[var(--on-surface-variant)] mb-10 max-w-lg">
                 Structured programs designed by experts to help you heal, grow, and build lasting emotional resilience. Step by step.
               </p>
-              <div className="flex flex-wrap gap-6 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-6 text-sm text-[var(--on-surface-variant)]">
                 <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-600" />
+                  <CheckCircle size={16} className="text-[var(--primary-bright)]" />
                   Expert-Designed
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-purple-600" />
+                  <Clock size={16} className="text-[var(--primary)]" />
                   Self-Paced
                 </div>
                 <div className="flex items-center gap-2">
-                  <Users size={16} className="text-blue-600" />
+                  <Users size={16} className="text-[var(--secondary)]" />
                   Community Support
                 </div>
               </div>
@@ -86,7 +87,7 @@ export default function Programs() {
                 alt="Personal growth journey"
                 width={550}
                 height={450}
-                className="rounded-3xl shadow-xl"
+                className="rounded-xl shadow-ambient"
               />
             </div>
           </div>
@@ -94,37 +95,32 @@ export default function Programs() {
       </section>
 
       {/* Program Categories */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="section-gap bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-6">
           {programCategories.map((category) => (
-            <div key={category.title} className="mb-20">
-              <div className="mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">{category.title}</h2>
-                <p className="text-gray-600">{category.description}</p>
+            <div key={category.title} className="mb-24 last:mb-0">
+              <div className="mb-10">
+                <h2 className="text-headline-md text-[var(--on-surface)] mb-2">{category.title}</h2>
+                <p className="text-[var(--on-surface-variant)]">{category.description}</p>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {category.programs.map((program) => (
-                  <div key={program.name} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 group cursor-pointer">
+                  <div key={program.name} className="bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300 group cursor-pointer">
                     <div className="relative h-44 overflow-hidden">
-                      <Image
-                        src={program.image}
-                        alt={program.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <Image src={program.image} alt={program.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
                     <div className="p-5">
-                      <h3 className="font-semibold text-gray-900 mb-2">{program.name}</h3>
-                      <div className="flex items-center gap-3 text-sm text-gray-500 mb-3">
-                        <span className="flex items-center gap-1"><Clock size={14} /> {program.duration}</span>
+                      <h3 className="font-semibold text-[var(--on-surface)] text-sm mb-2">{program.name}</h3>
+                      <div className="flex items-center gap-3 text-xs text-[var(--on-surface-variant)] mb-3">
+                        <span className="flex items-center gap-1"><Clock size={12} /> {program.duration}</span>
                         <span>{program.sessions} sessions</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1 text-sm">
-                          <Star size={14} className="text-amber-400 fill-amber-400" />
-                          {program.rating}
+                        <span className="flex items-center gap-1 text-xs">
+                          <Star size={12} className="text-[var(--tertiary-bright)] fill-[var(--tertiary-bright)]" />
+                          <span className="text-[var(--on-surface-variant)]">{program.rating}</span>
                         </span>
-                        <ArrowRight size={16} className="text-purple-600 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight size={14} className="text-[var(--primary)] group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>
@@ -136,11 +132,12 @@ export default function Programs() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-purple-50 text-center">
-        <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-4">Not Sure Where to Start?</h2>
-          <p className="text-gray-600 mb-8">Take a free assessment and we&apos;ll recommend the perfect program for you.</p>
-          <Link href="/assessments" className="px-8 py-4 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
+      <section className="section-gap bg-[var(--surface-container)] text-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
+        <div className="max-w-3xl mx-auto px-6 relative z-10">
+          <h2 className="text-headline-md text-[var(--on-surface)] mb-4">Not Sure Where to Start?</h2>
+          <p className="text-body-lg text-[var(--on-surface-variant)] mb-10">Take a free assessment and we&apos;ll recommend the perfect program for you.</p>
+          <Link href="/assessments" className="btn-primary">
             Take Free Assessment
           </Link>
         </div>

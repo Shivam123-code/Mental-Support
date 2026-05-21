@@ -6,7 +6,6 @@ const assessmentCategories = [
   {
     title: "Emotional Wellness",
     icon: Heart,
-    color: "bg-purple-100 text-purple-700",
     assessments: [
       { name: "Anxiety Index", duration: "5 min", description: "Understand your anxiety patterns and triggers" },
       { name: "Stress Score", duration: "4 min", description: "Measure your current stress levels" },
@@ -18,7 +17,6 @@ const assessmentCategories = [
   {
     title: "Personality & Potential",
     icon: Brain,
-    color: "bg-amber-100 text-amber-700",
     assessments: [
       { name: "Personality Insights", duration: "10 min", description: "Discover your personality traits and strengths" },
       { name: "EQ Assessment", duration: "8 min", description: "Measure your emotional intelligence" },
@@ -29,7 +27,6 @@ const assessmentCategories = [
   {
     title: "Career & Learning",
     icon: Briefcase,
-    color: "bg-blue-100 text-blue-700",
     assessments: [
       { name: "Career Aptitude", duration: "12 min", description: "Find careers that align with your strengths" },
       { name: "Learning Potential", duration: "8 min", description: "Discover your best learning methods" },
@@ -40,7 +37,6 @@ const assessmentCategories = [
   {
     title: "Relationship & Family",
     icon: Users,
-    color: "bg-pink-100 text-pink-700",
     assessments: [
       { name: "Relationship Wellness", duration: "8 min", description: "Evaluate the health of your relationships" },
       { name: "Parenting Style", duration: "7 min", description: "Understand your approach to parenting" },
@@ -50,7 +46,6 @@ const assessmentCategories = [
   {
     title: "Workplace Wellness",
     icon: TrendingUp,
-    color: "bg-green-100 text-green-700",
     assessments: [
       { name: "Burnout Risk", duration: "5 min", description: "Identify early signs of workplace burnout" },
       { name: "Workforce Wellbeing", duration: "8 min", description: "Measure your overall work-life balance" },
@@ -63,31 +58,32 @@ export default function Assessments() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden bg-[var(--surface)] section-gap">
+        <div className="absolute -top-10 right-[10%] w-[350px] h-[350px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-6">
-                <Brain size={16} />
+              <div className="chip mb-6">
+                <Brain size={14} />
                 Intelligence Center
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-display-xl text-[var(--on-surface)] mb-6">
                 Understand Yourself <span className="text-gradient">Better</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg">
+              <p className="text-body-lg text-[var(--on-surface-variant)] mb-10 max-w-lg">
                 Take scientifically-designed assessments to gain deep insights into your emotional health, personality, relationships, and potential.
               </p>
-              <div className="flex flex-wrap gap-4 mb-8">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Clock size={16} className="text-purple-600" />
+              <div className="flex flex-wrap gap-6 text-sm text-[var(--on-surface-variant)]">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-[var(--primary)]" />
                   <span>3-12 minutes each</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Shield size={16} className="text-purple-600" />
+                <div className="flex items-center gap-2">
+                  <Shield size={16} className="text-[var(--primary)]" />
                   <span>100% Private</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <CheckCircle size={16} className="text-green-600" />
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={16} className="text-[var(--primary-bright)]" />
                   <span>Expert-Designed</span>
                 </div>
               </div>
@@ -98,7 +94,7 @@ export default function Assessments() {
                 alt="Person taking assessment"
                 width={550}
                 height={450}
-                className="rounded-3xl shadow-xl"
+                className="rounded-xl shadow-ambient"
               />
             </div>
           </div>
@@ -106,26 +102,26 @@ export default function Assessments() {
       </section>
 
       {/* Assessment Categories */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4">
-          {assessmentCategories.map((category, idx) => (
-            <div key={category.title} className={`mb-16 ${idx % 2 === 0 ? '' : ''}`}>
-              <div className="flex items-center gap-3 mb-8">
-                <div className={`w-12 h-12 rounded-xl ${category.color} flex items-center justify-center`}>
-                  <category.icon size={24} />
+      <section className="section-gap bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-6">
+          {assessmentCategories.map((category) => (
+            <div key={category.title} className="mb-20 last:mb-0">
+              <div className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 rounded-xl bg-[var(--primary-fixed)] flex items-center justify-center">
+                  <category.icon size={22} className="text-[var(--primary)]" />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold">{category.title}</h2>
+                <h2 className="text-headline-md text-[var(--on-surface)]">{category.title}</h2>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.assessments.map((assessment) => (
-                  <div key={assessment.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200 group cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-purple-700 transition-colors">{assessment.name}</h3>
-                    <p className="text-gray-600 text-sm mb-4">{assessment.description}</p>
+                  <div key={assessment.name} className="card group cursor-pointer hover:-translate-y-1 transition-all duration-300">
+                    <h3 className="font-semibold text-[var(--on-surface)] mb-2 group-hover:text-[var(--primary)] transition-colors">{assessment.name}</h3>
+                    <p className="text-sm text-[var(--on-surface-variant)] mb-5 leading-relaxed">{assessment.description}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-purple-600 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1">
-                        <Clock size={12} /> {assessment.duration}
+                      <span className="chip !py-1 !px-3 text-xs">
+                        <Clock size={11} /> {assessment.duration}
                       </span>
-                      <ArrowRight size={18} className="text-purple-600 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight size={16} className="text-[var(--primary)] group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 ))}
@@ -136,15 +132,18 @@ export default function Assessments() {
       </section>
 
       {/* AI Integration Preview */}
-      <section className="py-16 bg-gradient-to-br from-purple-900 to-purple-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Brain className="mx-auto mb-4" size={48} />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">AI-Powered Insights Coming Soon</h2>
-          <p className="text-purple-200 max-w-2xl mx-auto mb-8">
+      <section className="py-24 bg-[var(--primary)] text-white relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full pointer-events-none" />
+        <div className="max-w-[1280px] mx-auto px-6 text-center relative z-10">
+          <div className="w-14 h-14 mx-auto mb-6 rounded-full bg-white/10 flex items-center justify-center">
+            <Brain size={28} className="text-white" />
+          </div>
+          <h2 className="text-headline-lg mb-4">AI-Powered Insights Coming Soon</h2>
+          <p className="text-white/60 max-w-2xl mx-auto mb-10 text-body-lg">
             Our AI engine will provide personalized wellbeing insights, smart recommendations, emotional trend prediction, and personalized care journeys.
           </p>
-          <Link href="/assessments" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
-            Start Your First Assessment <ArrowRight size={18} />
+          <Link href="/assessments" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">
+            Start Your First Assessment <ArrowRight size={16} />
           </Link>
         </div>
       </section>
