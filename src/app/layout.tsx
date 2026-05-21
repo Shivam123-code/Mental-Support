@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SOSButton from "@/components/SOSButton";
 import QuickExit from "@/components/QuickExit";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const newsreader = Newsreader({
   subsets: ["latin"],
@@ -41,6 +42,7 @@ export default function RootLayout({
         <Footer />
         <SOSButton />
         <QuickExit />
+        <WhatsAppButton />
       </body>
     </html>
   );

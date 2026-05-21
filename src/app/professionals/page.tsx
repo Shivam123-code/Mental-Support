@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight } from "lucide-react";
+import SafetyDisclaimer from "@/components/SafetyDisclaimer";
 
 const professionals = [
   { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", specialization: "Anxiety, Depression, Trauma", experience: "12 years", languages: "English, Hindi", rating: 4.9, reviews: 234, image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop", available: true },
@@ -136,6 +137,13 @@ export default function Professionals() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Safety Disclaimer */}
+      <section className="py-6 sm:py-8 bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <SafetyDisclaimer />
         </div>
       </section>
     </div>

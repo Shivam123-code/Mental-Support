@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, GraduationCap, BookOpen, Shield } from "lucide-react";
+import SearchModal from "./SearchModal";
+import LanguageSelector from "./LanguageSelector";
 
 interface DropdownItem {
   name: string;
@@ -106,6 +108,7 @@ function DropdownMenu({ group, isOpen, onToggle }: { group: NavGroup; isOpen: bo
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleToggle = (label: string) => {
     setOpenDropdown(openDropdown === label ? null : label);
@@ -168,9 +171,15 @@ export default function Header() {
             >
               Start Assessment
             </Link>
-            <button className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+            >
               <Search size={18} />
             </button>
+            <div className="hidden md:block">
+              <LanguageSelector />
+            </div>
 
             {/* Mobile Menu Toggle */}
             <button
@@ -249,6 +258,8 @@ export default function Header() {
           </nav>
         </div>
       )}
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }

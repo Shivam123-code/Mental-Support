@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Heart, Brain, Users, Briefcase, Baby, Shield, Sparkles } from "lucide-react";
+import SafetyDisclaimer from "@/components/SafetyDisclaimer";
 
 const supportCategories = [
   {
@@ -142,6 +143,13 @@ export default function GetSupport() {
           <Link href="/assessments" className="btn-primary">
             Start Your Journey — Free & Private
           </Link>
+        </div>
+      </section>
+
+      {/* Safety Disclaimer */}
+      <section className="py-6 sm:py-8 bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <SafetyDisclaimer />
         </div>
       </section>
     </div>

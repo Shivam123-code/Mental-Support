@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Brain, Heart, Users, Briefcase, TrendingUp, Shield, ArrowRight, Clock, CheckCircle } from "lucide-react";
+import SafetyDisclaimer from "@/components/SafetyDisclaimer";
 
 const assessmentCategories = [
   {
@@ -145,6 +146,13 @@ export default function Assessments() {
           <Link href="/assessments" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">
             Start Your First Assessment <ArrowRight size={16} />
           </Link>
+        </div>
+      </section>
+
+      {/* Safety Disclaimer */}
+      <section className="py-6 sm:py-8 bg-[var(--surface-container-lowest)]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <SafetyDisclaimer />
         </div>
       </section>
     </div>
