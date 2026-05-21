@@ -83,7 +83,7 @@ export default function Programs() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1516534775068-ba3e7a1d2dad?w=550&h=450&fit=crop"
+                src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=550&h=450&fit=crop"
                 alt="Personal growth journey"
                 width={550}
                 height={450}
