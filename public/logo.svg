@@ -1,28 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Outer orbital ellipse - light purple -->
-  <ellipse cx="100" cy="100" rx="90" ry="65" fill="none" stroke="#C4B5FD" stroke-width="3.5" transform="rotate(-10, 100, 100)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" width="200" height="180">
+  <!-- Outer orbital ellipse - light lavender/purple -->
+  <ellipse cx="100" cy="95" rx="92" ry="62" fill="none" stroke="#B8A4E8" stroke-width="3.5" stroke-linecap="round" transform="rotate(-12, 100, 95)"/>
   
-  <!-- Gold accent arc on right side -->
-  <path d="M 135 50 A 60 60 0 0 1 170 100 A 60 60 0 0 1 155 135" fill="none" stroke="#F5A623" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Gold/Orange accent arc on right side -->
+  <path d="M 140 42 A 65 50 -10 0 1 178 88 A 65 50 -10 0 1 162 128" fill="none" stroke="#F5A623" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Orbital node dots -->
+  <circle cx="52" cy="42" r="5.5" fill="#2D1B69"/>
+  <circle cx="178" cy="88" r="4.5" fill="#F5A623"/>
+  <circle cx="28" cy="108" r="4.5" fill="#B8A4E8"/>
+  <circle cx="165" cy="132" r="4" fill="#B8A4E8"/>
   
-  <!-- Orbital dots -->
-  <circle cx="60" cy="48" r="5.5" fill="#2D1B69"/>
-  <circle cx="170" cy="100" r="4.5" fill="#F5A623"/>
-  <circle cx="35" cy="115" r="4.5" fill="#C4B5FD"/>
-  <circle cx="158" cy="140" r="4" fill="#C4B5FD"/>
-  
-  <!-- Meditation figure -->
+  <!-- Meditation figure - deep purple -->
   <!-- Head -->
-  <circle cx="100" cy="62" r="11" fill="none" stroke="#2D1B69" stroke-width="4.5"/>
+  <circle cx="100" cy="55" r="10" fill="none" stroke="#2D1B69" stroke-width="4.5"/>
   
-  <!-- Body / torso oval -->
-  <ellipse cx="100" cy="97" rx="16" ry="20" fill="none" stroke="#2D1B69" stroke-width="4.5"/>
+  <!-- Body / torso - oval -->
+  <ellipse cx="100" cy="88" rx="15" ry="19" fill="none" stroke="#2D1B69" stroke-width="4.5"/>
   
-  <!-- Crossed legs - two overlapping ovals -->
-  <ellipse cx="88" cy="132" rx="14" ry="10" fill="none" stroke="#2D1B69" stroke-width="4" transform="rotate(-5, 88, 132)"/>
-  <ellipse cx="112" cy="132" rx="14" ry="10" fill="none" stroke="#2D1B69" stroke-width="4" transform="rotate(5, 112, 132)"/>
-  
-  <!-- Connection curve from body to legs -->
-  <path d="M 84 113 Q 88 125 88 130" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 116 113 Q 112 125 112 130" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
+  <!-- Legs - trefoil/celtic knot crossing pattern -->
+  <!-- Left leg loop -->
+  <ellipse cx="87" cy="125" rx="15" ry="11" fill="none" stroke="#2D1B69" stroke-width="4" transform="rotate(-3, 87, 125)"/>
+  <!-- Right leg loop -->
+  <ellipse cx="113" cy="125" rx="15" ry="11" fill="none" stroke="#2D1B69" stroke-width="4" transform="rotate(3, 113, 125)"/>
+  <!-- Center connection (where legs cross) -->
+  <ellipse cx="100" cy="118" rx="9" ry="7" fill="none" stroke="#2D1B69" stroke-width="3.5"/>
 </svg>
