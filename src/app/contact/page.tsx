@@ -172,7 +172,7 @@ export default function Contact() {
                     <div className="flex items-start gap-2">
                       <input type="checkbox" required className="mt-1 w-4 h-4 accent-[var(--primary-bright)]" />
                       <label className="text-xs text-[var(--on-surface-variant)]">
-                        I agree to the Privacy Policy and consent to KleverKlues processing my data to respond to my inquiry.
+                        I agree to the Privacy Policy and consent to KleverKlues&trade; processing my data to respond to my inquiry.
                       </label>
                     </div>
 

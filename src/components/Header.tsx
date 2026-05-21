@@ -135,7 +135,7 @@ export default function Header() {
               />
             </div>
             <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
-              KleverKlues
+              KleverKlues&trade;
             </span>
           </Link>
 

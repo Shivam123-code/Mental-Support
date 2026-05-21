@@ -32,7 +32,7 @@ export default function About() {
                 Better Humans. <span className="text-gradient">Better World.</span>
               </h1>
               <p className="text-body-lg text-[var(--on-surface-variant)] mb-6 max-w-lg">
-                KleverKlues is building the Human Wellbeing Layer for the Digital World — a connected ecosystem where people can heal, grow, connect, and thrive.
+                KleverKlues&trade; is building the Human Wellbeing Layer for the Digital World — a connected ecosystem where people can heal, grow, connect, and thrive.
               </p>
               <p className="text-[var(--on-surface-variant)] max-w-lg">
                 We&apos;re creating a new category: <strong className="text-[var(--on-surface)]">Human Wellbeing Infrastructure Platform</strong>.
@@ -52,7 +52,7 @@ export default function About() {
           <div className="space-y-6 text-[var(--on-surface-variant)] text-body-lg leading-relaxed">
             <p>Humanity is becoming digitally connected but emotionally disconnected. Stress, loneliness, burnout, anxiety, and mental fatigue are increasing globally.</p>
             <p>Many people do not know where to seek help. They fear judgment. They feel emotionally isolated. They silently struggle without support.</p>
-            <p className="text-xl font-display font-medium text-[var(--on-surface)]">KleverKlues exists to change this.</p>
+            <p className="text-xl font-display font-medium text-[var(--on-surface)]">KleverKlues&trade; exists to change this.</p>
             <p>We create safe emotional spaces, trusted human support, intelligent wellbeing guidance, emotionally positive communities, and meaningful human connection.</p>
             <p className="font-display italic text-[var(--primary)] text-lg">&ldquo;Better Humans Create Better Families, Better Workplaces, Better Societies, and a Better World.&rdquo;</p>
           </div>
@@ -146,7 +146,7 @@ export default function About() {
         <div className="max-w-3xl mx-auto px-6 relative z-10">
           <h2 className="text-headline-lg mb-4">Join the Movement</h2>
           <p className="text-xl text-white/50 italic font-display mb-4">&ldquo;Humanity, Connected.&rdquo;</p>
-          <p className="text-white/60 mb-10">KleverKlues is more than a platform — it&apos;s a movement to improve human wellbeing globally.</p>
+          <p className="text-white/60 mb-10">KleverKlues&trade; is more than a platform — it&apos;s a movement to improve human wellbeing globally.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/community" className="px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">Join Community</Link>
             <Link href="/get-support" className="px-8 py-4 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all inline-flex items-center gap-2">Get Support <ArrowRight size={16} /></Link>

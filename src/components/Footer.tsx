@@ -39,7 +39,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <h3 className="font-display text-2xl font-medium text-white mb-4">KleverKlues</h3>
+            <h3 className="font-display text-2xl font-medium text-white mb-4">KleverKlues&trade;</h3>
             <p className="text-[var(--inverse-on-surface)]/60 mb-4 max-w-sm text-sm leading-relaxed">
               The World&apos;s Most Trusted Human Wellbeing & Emotional Support Ecosystem. Built for humanity.
             </p>

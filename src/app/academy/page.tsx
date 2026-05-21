@@ -51,7 +51,7 @@ export default function Academy() {
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="chip mb-6"><GraduationCap size={14} /> KleverKlues Academy</div>
+              <div className="chip mb-6"><GraduationCap size={14} /> KleverKlues&trade; Academy</div>
               <h1 className="text-display-xl text-[var(--on-surface)] mb-6">
                 Learn. Grow. <span className="text-gradient">Certify.</span>
               </h1>
@@ -106,7 +106,7 @@ export default function Academy() {
       {/* Why Academy */}
       <section className="section-gap bg-[var(--surface-container)]">
         <div className="max-w-[1280px] mx-auto px-6 text-center">
-          <h2 className="text-headline-lg text-[var(--on-surface)] mb-12">Why KleverKlues Academy?</h2>
+          <h2 className="text-headline-lg text-[var(--on-surface)] mb-12">Why KleverKlues&trade; Academy?</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: Award, title: "Industry Recognized", desc: "Certifications valued by employers" },

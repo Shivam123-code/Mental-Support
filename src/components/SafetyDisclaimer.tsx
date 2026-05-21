@@ -33,7 +33,7 @@ export default function SafetyDisclaimer({ variant = "default" }: { variant?: "d
             Safety & Clinical Disclaimer
           </p>
           <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
-            KleverKlues provides emotional wellbeing support and is not a substitute for professional medical advice, diagnosis, or treatment. If you are experiencing a mental health emergency, please contact your local emergency services or visit our{" "}
+            KleverKlues&trade; provides emotional wellbeing support and is not a substitute for professional medical advice, diagnosis, or treatment. If you are experiencing a mental health emergency, please contact your local emergency services or visit our{" "}
             <Link href="/sos" className="text-[var(--primary)] font-medium hover:underline">
               SOS page
             </Link>

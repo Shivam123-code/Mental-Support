@@ -61,7 +61,7 @@ const searchableItems: SearchItem[] = [
   { name: "Sleep Audio", href: "/resources", category: "Resources", icon: BookOpen },
   { name: "Podcasts", href: "/resources", category: "Resources", icon: BookOpen },
   // Pages
-  { name: "About KleverKlues", href: "/about", category: "Pages", icon: Heart },
+  { name: "About KleverKlues&trade;", href: "/about", category: "Pages", icon: Heart },
   { name: "Trust & Safety", href: "/trust", category: "Pages", icon: Shield },
   { name: "Pricing & Plans", href: "/pricing", category: "Pages", icon: BookOpen },
   { name: "Contact Us", href: "/contact", category: "Pages", icon: Phone },

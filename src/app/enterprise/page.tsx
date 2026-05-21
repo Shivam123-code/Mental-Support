@@ -37,7 +37,7 @@ export default function Enterprise() {
                 Build Emotionally Resilient Teams
               </h1>
               <p className="text-body-lg text-white/60 mb-10 max-w-lg">
-                Reduce burnout. Improve workforce wellbeing. Increase productivity with KleverKlues Enterprise.
+                Reduce burnout. Improve workforce wellbeing. Increase productivity with KleverKlues&trade; Enterprise.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/contact" className="px-8 py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">Schedule Demo</Link>

@@ -37,7 +37,7 @@ const steps = [
 ];
 
 const testimonials = [
-  { name: "Priya S.", role: "Working Professional", text: "KleverKlues helped me through my worst burnout phase. The anonymous sessions gave me the safety to open up.", rating: 5 },
+  { name: "Priya S.", role: "Working Professional", text: "KleverKlues&trade; helped me through my worst burnout phase. The anonymous sessions gave me the safety to open up.", rating: 5 },
   { name: "Arjun M.", role: "College Student", text: "The student programs changed my life. I learned to manage exam stress and build real confidence.", rating: 5 },
   { name: "Meera R.", role: "New Parent", text: "Parenting support circles helped me realize I wasn't alone. The community is genuinely warm and supportive.", rating: 5 },
 ];
@@ -161,7 +161,7 @@ export default function Home() {
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              How KleverKlues Works
+              How KleverKlues&trade; Works
             </h2>
             <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
               Your journey to emotional wellbeing starts with just one simple step.
@@ -277,7 +277,7 @@ export default function Home() {
               Built on Trust & Safety
             </h2>
             <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Your emotional safety is our top priority. Every aspect of KleverKlues is designed with trust at its core.
+              Your emotional safety is our top priority. Every aspect of KleverKlues&trade; is designed with trust at its core.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

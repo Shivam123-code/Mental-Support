@@ -31,7 +31,7 @@ export default function Careers() {
             <div>
               <div className="chip mb-6">
                 <Heart size={14} />
-                Join KleverKlues
+                Join KleverKlues&trade;
               </div>
               <h1 className="text-display-xl text-[var(--on-surface)] mb-6">
                 Help Humanity <span className="text-gradient">Heal & Grow</span>
@@ -60,7 +60,7 @@ export default function Careers() {
       <section className="section-gap bg-[var(--surface-container-lowest)]">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Why Join KleverKlues?</h2>
+            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Why Join KleverKlues&trade;?</h2>
             <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
               Be part of a mission-driven ecosystem that values your expertise and supports your growth.
             </p>

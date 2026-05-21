@@ -118,7 +118,7 @@ export default function Professionals() {
           <div className="text-center mb-12">
             <h2 className="text-headline-md text-[var(--on-surface)] mb-4">Our Verification Promise</h2>
             <p className="text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Every professional on KleverKlues goes through a rigorous verification process.
+              Every professional on KleverKlues&trade; goes through a rigorous verification process.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">

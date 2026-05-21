@@ -8,9 +8,9 @@ const faqCategories = [
   {
     title: "General",
     questions: [
-      { q: "What is KleverKlues?", a: "KleverKlues is the world's most trusted Human Wellbeing & Emotional Support Ecosystem. We provide private, guided, emotionally intelligent support for stress, anxiety, burnout, relationships, and personal growth through verified professionals, guided programs, and a supportive community." },
-      { q: "Is KleverKlues a therapy app?", a: "KleverKlues is more than a therapy app — it's a Human Wellbeing Infrastructure Platform. We combine professional support, guided programs, community circles, assessments, and AI-assisted guidance into one ecosystem focused on holistic emotional wellbeing." },
-      { q: "Who is KleverKlues for?", a: "KleverKlues is for everyone — individuals, families, students, professionals, organizations, and institutions. Whether you're dealing with stress, seeking personal growth, or want to support your team's wellbeing, we have solutions for you." },
+      { q: "What is KleverKlues&trade;?", a: "KleverKlues&trade; is the world's most trusted Human Wellbeing & Emotional Support Ecosystem. We provide private, guided, emotionally intelligent support for stress, anxiety, burnout, relationships, and personal growth through verified professionals, guided programs, and a supportive community." },
+      { q: "Is KleverKlues&trade; a therapy app?", a: "KleverKlues&trade; is more than a therapy app — it's a Human Wellbeing Infrastructure Platform. We combine professional support, guided programs, community circles, assessments, and AI-assisted guidance into one ecosystem focused on holistic emotional wellbeing." },
+      { q: "Who is KleverKlues&trade; for?", a: "KleverKlues&trade; is for everyone — individuals, families, students, professionals, organizations, and institutions. Whether you're dealing with stress, seeking personal growth, or want to support your team's wellbeing, we have solutions for you." },
       { q: "Is it available in my language?", a: "We currently support English and Hindi, with more Indian languages (Marathi, Tamil, Bengali, Telugu, Kannada, Malayalam) being added progressively. Our goal is full multilingual support." },
     ],
   },
@@ -18,7 +18,7 @@ const faqCategories = [
     title: "Privacy & Safety",
     questions: [
       { q: "Is my data private and secure?", a: "Absolutely. We use end-to-end encryption, follow DPDP compliance, and practice minimal data collection. You can use anonymous mode, export your data, or delete your account anytime. We never sell personal data." },
-      { q: "Can I use KleverKlues anonymously?", a: "Yes! Anonymous mode is available for all services. You can access support, take assessments, and join communities without revealing your identity." },
+      { q: "Can I use KleverKlues&trade; anonymously?", a: "Yes! Anonymous mode is available for all services. You can access support, take assessments, and join communities without revealing your identity." },
       { q: "What happens in a crisis?", a: "Our SOS system provides 24/7 crisis support through chat, call, and callback. All crisis responders are clinically supervised. We also connect you with local emergency services and national helplines when needed." },
       { q: "Are the professionals verified?", a: "Every professional undergoes rigorous verification — qualification checks, background verification, clinical supervision, and ongoing quality monitoring. Look for the verified badge on profiles." },
     ],
@@ -53,7 +53,7 @@ const faqCategories = [
     title: "Community & Academy",
     questions: [
       { q: "What are support circles?", a: "Support circles are small, moderated groups of people sharing similar experiences. They provide peer support, guided discussions, and a safe space to connect with others on similar journeys." },
-      { q: "How can I become a professional on KleverKlues?", a: "Visit our Join Us page, submit your profile and qualifications, complete our verification process (credential check, background verification), finish onboarding training, and start helping people." },
+      { q: "How can I become a professional on KleverKlues&trade;?", a: "Visit our Join Us page, submit your profile and qualifications, complete our verification process (credential check, background verification), finish onboarding training, and start helping people." },
       { q: "What certifications does the Academy offer?", a: "Our Academy offers Counsellor Training (6 months), EQ Expert Certification (3 months), Mindfulness Trainer (3 months), and various short courses in parenting, student skills, and corporate training." },
     ],
   },
@@ -95,7 +95,7 @@ export default function FAQ() {
             Frequently Asked <span className="text-gradient">Questions</span>
           </h1>
           <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-            Find answers to common questions about KleverKlues, our services, privacy, and more.
+            Find answers to common questions about KleverKlues&trade;, our services, privacy, and more.
           </p>
         </div>
       </section>
