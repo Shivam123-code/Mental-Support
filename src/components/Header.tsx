@@ -23,20 +23,21 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 glass-nav border-b border-hairline">
-      <div className="max-w-[1280px] mx-auto px-6">
-        <div className="flex items-center justify-between h-[72px]">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16 sm:h-[72px]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 relative">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
               <Image
                 src="/logo.svg"
                 alt="KleverKlues"
                 width={40}
                 height={40}
                 className="object-contain"
+                priority
               />
             </div>
-            <span className="text-xl font-display font-medium text-[var(--on-surface)]">
+            <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
               KleverKlues
             </span>
           </Link>

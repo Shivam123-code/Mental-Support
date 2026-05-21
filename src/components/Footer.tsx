@@ -69,6 +69,8 @@ export default function Footer() {
               <li><Link href="/academy" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Academy</Link></li>
               <li><Link href="/resources" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Resources</Link></li>
               <li><Link href="/about" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">About Us</Link></li>
+              <li><Link href="/trust" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Trust Center</Link></li>
+              <li><Link href="/careers" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Join as Professional</Link></li>
             </ul>
           </div>
 
@@ -98,9 +100,9 @@ export default function Footer() {
             &copy; 2025 KleverKlues&trade;. All rights reserved. Better Humans. Better World.
           </p>
           <div className="flex items-center gap-6 text-xs text-[var(--inverse-on-surface)]/40">
-            <span className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</span>
+            <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</Link>
             <span className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Terms of Service</span>
-            <span className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Trust Center</span>
+            <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Trust Center</Link>
           </div>
           <p className="text-xs text-[var(--inverse-on-surface)]/30 flex items-center gap-1.5">
             Made with <Heart size={11} className="text-[var(--tertiary-bright)]" /> for Humanity
