@@ -17,7 +17,7 @@ export default function Login() {
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8 sm:mb-10">
             <div className="w-10 h-10 relative">
-              <Image src="/logo.jpeg" alt="KleverKlues" width={40} height={40} className="object-contain" />
+              <Image src="/logo.svg" alt="KleverKlues" width={40} height={40} className="object-contain" />
             </div>
             <span className="text-xl font-display font-medium text-[var(--on-surface)]">KleverKlues&trade;</span>
           </div>
@@ -142,7 +142,7 @@ export default function Login() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/8 rounded-full" />
         <div className="relative z-10 text-center px-12 max-w-md">
           <div className="w-20 h-20 mx-auto mb-8 relative opacity-90">
-            <Image src="/logo.jpeg" alt="KleverKlues" width={80} height={80} className="object-contain invert brightness-200" />
+            <Image src="/logo.svg" alt="KleverKlues" width={80} height={80} className="object-contain invert brightness-200" />
           </div>
           <h2 className="text-3xl font-display font-medium text-white mb-4">You&apos;re Not Alone.</h2>
           <p className="text-white/60 text-sm leading-relaxed">
