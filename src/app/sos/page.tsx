@@ -117,7 +117,7 @@ export default function SOS() {
       </section>
 
       {/* Reassurance */}
-      <section className="py-20 bg-[var(--primary)] text-white text-center relative overflow-hidden">
+      <section className="py-20 bg-[var(--inverse-surface)] text-white text-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full pointer-events-none" />
         <div className="max-w-3xl mx-auto px-6 relative z-10">
           <Heart className="mx-auto mb-4" size={36} />

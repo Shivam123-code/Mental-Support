@@ -133,7 +133,7 @@ export default function Assessments() {
       </section>
 
       {/* AI Integration Preview */}
-      <section className="py-24 bg-[var(--primary)] text-white relative overflow-hidden">
+      <section className="py-24 bg-[var(--inverse-surface)] text-white relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full pointer-events-none" />
         <div className="max-w-[1280px] mx-auto px-6 text-center relative z-10">
           <div className="w-14 h-14 mx-auto mb-6 rounded-full bg-white/10 flex items-center justify-center">

@@ -372,7 +372,7 @@ export default function Home() {
       </section>
 
       {/* Impact Stats */}
-      <section className="py-20 bg-[var(--primary)] text-white relative overflow-hidden">
+      <section className="py-20 bg-[var(--inverse-surface)] text-white relative overflow-hidden">
         {/* Orbit motifs */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/5 rounded-full pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/8 rounded-full pointer-events-none" />

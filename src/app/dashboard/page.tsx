@@ -108,7 +108,7 @@ export default function Dashboard() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 sm:py-20 bg-[var(--primary)] text-white text-center relative overflow-hidden">
+      <section className="py-16 sm:py-20 bg-[var(--inverse-surface)] text-white text-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full pointer-events-none" />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
           <h2 className="text-headline-lg mb-4">Start Your Wellbeing Journey</h2>
