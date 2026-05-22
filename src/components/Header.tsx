@@ -27,6 +27,7 @@ const navGroups: NavGroup[] = [
       { name: "Programs", href: "/programs", desc: "Guided wellbeing journeys", icon: BookOpen },
       { name: "Professionals", href: "/professionals", desc: "Verified therapists & coaches", icon: Users },
       { name: "Book Session", href: "/book-session", desc: "Schedule a session now", icon: Heart },
+      { name: "AI Companion", href: "/ai-companion", desc: "AI-powered wellbeing support", icon: Brain },
     ],
   },
   {
@@ -36,6 +37,8 @@ const navGroups: NavGroup[] = [
       { name: "Academy", href: "/academy", desc: "Learn & get certified", icon: GraduationCap },
       { name: "Resources", href: "/resources", desc: "Articles, videos & tools", icon: BookOpen },
       { name: "Enterprise", href: "/enterprise", desc: "Workplace wellbeing", icon: Building2 },
+      { name: "Impact", href: "/impact", desc: "Make a difference", icon: Heart },
+      { name: "Research", href: "/research", desc: "Wellbeing intelligence", icon: Brain },
     ],
   },
   {

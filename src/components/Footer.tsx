@@ -58,6 +58,8 @@ export default function Footer() {
               <li><Link href="/professionals" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Find Professional</Link></li>
               <li><Link href="/sos" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Crisis Support</Link></li>
               <li><Link href="/book-session" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Book Session</Link></li>
+              <li><Link href="/ai-companion" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">AI Companion</Link></li>
+              <li><Link href="/journal" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Journal</Link></li>
             </ul>
           </div>
 
@@ -74,6 +76,8 @@ export default function Footer() {
               <li><Link href="/careers" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Join as Professional</Link></li>
               <li><Link href="/pricing" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Pricing</Link></li>
               <li><Link href="/faq" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">FAQ</Link></li>
+              <li><Link href="/impact" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Impact</Link></li>
+              <li><Link href="/research" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Research</Link></li>
             </ul>
           </div>
 
@@ -103,10 +107,10 @@ export default function Footer() {
             &copy; 2025 KleverKlues&trade;. All rights reserved. Better Humans. Better World.
           </p>
           <div className="flex items-center gap-6 text-xs text-[var(--inverse-on-surface)]/40">
-            <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</Link>
-            <Link href="/contact" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Contact</Link>
+            <Link href="/privacy-policy" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Terms</Link>
             <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Trust Center</Link>
-            <Link href="/faq" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">FAQ</Link>
+            <Link href="/contact" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Contact</Link>
           </div>
           <p className="text-xs text-[var(--inverse-on-surface)]/30 flex items-center gap-1.5">
             Made with <Heart size={11} className="text-[var(--tertiary-bright)]" /> for Humanity

@@ -13,14 +13,14 @@ const trustFeatures = [
 ];
 
 const policies = [
-  { title: "Trust & Privacy Policy", desc: "How we protect and handle your data", icon: Lock },
-  { title: "Crisis & Safety Policy", desc: "Our crisis response protocols and systems", icon: AlertTriangle },
-  { title: "Your Data Rights", desc: "Access, export, or delete your data anytime", icon: FileText },
-  { title: "Ethical AI Policy", desc: "How we develop and deploy AI responsibly", icon: Brain },
-  { title: "Safety Standards", desc: "Platform-wide safety requirements and protocols", icon: Shield },
-  { title: "Clinical Governance", desc: "How clinical oversight works on our platform", icon: Heart },
-  { title: "Professional Verification", desc: "Our rigorous vetting and monitoring process", icon: CheckCircle },
-  { title: "Report a Concern", desc: "Flag safety issues or provide feedback", icon: Eye },
+  { title: "Trust & Privacy Policy", desc: "How we protect and handle your data", icon: Lock, href: "/privacy-policy" },
+  { title: "Crisis & Safety Policy", desc: "Our crisis response protocols and systems", icon: AlertTriangle, href: "/trust/crisis-policy" },
+  { title: "Your Data Rights", desc: "Access, export, or delete your data anytime", icon: FileText, href: "/trust/data-rights" },
+  { title: "Ethical AI Policy", desc: "How we develop and deploy AI responsibly", icon: Brain, href: "/trust/ethical-ai" },
+  { title: "Safety Standards", desc: "Platform-wide safety requirements and protocols", icon: Shield, href: "/trust" },
+  { title: "Clinical Governance", desc: "How clinical oversight works on our platform", icon: Heart, href: "/trust" },
+  { title: "Professional Verification", desc: "Our rigorous vetting and monitoring process", icon: CheckCircle, href: "/trust" },
+  { title: "Report a Concern", desc: "Flag safety issues or provide feedback", icon: Eye, href: "/trust/report-concern" },
 ];
 
 export default function Trust() {
@@ -79,7 +79,7 @@ export default function Trust() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {policies.map((policy) => (
-              <Link key={policy.title} href="/trust" className="card group hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <Link key={policy.title} href={policy.href} className="card group hover:-translate-y-1 transition-all duration-300 cursor-pointer">
                 <policy.icon className="text-[var(--primary)] mb-3" size={22} />
                 <h3 className="font-semibold text-[var(--on-surface)] text-sm mb-1 group-hover:text-[var(--primary)] transition-colors">{policy.title}</h3>
                 <p className="text-xs text-[var(--on-surface-variant)]">{policy.desc}</p>

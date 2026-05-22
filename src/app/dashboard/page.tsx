@@ -4,7 +4,7 @@ import { Heart, Brain, Calendar, TrendingUp, BookOpen, Shield, Phone, Settings, 
 const quickActions = [
   { icon: Calendar, title: "Book Session", desc: "Schedule with your professional", href: "/book-session", color: "bg-[var(--primary-fixed)]" },
   { icon: Brain, title: "Take Assessment", desc: "Check your emotional health", href: "/assessments", color: "bg-[var(--tertiary-fixed)]" },
-  { icon: Heart, title: "Mood Check-in", desc: "Log how you're feeling today", href: "/dashboard", color: "bg-[var(--secondary-fixed)]" },
+  { icon: Heart, title: "Mood Check-in", desc: "Log how you're feeling today", href: "/journal", color: "bg-[var(--secondary-fixed)]" },
   { icon: Phone, title: "SOS Support", desc: "Immediate crisis help", href: "/sos", color: "bg-[var(--error-container)]" },
 ];
 
