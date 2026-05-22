@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, GraduationCap, BookOpen, Shield } from "lucide-react";
 import SearchModal from "./SearchModal";
 import LanguageSelector from "./LanguageSelector";
@@ -125,13 +124,12 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
-              <Image
+              <img
                 src="/logo.svg"
                 alt="KleverKlues"
                 width={40}
                 height={40}
-                className="object-contain"
-                priority
+                className="object-contain w-full h-full"
               />
             </div>
             <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
