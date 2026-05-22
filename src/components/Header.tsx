@@ -168,7 +168,7 @@ export default function Header() {
               SOS
             </Link>
             <Link
-              href="/login"
+              href="/role-selection"
               className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
             >
               Sign In
@@ -256,7 +256,7 @@ export default function Header() {
                 Start Free Assessment
               </Link>
               <Link
-                href="/login"
+                href="/role-selection"
                 onClick={() => setIsMenuOpen(false)}
                 className="btn-secondary text-center"
               >

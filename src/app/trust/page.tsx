@@ -138,13 +138,13 @@ export default function Trust() {
       </section>
 
       {/* Report CTA */}
-      <section className="py-16 sm:py-20 bg-[var(--primary)] text-white text-center relative overflow-hidden">
+      <section className="py-16 sm:py-20 bg-[var(--inverse-surface)] text-white text-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full pointer-events-none" />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
           <Shield className="mx-auto mb-4" size={36} />
           <h2 className="text-headline-lg mb-4">See Something? Say Something.</h2>
           <p className="text-white/60 mb-8">If you ever feel unsafe or notice concerning behaviour, report it immediately. We investigate every report.</p>
-          <Link href="/trust" className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">
+          <Link href="/contact" className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-[var(--primary-bright)] text-white font-semibold rounded-lg hover:bg-[var(--primary)] transition-all">
             Report a Concern <ArrowRight size={16} />
           </Link>
         </div>
