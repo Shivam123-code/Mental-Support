@@ -61,32 +61,32 @@ const assessmentCategories = [
 
 export default function Assessments() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
+      <section className="relative py-8 sm:py-12 md:py-16 lg:py-24 gradient-hero">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6">
                 <Brain size={16} />
                 Intelligence Center
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                 Understand Yourself <span className="text-gradient">Better</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8 max-w-lg">
                 Take scientifically-designed assessments to gain deep insights into your emotional health, personality, relationships, and potential.
               </p>
-              <div className="flex flex-wrap gap-4 mb-8">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Clock size={16} className="text-purple-600" />
                   <span>3-12 minutes each</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Shield size={16} className="text-purple-600" />
                   <span>100% Private</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <CheckCircle size={16} className="text-green-600" />
                   <span>Expert-Designed</span>
                 </div>
@@ -106,21 +106,21 @@ export default function Assessments() {
       </section>
 
       {/* Assessment Categories */}
-      <section className="py-16 md:py-24">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4">
           {assessmentCategories.map((category, idx) => (
-            <div key={category.title} className={`mb-16 ${idx % 2 === 0 ? '' : ''}`}>
-              <div className="flex items-center gap-3 mb-8">
-                <div className={`w-12 h-12 rounded-xl ${category.color} flex items-center justify-center`}>
+            <div key={category.title} className={`mb-10 sm:mb-12 md:mb-16 ${idx % 2 === 0 ? '' : ''}`}>
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${category.color} flex items-center justify-center`}>
                   <category.icon size={24} />
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold">{category.title}</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold">{category.title}</h2>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                 {category.assessments.map((assessment) => (
-                  <div key={assessment.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200 group cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-purple-700 transition-colors">{assessment.name}</h3>
-                    <p className="text-gray-600 text-sm mb-4">{assessment.description}</p>
+                  <div key={assessment.name} className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200 group cursor-pointer">
+                    <h3 className="font-semibold text-base sm:text-lg mb-2 group-hover:text-purple-700 transition-colors">{assessment.name}</h3>
+                    <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-3 sm:mb-4">{assessment.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-purple-600 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1">
                         <Clock size={12} /> {assessment.duration}
@@ -136,14 +136,14 @@ export default function Assessments() {
       </section>
 
       {/* AI Integration Preview */}
-      <section className="py-16 bg-gradient-to-br from-purple-900 to-purple-700 text-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-purple-900 to-purple-700 text-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <Brain className="mx-auto mb-4" size={48} />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">AI-Powered Insights Coming Soon</h2>
-          <p className="text-purple-200 max-w-2xl mx-auto mb-8">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">AI-Powered Insights Coming Soon</h2>
+          <p className="text-xs sm:text-sm md:text-base text-purple-200 max-w-2xl mx-auto mb-6 sm:mb-8">
             Our AI engine will provide personalized wellbeing insights, smart recommendations, emotional trend prediction, and personalized care journeys.
           </p>
-          <Link href="/assessments" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
+          <Link href="/assessments" className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
             Start Your First Assessment <ArrowRight size={18} />
           </Link>
         </div>

@@ -76,15 +76,15 @@ const successStories = [
 
 export default function Resources() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
+      <section className="relative py-8 sm:py-12 md:py-16 lg:py-24 gradient-hero">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
               Wellbeing <span className="text-gradient">Resource Hub</span>
             </h1>
-            <p className="text-lg text-gray-600 mb-8">
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8">
               Articles, videos, podcasts, guided meditations, sleep audio, and more — curated to support your emotional wellbeing journey.
             </p>
           </div>
@@ -92,13 +92,13 @@ export default function Resources() {
       </section>
 
       {/* Resource Categories */}
-      <section className="py-12 bg-white border-b border-gray-100">
+      <section className="py-8 sm:py-12 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {resourceCategories.map((cat) => (
-              <div key={cat.name} className={`${cat.color} rounded-2xl p-4 text-center hover:shadow-md transition-all cursor-pointer`}>
+              <div key={cat.name} className={`${cat.color} rounded-2xl p-3 sm:p-4 text-center hover:shadow-md transition-all cursor-pointer`}>
                 <cat.icon className="mx-auto mb-2" size={28} />
-                <p className="font-medium text-sm">{cat.name}</p>
+                <p className="font-medium text-xs sm:text-sm">{cat.name}</p>
                 <p className="text-xs opacity-70">{cat.count}</p>
               </div>
             ))}
@@ -107,26 +107,26 @@ export default function Resources() {
       </section>
 
       {/* Featured Articles */}
-      <section className="py-16 md:py-24">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold">Featured <span className="text-gradient">Articles</span></h2>
-            <Link href="/resources" className="text-purple-700 font-medium flex items-center gap-1 hover:gap-2 transition-all text-sm">
+          <div className="flex items-center justify-between mb-8 sm:mb-12">
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold">Featured <span className="text-gradient">Articles</span></h2>
+            <Link href="/resources" className="text-purple-700 font-medium flex items-center gap-1 hover:gap-2 transition-all text-xs sm:text-sm">
               View All <ArrowRight size={16} />
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {featuredArticles.map((article) => (
               <div key={article.title} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 group cursor-pointer">
-                <div className="relative h-48 overflow-hidden">
+                <div className="relative h-32 sm:h-40 md:h-48 overflow-hidden">
                   <Image src={article.image} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-purple-700">
                     {article.category}
                   </div>
                 </div>
-                <div className="p-5">
-                  <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors">{article.title}</h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{article.excerpt}</p>
+                <div className="p-3 sm:p-4 md:p-5">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-2 group-hover:text-purple-700 transition-colors">{article.title}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">{article.excerpt}</p>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Clock size={12} />
                     {article.readTime}
@@ -139,22 +139,22 @@ export default function Resources() {
       </section>
 
       {/* Success Stories */}
-      <section className="py-16 md:py-24 bg-purple-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-purple-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Success <span className="text-gradient">Stories</span></h2>
-            <p className="text-gray-600">Real transformations from real people.</p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Success <span className="text-gradient">Stories</span></h2>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600">Real transformations from real people.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {successStories.map((story) => (
-              <div key={story.name} className="bg-white rounded-2xl p-6 shadow-sm">
-                <Heart className="text-purple-300 mb-4" size={24} />
-                <p className="text-gray-700 mb-4 italic">&ldquo;{story.story}&rdquo;</p>
+              <div key={story.name} className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm">
+                <Heart className="text-purple-300 mb-3 sm:mb-4" size={24} />
+                <p className="text-xs sm:text-sm md:text-base text-gray-700 mb-3 sm:mb-4 italic">&ldquo;{story.story}&rdquo;</p>
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10 rounded-full overflow-hidden">
                     <Image src={story.image} alt={story.name} fill className="object-cover" />
                   </div>
-                  <span className="font-medium text-gray-900">{story.name}</span>
+                  <span className="font-medium text-sm sm:text-base text-gray-900">{story.name}</span>
                 </div>
               </div>
             ))}
@@ -163,9 +163,9 @@ export default function Resources() {
       </section>
 
       {/* Guided Exercises & Meditation */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div className="relative">
               <Image
                 src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=450&fit=crop"
@@ -176,19 +176,19 @@ export default function Resources() {
               />
             </div>
             <div>
-              <h2 className="text-3xl font-bold mb-6">Guided Exercises & <span className="text-gradient">Meditation</span></h2>
-              <p className="text-gray-600 mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Guided Exercises & <span className="text-gradient">Meditation</span></h2>
+              <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6">
                 Access our library of guided meditations, breathing exercises, sleep stories, and brain music — designed to calm your mind and uplift your spirit.
               </p>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-6 sm:mb-8">
                 {["Guided breathing exercises", "Sleep stories & audio", "Focus-enhancing brain music", "Mindfulness meditations", "Stress relief sessions", "Research-backed insights"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-gray-700">
+                  <li key={item} className="flex items-center gap-3 text-xs sm:text-sm md:text-base text-gray-700">
                     <CheckCircle size={16} className="text-green-500" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <Link href="/resources" className="inline-flex items-center gap-2 px-6 py-3 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
+              <Link href="/resources" className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
                 Explore Library <ArrowRight size={18} />
               </Link>
             </div>

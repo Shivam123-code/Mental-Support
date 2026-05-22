@@ -20,19 +20,19 @@ const timeline = [
 
 export default function About() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
+      <section className="relative py-8 sm:py-12 md:py-16 lg:py-24 gradient-hero">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                 Better Humans. <span className="text-gradient">Better World.</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-6 max-w-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-4 sm:mb-6 max-w-lg">
                 KleverKlues is building the Human Wellbeing Layer for the Digital World — a connected ecosystem where people can heal, grow, connect, and thrive.
               </p>
-              <p className="text-gray-600 max-w-lg">
+              <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-lg">
                 We&apos;re not just another therapy app or wellness portal. We&apos;re creating a new category: <strong>Human Wellbeing Infrastructure Platform</strong>.
               </p>
             </div>
@@ -50,25 +50,25 @@ export default function About() {
       </section>
 
       {/* Brand Story */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Our <span className="text-gradient">Story</span></h2>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Our <span className="text-gradient">Story</span></h2>
           </div>
-          <div className="prose prose-lg max-w-none text-gray-600 space-y-6">
-            <p>
+          <div className="prose prose-lg max-w-none text-gray-600 space-y-4 sm:space-y-6">
+            <p className="text-xs sm:text-sm md:text-base">
               Humanity is becoming digitally connected but emotionally disconnected. Stress, loneliness, burnout, anxiety, emotional suppression, relationship struggles, and mental fatigue are increasing globally.
             </p>
-            <p>
+            <p className="text-xs sm:text-sm md:text-base">
               Many people do not know where to seek help. They fear judgment. They feel emotionally isolated. They silently struggle without support.
             </p>
-            <p className="text-xl font-semibold text-gray-900">
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
               KleverKlues exists to change this.
             </p>
-            <p>
+            <p className="text-xs sm:text-sm md:text-base">
               We&apos;re designed to create safe emotional spaces, trusted human support, intelligent wellbeing guidance, emotionally positive communities, and meaningful human connection.
             </p>
-            <p className="text-lg font-medium text-purple-700 italic">
+            <p className="text-sm sm:text-base md:text-lg font-medium text-purple-700 italic">
               &ldquo;Better Humans Create Better Families, Better Workplaces, Better Societies, and a Better World.&rdquo;
             </p>
           </div>
@@ -76,27 +76,27 @@ export default function About() {
       </section>
 
       {/* Mission, Vision, Purpose */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <Target className="text-purple-600 mb-4" size={36} />
-              <h3 className="text-xl font-bold mb-4">Our Mission</h3>
-              <p className="text-gray-600">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100">
+              <Target className="text-purple-600 mb-3 sm:mb-4" size={36} />
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">Our Mission</h3>
+              <p className="text-xs sm:text-sm md:text-base text-gray-600">
                 To help create a world where no human feels emotionally alone. To provide safe, trusted, emotionally intelligent support for everyone, everywhere.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <Eye className="text-purple-600 mb-4" size={36} />
-              <h3 className="text-xl font-bold mb-4">Our Vision</h3>
-              <p className="text-gray-600">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100">
+              <Eye className="text-purple-600 mb-3 sm:mb-4" size={36} />
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">Our Vision</h3>
+              <p className="text-xs sm:text-sm md:text-base text-gray-600">
                 To become the world&apos;s most trusted Human Wellbeing & Emotional Support Ecosystem — the emotional backbone of the digital world.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-              <Lightbulb className="text-purple-600 mb-4" size={36} />
-              <h3 className="text-xl font-bold mb-4">Our Purpose</h3>
-              <p className="text-gray-600">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100">
+              <Lightbulb className="text-purple-600 mb-3 sm:mb-4" size={36} />
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">Our Purpose</h3>
+              <p className="text-xs sm:text-sm md:text-base text-gray-600">
                 To improve human wellbeing at scale. To help people heal, grow, connect, learn, and contribute — safely, privately, and meaningfully.
               </p>
             </div>
@@ -105,17 +105,17 @@ export default function About() {
       </section>
 
       {/* Values */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Our <span className="text-gradient">Values</span></h2>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Our <span className="text-gradient">Values</span></h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {values.map((value) => (
-              <div key={value.title} className="bg-purple-50 rounded-2xl p-6 border border-purple-100">
-                <value.icon className="text-purple-600 mb-4" size={28} />
-                <h3 className="font-semibold text-lg mb-2">{value.title}</h3>
-                <p className="text-gray-600 text-sm">{value.desc}</p>
+              <div key={value.title} className="bg-purple-50 rounded-2xl p-3 sm:p-4 md:p-6 border border-purple-100">
+                <value.icon className="text-purple-600 mb-3 sm:mb-4" size={28} />
+                <h3 className="font-semibold text-base sm:text-lg mb-2">{value.title}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600">{value.desc}</p>
               </div>
             ))}
           </div>
@@ -123,12 +123,12 @@ export default function About() {
       </section>
 
       {/* Platform Pillars */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Platform <span className="text-gradient">Pillars</span></h2>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Platform <span className="text-gradient">Pillars</span></h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {[
               { title: "Trust & Safety", desc: "Privacy-first, clinical governance, verified professionals", emoji: "🛡️" },
               { title: "Guided Wellbeing", desc: "Assessments, programs, sessions, care plans", emoji: "🧭" },
@@ -136,10 +136,10 @@ export default function About() {
               { title: "Emotional Economy", desc: "Learn, earn, mentor, contribute", emoji: "💡" },
               { title: "AI & Intelligence", desc: "Smart insights, recommendations, predictions", emoji: "🧠" },
             ].map((pillar) => (
-              <div key={pillar.title} className="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                <span className="text-3xl block mb-3">{pillar.emoji}</span>
-                <h3 className="font-semibold mb-2">{pillar.title}</h3>
-                <p className="text-xs text-gray-600">{pillar.desc}</p>
+              <div key={pillar.title} className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 text-center shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                <span className="text-2xl sm:text-3xl block mb-3">{pillar.emoji}</span>
+                <h3 className="font-semibold text-sm sm:text-base mb-2">{pillar.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{pillar.desc}</p>
               </div>
             ))}
           </div>
@@ -147,23 +147,23 @@ export default function About() {
       </section>
 
       {/* Roadmap */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Our <span className="text-gradient">Journey</span></h2>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Our <span className="text-gradient">Journey</span></h2>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {timeline.map((item) => (
-              <div key={item.phase} className={`flex gap-4 p-6 rounded-2xl border ${item.status === 'current' ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-100'}`}>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${item.status === 'current' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <div key={item.phase} className={`flex gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 rounded-2xl border ${item.status === 'current' ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-100'}`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${item.status === 'current' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
                   <span className="text-xs font-bold">{item.phase.split(' ')[1]}</span>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold">{item.title}</h3>
+                    <h3 className="font-bold text-sm sm:text-base">{item.title}</h3>
                     {item.status === 'current' && <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">Current</span>}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{item.desc}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -172,18 +172,18 @@ export default function About() {
       </section>
 
       {/* Movement */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-purple-700 to-purple-500 text-white text-center">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-r from-purple-700 to-purple-500 text-white text-center">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Join the Movement</h2>
-          <p className="text-xl text-purple-200 italic mb-4">&ldquo;Humanity, Connected.&rdquo;</p>
-          <p className="text-purple-100 mb-8">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Join the Movement</h2>
+          <p className="text-base sm:text-lg md:text-xl text-purple-200 italic mb-4">&ldquo;Humanity, Connected.&rdquo;</p>
+          <p className="text-xs sm:text-sm md:text-base text-purple-100 mb-6 sm:mb-8">
             KleverKlues is more than a platform — it&apos;s a movement to improve human wellbeing globally. Join us in building a world where no one feels emotionally alone.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/community" className="px-8 py-4 bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
+            <Link href="/community" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all text-center">
               Join Community
             </Link>
-            <Link href="/get-support" className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all flex items-center gap-2">
+            <Link href="/get-support" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all flex items-center justify-center gap-2">
               Get Support <ArrowRight size={18} />
             </Link>
           </div>

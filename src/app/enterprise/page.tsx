@@ -29,27 +29,27 @@ const stats = [
 
 export default function Enterprise() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Hero */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-br from-gray-900 to-purple-900 text-white">
+      <section className="relative py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-gray-900 to-purple-900 text-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-purple-200 rounded-full text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-purple-200 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6">
                 <Building2 size={16} />
                 Enterprise Solutions
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                 Build Emotionally <span className="text-purple-300">Resilient</span> Teams
               </h1>
-              <p className="text-lg text-gray-300 mb-8 max-w-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-300 mb-6 sm:mb-8 max-w-lg">
                 Reduce burnout. Improve workforce wellbeing. Increase productivity. Build emotionally resilient organizations with KleverKlues Enterprise.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/enterprise" className="px-8 py-4 bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                <Link href="/enterprise" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-white text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all text-center">
                   Schedule Demo
                 </Link>
-                <Link href="/enterprise" className="px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all">
+                <Link href="/enterprise" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all text-center">
                   Download Brochure
                 </Link>
               </div>
@@ -68,13 +68,13 @@ export default function Enterprise() {
       </section>
 
       {/* Stats */}
-      <section className="py-12 bg-white border-b border-gray-100">
+      <section className="py-8 sm:py-12 bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 text-center">
             {stats.map((stat) => (
               <div key={stat.label}>
-                <p className="text-3xl md:text-4xl font-bold text-purple-700">{stat.value}</p>
-                <p className="text-sm text-gray-600 mt-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-700">{stat.value}</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -82,22 +82,22 @@ export default function Enterprise() {
       </section>
 
       {/* Sectors */}
-      <section className="py-16 md:py-24">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Serving Every <span className="text-gradient">Sector</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Tailored wellbeing solutions for organizations of every size and sector.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {sectors.map((sector) => (
-              <div key={sector.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200">
-                <sector.icon className="text-purple-600 mb-4" size={32} />
-                <h3 className="font-semibold text-lg mb-2">{sector.name}</h3>
-                <p className="text-gray-600 text-sm">{sector.desc}</p>
+              <div key={sector.name} className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-all hover:border-purple-200">
+                <sector.icon className="text-purple-600 mb-3 sm:mb-4" size={32} />
+                <h3 className="font-semibold text-base sm:text-lg mb-2">{sector.name}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600">{sector.desc}</p>
               </div>
             ))}
           </div>
@@ -105,19 +105,19 @@ export default function Enterprise() {
       </section>
 
       {/* Features */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Enterprise <span className="text-gradient">Features</span>
             </h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {features.map((feature) => (
-              <div key={feature.title} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all">
-                <feature.icon className="text-purple-600 mb-4" size={28} />
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600 text-sm">{feature.desc}</p>
+              <div key={feature.title} className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-all">
+                <feature.icon className="text-purple-600 mb-3 sm:mb-4" size={28} />
+                <h3 className="font-semibold text-base sm:text-lg mb-2">{feature.title}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -125,25 +125,25 @@ export default function Enterprise() {
       </section>
 
       {/* Dashboard Preview */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                 Enterprise <span className="text-gradient">Dashboard</span>
               </h2>
-              <p className="text-lg text-gray-600 mb-8">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-6 sm:mb-8">
                 Get real-time insights into your organization&apos;s emotional health with our comprehensive analytics dashboard.
               </p>
-              <ul className="space-y-4">
+              <ul className="space-y-3 sm:space-y-4">
                 {["Utilization trends", "Burnout indicators", "Emotional wellness analytics", "Engagement metrics", "Risk insights & alerts"].map((item) => (
                   <li key={item} className="flex items-center gap-3">
                     <CheckCircle size={18} className="text-green-500" />
-                    <span className="text-gray-700">{item}</span>
+                    <span className="text-xs sm:text-sm md:text-base text-gray-700">{item}</span>
                   </li>
                 ))}
               </ul>
-              <Link href="/enterprise" className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
+              <Link href="/enterprise" className="inline-flex items-center gap-2 mt-6 sm:mt-8 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
                 Request Demo <ArrowRight size={18} />
               </Link>
             </div>

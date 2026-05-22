@@ -44,58 +44,58 @@ const testimonials = [
 
 export default function Home() {
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative overflow-hidden gradient-hero">
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12 md:py-16 lg:py-24">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
+            <div className="space-y-6 sm:space-y-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm font-medium">
                 <Sparkles size={16} />
                 Human Wellbeing Ecosystem
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
                 Mental wellness support,{" "}
                 <span className="text-gradient">anytime. Anywhere.</span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 max-w-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-lg">
                 Private, guided, emotionally intelligent support for stress, anxiety, burnout, relationships, emotional wellbeing, and personal growth.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/assessments" className="px-8 py-4 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all shadow-lg shadow-purple-200 hover:shadow-xl">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                <Link href="/assessments" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all shadow-lg shadow-purple-200 hover:shadow-xl text-center">
                   Start Free Assessment
                 </Link>
-                <Link href="/professionals" className="px-8 py-4 border-2 border-purple-700 text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
+                <Link href="/professionals" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm border-2 border-purple-700 text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all text-center">
                   Book a Session
                 </Link>
-                <Link href="/sos" className="px-8 py-4 bg-red-500 text-white font-semibold rounded-full hover:bg-red-600 transition-all flex items-center gap-2">
+                <Link href="/sos" className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-red-500 text-white font-semibold rounded-full hover:bg-red-600 transition-all flex items-center justify-center gap-2">
                   <Phone size={18} />
                   SOS — Get Help Now
                 </Link>
               </div>
               {/* Trust Strip */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Lock size={16} className="text-purple-600" />
                   <span>Anonymous Mode</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <CheckCircle size={16} className="text-green-600" />
                   <span>Verified Professionals</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Clock size={16} className="text-blue-600" />
                   <span>24×7 Crisis Support</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Shield size={16} className="text-purple-600" />
                   <span>Privacy & DPDP Ready</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Globe size={16} className="text-teal-600" />
                   <span>Multilingual Support</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <Brain size={16} className="text-amber-600" />
                   <span>AI-Assisted Guidance</span>
                 </div>
@@ -134,25 +134,25 @@ export default function Home() {
       </section>
 
       {/* Emotional Categories */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Support for <span className="text-gradient">Every Challenge</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Whatever you&apos;re going through, we have the support you need. Explore categories designed around real human experiences.
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {categories.map((cat) => (
               <Link
                 key={cat.name}
                 href="/get-support"
-                className={`${cat.color} border rounded-2xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1`}
+                className={`${cat.color} border rounded-2xl p-3 sm:p-4 md:p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1`}
               >
-                <span className="text-3xl mb-3 block">{cat.icon}</span>
-                <span className="font-medium text-gray-800">{cat.name}</span>
+                <span className="text-2xl sm:text-3xl mb-3 block">{cat.icon}</span>
+                <span className="font-medium text-xs sm:text-sm md:text-base text-gray-800">{cat.name}</span>
               </Link>
             ))}
           </div>
@@ -160,24 +160,24 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 md:py-24 gradient-warm">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 gradient-warm">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               How <span className="text-gradient">KleverKlues</span> Works
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Your journey to emotional wellbeing starts with just one simple step.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {steps.map((step) => (
-              <div key={step.step} className="relative bg-white rounded-2xl p-8 shadow-sm hover:shadow-lg transition-all group">
-                <span className="text-5xl font-bold text-purple-100 group-hover:text-purple-200 transition-colors">{step.step}</span>
+              <div key={step.step} className="relative bg-white rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm hover:shadow-lg transition-all group">
+                <span className="text-4xl sm:text-5xl font-bold text-purple-100 group-hover:text-purple-200 transition-colors">{step.step}</span>
                 <div className="mt-4">
-                  <step.icon className="w-8 h-8 text-purple-600 mb-3" />
-                  <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                  <p className="text-gray-600 text-sm">{step.desc}</p>
+                  <step.icon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 mb-3" />
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2">{step.title}</h3>
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600">{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -186,20 +186,20 @@ export default function Home() {
       </section>
 
       {/* Programs Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Personalized <span className="text-gradient">Programs</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Guided wellbeing journeys designed by experts to help you heal, grow, and thrive.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {programs.map((program) => (
               <Link key={program.name} href="/programs" className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100">
-                <div className="relative h-48 overflow-hidden">
+                <div className="relative h-32 sm:h-40 md:h-48 overflow-hidden">
                   <Image
                     src={program.image}
                     alt={program.name}
@@ -207,15 +207,15 @@ export default function Home() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-                <div className="p-5">
-                  <h3 className="font-semibold text-gray-900 mb-1">{program.name}</h3>
-                  <p className="text-sm text-purple-600">{program.duration} program</p>
+                <div className="p-3 sm:p-4 md:p-5">
+                  <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-1">{program.name}</h3>
+                  <p className="text-xs sm:text-sm text-purple-600">{program.duration} program</p>
                 </div>
               </Link>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link href="/programs" className="inline-flex items-center gap-2 text-purple-700 font-semibold hover:gap-3 transition-all">
+          <div className="text-center mt-8 sm:mt-10">
+            <Link href="/programs" className="inline-flex items-center gap-2 text-purple-700 font-semibold hover:gap-3 transition-all text-xs sm:text-sm">
               View All Programs <ArrowRight size={18} />
             </Link>
           </div>
@@ -223,9 +223,9 @@ export default function Home() {
       </section>
 
       {/* Human Connection Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-purple-50 to-amber-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-purple-50 to-amber-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
             <div className="relative">
               <Image
                 src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=500&fit=crop"
@@ -235,32 +235,32 @@ export default function Home() {
                 className="rounded-3xl shadow-xl"
               />
             </div>
-            <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-bold">
+            <div className="space-y-4 sm:space-y-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
                 Help Someone <span className="text-gradient">Today</span>
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600">
                 Make a meaningful impact. Support someone emotionally, mentor others, or contribute to community wellbeing.
               </p>
-              <ul className="space-y-4">
+              <ul className="space-y-3 sm:space-y-4">
                 <li className="flex items-start gap-3">
                   <Heart className="text-purple-600 mt-1 flex-shrink-0" size={20} />
-                  <span className="text-gray-700">Support someone emotionally through peer circles</span>
+                  <span className="text-xs sm:text-sm md:text-base text-gray-700">Support someone emotionally through peer circles</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Users className="text-purple-600 mt-1 flex-shrink-0" size={20} />
-                  <span className="text-gray-700">Become a mentor or support buddy</span>
+                  <span className="text-xs sm:text-sm md:text-base text-gray-700">Become a mentor or support buddy</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-purple-600 mt-1 flex-shrink-0" size={20} />
-                  <span className="text-gray-700">Sponsor sessions for those in need</span>
+                  <span className="text-xs sm:text-sm md:text-base text-gray-700">Sponsor sessions for those in need</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Star className="text-purple-600 mt-1 flex-shrink-0" size={20} />
-                  <span className="text-gray-700">Join support circles and community missions</span>
+                  <span className="text-xs sm:text-sm md:text-base text-gray-700">Join support circles and community missions</span>
                 </li>
               </ul>
-              <Link href="/community" className="inline-flex items-center gap-2 px-6 py-3 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
+              <Link href="/community" className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
                 Join the Movement <ArrowRight size={18} />
               </Link>
             </div>
@@ -269,17 +269,17 @@ export default function Home() {
       </section>
 
       {/* Trust & Safety */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Built on <span className="text-gradient">Trust & Safety</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Your emotional safety is our top priority. Every aspect of KleverKlues is designed with trust at its core.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {[
               { icon: Shield, title: "Clinical Governance", desc: "All services overseen by qualified clinical professionals" },
               { icon: Lock, title: "Privacy First", desc: "End-to-end encryption, anonymous mode, DPDP compliant" },
@@ -288,10 +288,10 @@ export default function Home() {
               { icon: Users, title: "Human Moderation", desc: "Community spaces are moderated by trained humans" },
               { icon: Phone, title: "Crisis Response", desc: "24/7 crisis support systems with immediate human escalation" },
             ].map((item) => (
-              <div key={item.title} className="bg-purple-50 rounded-2xl p-6 border border-purple-100 hover:shadow-md transition-all">
-                <item.icon className="text-purple-600 mb-4" size={28} />
-                <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.desc}</p>
+              <div key={item.title} className="bg-purple-50 rounded-2xl p-3 sm:p-4 md:p-6 border border-purple-100 hover:shadow-md transition-all">
+                <item.icon className="text-purple-600 mb-3 sm:mb-4" size={28} />
+                <h3 className="font-semibold text-base sm:text-lg mb-2">{item.title}</h3>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -299,28 +299,28 @@ export default function Home() {
       </section>
 
       {/* Enterprise Preview */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-xs sm:text-sm font-medium">
                 For Organizations
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
                 Enterprise <span className="text-gradient">Wellbeing</span>
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-sm sm:text-base md:text-lg text-gray-600">
                 Build emotionally resilient teams. Reduce burnout. Improve workplace wellbeing with our enterprise solutions.
               </p>
               <ul className="space-y-3">
                 {["Corporate wellness programs", "Workforce emotional resilience", "Burnout prevention systems", "Educational institution support", "Leadership wellbeing coaching"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-gray-700">
+                  <li key={item} className="flex items-center gap-3 text-xs sm:text-sm md:text-base text-gray-700">
                     <CheckCircle size={18} className="text-green-500" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <Link href="/enterprise" className="inline-flex items-center gap-2 px-6 py-3 bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
+              <Link href="/enterprise" className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm bg-purple-700 text-white font-semibold rounded-full hover:bg-purple-800 transition-all">
                 Enterprise Solutions <ArrowRight size={18} />
               </Link>
             </div>
@@ -338,28 +338,28 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Stories of <span className="text-gradient">Transformation</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
               Real stories from real people whose lives were changed through emotional support and community care.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {testimonials.map((t) => (
-              <div key={t.name} className="bg-purple-50 rounded-2xl p-8 border border-purple-100">
+              <div key={t.name} className="bg-purple-50 rounded-2xl p-3 sm:p-4 md:p-6 border border-purple-100">
                 <div className="flex gap-1 mb-4">
                   {[...Array(t.rating)].map((_, i) => (
                     <Star key={i} size={18} className="text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-gray-700 mb-6 italic">&ldquo;{t.text}&rdquo;</p>
+                <p className="text-xs sm:text-sm md:text-base text-gray-700 mb-4 sm:mb-6 italic">&ldquo;{t.text}&rdquo;</p>
                 <div>
-                  <p className="font-semibold text-gray-900">{t.name}</p>
-                  <p className="text-sm text-gray-500">{t.role}</p>
+                  <p className="font-semibold text-sm sm:text-base text-gray-900">{t.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">{t.role}</p>
                 </div>
               </div>
             ))}
@@ -368,24 +368,24 @@ export default function Home() {
       </section>
 
       {/* Impact Stats */}
-      <section className="py-16 md:py-20 gradient-primary text-white">
+      <section className="py-8 sm:py-12 md:py-16 lg:py-20 gradient-primary text-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 text-center">
             <div>
-              <p className="text-4xl md:text-5xl font-bold">10K+</p>
-              <p className="text-purple-200 mt-2">People Supported</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">10K+</p>
+              <p className="text-purple-200 mt-2 text-xs sm:text-sm md:text-base">People Supported</p>
             </div>
             <div>
-              <p className="text-4xl md:text-5xl font-bold">500+</p>
-              <p className="text-purple-200 mt-2">Verified Professionals</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">500+</p>
+              <p className="text-purple-200 mt-2 text-xs sm:text-sm md:text-base">Verified Professionals</p>
             </div>
             <div>
-              <p className="text-4xl md:text-5xl font-bold">50+</p>
-              <p className="text-purple-200 mt-2">Programs Available</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">50+</p>
+              <p className="text-purple-200 mt-2 text-xs sm:text-sm md:text-base">Programs Available</p>
             </div>
             <div>
-              <p className="text-4xl md:text-5xl font-bold">24/7</p>
-              <p className="text-purple-200 mt-2">Crisis Support</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">24/7</p>
+              <p className="text-purple-200 mt-2 text-xs sm:text-sm md:text-base">Crisis Support</p>
             </div>
           </div>
         </div>
