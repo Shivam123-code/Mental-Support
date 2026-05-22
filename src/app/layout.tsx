@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Newsreader, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 import SOSButton from "@/components/SOSButton";
 import QuickExit from "@/components/QuickExit";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -39,7 +39,7 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
-        <Footer />
+        <ConditionalFooter />
         <SOSButton />
         <QuickExit />
         <WhatsAppButton />
