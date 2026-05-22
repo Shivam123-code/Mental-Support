@@ -85,19 +85,19 @@ export default function Professionals() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative py-16 md:py-24 gradient-hero">
+      <section className="relative py-10 md:py-16 lg:py-24 gradient-hero">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6">
                 Find Your <span className="text-gradient">Perfect Match</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8 max-w-lg">
+              <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 max-w-lg">
                 Connect with verified, experienced professionals who understand your unique needs. Every professional is carefully vetted and supervised.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {categories.map((cat) => (
-                  <span key={cat.name} className="px-4 py-2 bg-white rounded-full text-sm text-gray-700 shadow-sm border border-gray-100">
+                  <span key={cat.name} className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white rounded-full text-xs sm:text-sm text-gray-700 shadow-sm border border-gray-100">
                     {cat.name} <span className="text-purple-600 font-medium">({cat.count})</span>
                   </span>
                 ))}
@@ -117,48 +117,48 @@ export default function Professionals() {
       </section>
 
       {/* Professionals Grid */}
-      <section className="py-16 md:py-24">
+      <section className="py-10 md:py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Our <span className="text-gradient">Professionals</span>
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
               Every professional is verified, qualified, and committed to your wellbeing.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {professionals.map((prof) => (
-              <div key={prof.name} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all group">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+              <div key={prof.name} className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all group">
+                <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden flex-shrink-0">
                     <Image src={prof.image} alt={prof.name} fill className="object-cover" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{prof.name}</h3>
-                      <CheckCircle size={16} className="text-blue-500" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{prof.name}</h3>
+                      <CheckCircle size={14} className="text-blue-500 flex-shrink-0" />
                     </div>
-                    <p className="text-sm text-purple-600">{prof.role}</p>
+                    <p className="text-xs sm:text-sm text-purple-600">{prof.role}</p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Star size={14} className="text-amber-400 fill-amber-400" />
-                      <span className="text-sm font-medium">{prof.rating}</span>
-                      <span className="text-xs text-gray-400">({prof.reviews} reviews)</span>
+                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                      <span className="text-xs sm:text-sm font-medium">{prof.rating}</span>
+                      <span className="text-xs text-gray-400">({prof.reviews})</span>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2 mb-4 text-sm text-gray-600">
+                <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4 text-xs sm:text-sm text-gray-600">
                   <p><span className="font-medium text-gray-800">Specialization:</span> {prof.specialization}</p>
-                  <p className="flex items-center gap-1"><Globe size={14} /> {prof.languages}</p>
-                  <p className="flex items-center gap-1"><Clock size={14} /> {prof.experience} experience</p>
+                  <p className="flex items-center gap-1"><Globe size={12} className="flex-shrink-0" /> <span className="truncate">{prof.languages}</span></p>
+                  <p className="flex items-center gap-1"><Clock size={12} className="flex-shrink-0" /> {prof.experience} experience</p>
                 </div>
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                   <span className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
-                    <Video size={12} /> Video
+                    <Video size={10} /> Video
                   </span>
                   <span className="flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-                    <MessageCircle size={12} /> Chat
+                    <MessageCircle size={10} /> Chat
                   </span>
                   {prof.available && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
@@ -166,15 +166,15 @@ export default function Professionals() {
                     </span>
                   )}
                 </div>
-                <button className="w-full py-3 bg-purple-700 text-white font-medium rounded-full hover:bg-purple-800 transition-all text-sm">
+                <button className="w-full py-2.5 sm:py-3 bg-purple-700 text-white font-medium rounded-full hover:bg-purple-800 transition-all text-xs sm:text-sm">
                   Book Session
                 </button>
               </div>
             ))}
           </div>
 
-          <div className="text-center mt-12">
-            <Link href="/professionals" className="inline-flex items-center gap-2 px-8 py-4 border-2 border-purple-700 text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all">
+          <div className="text-center mt-8 md:mt-12">
+            <Link href="/professionals" className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 border-2 border-purple-700 text-purple-700 font-semibold rounded-full hover:bg-purple-50 transition-all text-sm sm:text-base">
               View All Professionals <ArrowRight size={18} />
             </Link>
           </div>
@@ -182,25 +182,25 @@ export default function Professionals() {
       </section>
 
       {/* Verification Process */}
-      <section className="py-16 bg-purple-50">
+      <section className="py-10 md:py-16 bg-purple-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Our Verification Promise</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4">Our Verification Promise</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
               Every professional on KleverKlues goes through a rigorous verification process.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {[
               { title: "Qualification Verified", desc: "Degrees and certifications validated" },
               { title: "Background Checked", desc: "Comprehensive background verification" },
               { title: "Clinically Supervised", desc: "Regular clinical supervision" },
               { title: "Continuously Monitored", desc: "Ongoing quality and feedback review" },
             ].map((item) => (
-              <div key={item.title} className="bg-white rounded-xl p-6 text-center">
-                <CheckCircle className="mx-auto text-green-500 mb-3" size={32} />
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+              <div key={item.title} className="bg-white rounded-xl p-4 sm:p-6 text-center">
+                <CheckCircle className="mx-auto text-green-500 mb-2 sm:mb-3" size={24} />
+                <h3 className="font-semibold mb-1 sm:mb-2 text-xs sm:text-base">{item.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
           </div>

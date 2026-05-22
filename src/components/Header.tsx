@@ -96,21 +96,21 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-4 border-t border-purple-100 flex flex-col gap-2">
+            <div className="pt-4 border-t border-purple-100 flex flex-row gap-2">
               <Link
                 href="/sos"
                 onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white font-semibold rounded-full"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-full"
               >
-                <Phone size={16} />
-                SOS — Get Help Now
+                <Phone size={14} />
+                SOS
               </Link>
               <Link
                 href="/assessments"
                 onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center px-4 py-3 bg-purple-700 text-white font-medium rounded-full"
+                className="flex-1 flex items-center justify-center px-3 py-2.5 bg-purple-700 text-white text-sm font-medium rounded-full"
               >
-                Start Free Assessment
+                Start Assessment
               </Link>
             </div>
           </nav>
