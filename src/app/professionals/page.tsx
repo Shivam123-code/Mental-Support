@@ -166,9 +166,9 @@ export default function Professionals() {
                     </span>
                   )}
                 </div>
-                <button className="w-full py-2.5 sm:py-3 bg-purple-700 text-white font-medium rounded-full hover:bg-purple-800 transition-all text-xs sm:text-sm">
+                <Link href="/book-session" className="block w-full py-2.5 sm:py-3 bg-purple-700 text-white font-medium rounded-full hover:bg-purple-800 transition-all text-xs sm:text-sm text-center">
                   Book Session
-                </button>
+                </Link>
               </div>
             ))}
           </div>

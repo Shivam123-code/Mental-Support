@@ -11,6 +11,7 @@ const navItems = [
   { name: "Assessments", href: "/assessments" },
   { name: "Programs", href: "/programs" },
   { name: "Professionals", href: "/professionals" },
+  { name: "Book Session", href: "/book-session" },
   { name: "Community", href: "/community" },
   { name: "Enterprise", href: "/enterprise" },
   { name: "Academy", href: "/academy" },
@@ -63,11 +64,11 @@ export default function Header() {
             </Link>
             <Link
               href="/assessments"
-              className="hidden md:block px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-full hover:bg-purple-800 transition-all"
+              className="hidden lg:block px-4 py-2 bg-purple-700 text-white text-sm font-medium rounded-full hover:bg-purple-800 transition-all"
             >
               Start Assessment
             </Link>
-            <button className="hidden md:block p-2 text-gray-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all">
+            <button className="hidden lg:block p-2 text-gray-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all">
               <Search size={20} />
             </button>
 
