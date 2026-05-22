@@ -391,3 +391,48 @@ body {
   background: linear-gradient(to top, var(--surface-container-lowest), transparent);
   pointer-events: none;
 }
+
+
+/* iPad & Tablet Optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .text-display-xl {
+    font-size: 48px;
+  }
+  .card {
+    padding: 24px;
+  }
+  .btn-primary, .btn-secondary {
+    padding: 12px 22px;
+    font-size: 15px;
+  }
+}
+
+/* Mobile touch target optimization */
+@media (max-width: 640px) {
+  .btn-primary, .btn-secondary {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chip {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .text-body-lg {
+    font-size: 16px;
+  }
+}
+
+/* Fix overflow on mobile */
+@media (max-width: 768px) {
+  .absolute {
+    display: none;
+  }
+  body {
+    overflow-x: hidden;
+  }
+}

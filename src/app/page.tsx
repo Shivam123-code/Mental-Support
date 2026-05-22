@@ -252,6 +252,7 @@ export default function Home() {
                   { icon: Users, text: "Become a mentor or support buddy" },
                   { icon: Sparkles, text: "Sponsor sessions for those in need" },
                   { icon: Star, text: "Join support circles and community missions" },
+                  { icon: Heart, text: "Contribute to community wellbeing missions" },
                 ].map((item) => (
                   <li key={item.text} className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0 mt-0.5">
