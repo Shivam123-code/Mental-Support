@@ -17,9 +17,9 @@ const timeSlots = [
 ];
 
 const featuredProfessionals = [
-  { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", rating: 4.9, image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&h=200&fit=crop", specialization: "Anxiety, Depression" },
-  { name: "Rahul Mehta", role: "Counsellor", rating: 4.8, image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop", specialization: "Burnout, Career" },
-  { name: "Kavita Desai", role: "Wellness Coach", rating: 4.7, image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop", specialization: "Stress, Mindfulness" },
+  { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", rating: 4.9, image: "/images/prof-dr-ananya.png", specialization: "Anxiety, Depression" },
+  { name: "Rahul Mehta", role: "Counsellor", rating: 4.8, image: "/images/prof-rahul.png", specialization: "Burnout, Career" },
+  { name: "Kavita Desai", role: "Wellness Coach", rating: 4.7, image: "/images/prof-kavita.png", specialization: "Stress, Mindfulness" },
 ];
 
 export default function BookSession() {
@@ -60,12 +60,12 @@ export default function BookSession() {
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Left - Booking Steps */}
-            <div className="lg:col-span-2 space-y-10">
+            <div className="lg:col-span-2 space-y-10 min-w-0">
               {/* Step 1: Session Type */}
               <div>
                 <h2 className="text-headline-md text-[var(--on-surface)] mb-2">1. Choose Session Type</h2>
                 <p className="text-sm text-[var(--on-surface-variant)] mb-6">All sessions are private, encrypted, and clinically supervised.</p>
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {sessionTypes.map((type) => (
                     <button
                       key={type.id}
@@ -92,7 +92,7 @@ export default function BookSession() {
               <div>
                 <h2 className="text-headline-md text-[var(--on-surface)] mb-2">2. Select Date</h2>
                 <p className="text-sm text-[var(--on-surface-variant)] mb-6">Choose a date that works for you.</p>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-3 overflow-x-auto pb-2 w-full max-w-full">
                   {dates.map((d) => (
                     <button
                       key={d.value}
@@ -115,7 +115,7 @@ export default function BookSession() {
               <div>
                 <h2 className="text-headline-md text-[var(--on-surface)] mb-2">3. Select Time</h2>
                 <p className="text-sm text-[var(--on-surface-variant)] mb-6">Available time slots for the selected date.</p>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-3">
                   {timeSlots.map((time) => (
                     <button
                       key={time}
@@ -149,7 +149,7 @@ export default function BookSession() {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {featuredProfessionals.map((prof) => (
                     <div key={prof.name} className="card !p-4 cursor-pointer hover:!border-[var(--primary-fixed-dim)] transition-all">
                       <div className="flex items-center gap-3">
@@ -177,8 +177,8 @@ export default function BookSession() {
             </div>
 
             {/* Right - Summary Panel */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 card !bg-[var(--surface-container-low)]">
+            <div className="lg:col-span-1 min-w-0">
+              <div className="lg:sticky lg:top-24 card !bg-[var(--surface-container-low)]">
                 <h3 className="font-semibold text-[var(--on-surface)] mb-6">Booking Summary</h3>
 
                 <div className="space-y-4 text-sm">

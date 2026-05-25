@@ -91,7 +91,7 @@ export default function Assessments() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=550&h=450&fit=crop"
+                src="/images/assessment-focus.png"
                 alt="Person taking assessment"
                 width={550}
                 height={450}

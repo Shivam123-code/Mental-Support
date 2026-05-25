@@ -45,7 +45,7 @@ export default function Enterprise() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=550&h=450&fit=crop" alt="Enterprise team" width={550} height={450} className="rounded-xl shadow-ambient" />
+              <Image src="/images/enterprise-team.png" alt="Enterprise team" width={550} height={450} className="rounded-xl shadow-ambient" />
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function Enterprise() {
               </ul>
               <Link href="/contact" className="btn-primary inline-flex items-center gap-2 mt-8">Request Demo <ArrowRight size={16} /></Link>
             </div>
-            <div><Image src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=450&fit=crop" alt="Dashboard" width={600} height={450} className="rounded-xl shadow-ambient" /></div>
+            <div><Image src="/images/assessment-focus.png" alt="Dashboard" width={600} height={450} className="rounded-xl shadow-ambient" /></div>
           </div>
         </div>
       </section>

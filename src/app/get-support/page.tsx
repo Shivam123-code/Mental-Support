@@ -7,37 +7,37 @@ const supportCategories = [
   {
     title: "Emotional Health",
     icon: Heart,
-    image: "https://images.unsplash.com/photo-1493836512294-502baa1986e2?w=500&h=350&fit=crop",
+    image: "/images/get-support.png",
     items: ["Anxiety", "Depression", "Stress", "Trauma", "Panic", "Grief", "Emotional Imbalance"],
   },
   {
     title: "Relationships & Family",
     icon: Users,
-    image: "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&h=350&fit=crop",
+    image: "/images/relationship-healing.png",
     items: ["Couples Support", "Divorce Recovery", "Parenting Support", "Family Conflict", "Single Parenting"],
   },
   {
     title: "Life & Career",
     icon: Briefcase,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=350&fit=crop",
+    image: "/images/burnout-reset.png",
     items: ["Career Counselling", "Burnout", "Leadership Stress", "Workplace Pressure", "Interview Anxiety"],
   },
   {
     title: "Children & Teenagers",
     icon: Baby,
-    image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=500&h=350&fit=crop",
+    image: "/images/parenting-confidence.png",
     items: ["ADHD", "Exam Stress", "Emotional Growth", "Learning Challenges", "Behavioural Support"],
   },
   {
     title: "Special Support",
     icon: Shield,
-    image: "https://images.unsplash.com/photo-1559234938-b60fff04894d?w=500&h=350&fit=crop",
+    image: "/images/community-support.png",
     items: ["Domestic Abuse", "Addiction Recovery", "Crisis Support", "Emotional Trauma"],
   },
   {
     title: "Personal Growth",
     icon: Sparkles,
-    image: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=500&h=350&fit=crop",
+    image: "/images/confidence-building.png",
     items: ["Confidence Building", "EQ Development", "Communication Skills", "Focus & Productivity"],
   },
 ];
@@ -68,7 +68,7 @@ export default function GetSupport() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=550&h=450&fit=crop"
+                src="/images/hero-woman.png"
                 alt="Supportive environment"
                 width={550}
                 height={450}

@@ -7,36 +7,36 @@ const trainingCategories = [
     title: "Professional Certifications",
     description: "Become a certified wellbeing professional",
     courses: [
-      { name: "Certified Counsellor Training", duration: "6 months", level: "Professional", image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400&h=280&fit=crop", price: "₹49,999" },
-      { name: "EQ Expert Certification", duration: "3 months", level: "Advanced", image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=280&fit=crop", price: "₹29,999" },
-      { name: "Wellbeing Facilitator", duration: "4 months", level: "Intermediate", image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=280&fit=crop", price: "₹34,999" },
-      { name: "Mindfulness Trainer", duration: "3 months", level: "Professional", image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=280&fit=crop", price: "₹24,999" },
+      { name: "Certified Counsellor Training", duration: "6 months", level: "Professional", image: "/images/therapist-session.png", price: "₹49,999" },
+      { name: "EQ Expert Certification", duration: "3 months", level: "Advanced", image: "/images/emotional-fitness.png", price: "₹29,999" },
+      { name: "Wellbeing Facilitator", duration: "4 months", level: "Intermediate", image: "/images/community-support.png", price: "₹34,999" },
+      { name: "Mindfulness Trainer", duration: "3 months", level: "Professional", image: "/images/anxiety-recovery.png", price: "₹24,999" },
     ],
   },
   {
     title: "Parenting & Child Programs",
     description: "Build confident, emotionally intelligent children",
     courses: [
-      { name: "Parenting Mastery", duration: "8 weeks", level: "All Levels", image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=400&h=280&fit=crop", price: "₹9,999" },
-      { name: "Child Emotional Intelligence", duration: "6 weeks", level: "Parents", image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=280&fit=crop", price: "₹7,999" },
+      { name: "Parenting Mastery", duration: "8 weeks", level: "All Levels", image: "/images/parenting-confidence.png", price: "₹9,999" },
+      { name: "Child Emotional Intelligence", duration: "6 weeks", level: "Parents", image: "/images/parenting-confidence.png", price: "₹7,999" },
     ],
   },
   {
     title: "Student Skill Programs",
     description: "Build essential life skills for academic success",
     courses: [
-      { name: "Focus Enhancement", duration: "4 weeks", level: "Students", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=280&fit=crop", price: "₹4,999" },
-      { name: "Communication Skills", duration: "6 weeks", level: "Students", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=280&fit=crop", price: "₹5,999" },
-      { name: "Confidence Building", duration: "4 weeks", level: "Students", image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&h=280&fit=crop", price: "₹4,499" },
+      { name: "Focus Enhancement", duration: "4 weeks", level: "Students", image: "/images/student-focus.png", price: "₹4,999" },
+      { name: "Communication Skills", duration: "6 weeks", level: "Students", image: "/images/student-focus.png", price: "₹5,999" },
+      { name: "Confidence Building", duration: "4 weeks", level: "Students", image: "/images/confidence-building.png", price: "₹4,499" },
     ],
   },
   {
     title: "Corporate Training",
     description: "Wellbeing training for organizational leaders",
     courses: [
-      { name: "Leadership EQ", duration: "8 weeks", level: "Leaders", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=280&fit=crop", price: "₹19,999" },
-      { name: "Workforce Resilience", duration: "6 weeks", level: "Teams", image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=280&fit=crop", price: "₹14,999" },
-      { name: "Stress Management", duration: "4 weeks", level: "Managers", image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=280&fit=crop", price: "₹12,999" },
+      { name: "Leadership EQ", duration: "8 weeks", level: "Leaders", image: "/images/enterprise-team.png", price: "₹19,999" },
+      { name: "Workforce Resilience", duration: "6 weeks", level: "Teams", image: "/images/enterprise-team.png", price: "₹14,999" },
+      { name: "Stress Management", duration: "4 weeks", level: "Managers", image: "/images/burnout-reset.png", price: "₹12,999" },
     ],
   },
 ];
@@ -65,7 +65,7 @@ export default function Academy() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=550&h=450&fit=crop" alt="Academy" width={550} height={450} className="rounded-xl shadow-ambient" />
+              <Image src="/images/assessment-focus.png" alt="Academy" width={550} height={450} className="rounded-xl shadow-ambient" />
             </div>
           </div>
         </div>

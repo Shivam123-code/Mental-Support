@@ -23,7 +23,7 @@ const roles = [
     subtitle: "Counsellor / Psychologist / Coach",
     description: "Join our network of verified professionals. Help others while growing your practice.",
     features: ["Get verified", "Manage sessions", "Grow your practice", "Earn respectfully"],
-    href: "/careers",
+    href: "/apply-professional",
     color: "bg-[var(--tertiary-fixed)]",
     iconColor: "text-[var(--tertiary)]",
     borderHover: "hover:border-[var(--tertiary-bright)]",
@@ -35,7 +35,7 @@ const roles = [
     subtitle: "Enterprise / Institution",
     description: "Workforce wellbeing solutions. Reduce burnout, improve engagement, build resilient teams.",
     features: ["Employee Assistance", "Burnout analytics", "Wellbeing dashboards", "Custom programs"],
-    href: "/enterprise",
+    href: "/apply-organization",
     color: "bg-[var(--secondary-fixed)]",
     iconColor: "text-[var(--secondary)]",
     borderHover: "hover:border-[var(--secondary-muted)]",
@@ -48,7 +48,7 @@ export default function RoleSelection() {
       {/* Header */}
       <div className="pt-12 sm:pt-16 pb-8 sm:pb-12 text-center px-4 sm:px-6">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <img src="/logo.svg" alt="KleverKlues" width={36} height={36} className="object-contain" />
+          <img src="/logo.jpg" alt="KleverKlues" width={36} height={36} className="object-contain" />
           <span className="text-lg font-display font-medium text-[var(--on-surface)]">KleverKlues&trade;</span>
         </div>
         <h1 className="text-headline-lg text-[var(--on-surface)] mb-3">

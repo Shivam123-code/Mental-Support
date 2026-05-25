@@ -4,12 +4,12 @@ import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight } fro
 import SafetyDisclaimer from "@/components/SafetyDisclaimer";
 
 const professionals = [
-  { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", specialization: "Anxiety, Depression, Trauma", experience: "12 years", languages: "English, Hindi", rating: 4.9, reviews: 234, image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop", available: true },
-  { name: "Rahul Mehta", role: "Counsellor", specialization: "Relationships, Career, Burnout", experience: "8 years", languages: "English, Hindi, Marathi", rating: 4.8, reviews: 189, image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop", available: true },
-  { name: "Dr. Priya Nair", role: "Psychologist", specialization: "Children, ADHD, Learning", experience: "15 years", languages: "English, Malayalam, Tamil", rating: 4.9, reviews: 312, image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=300&fit=crop", available: false },
-  { name: "Kavita Desai", role: "Wellness Coach", specialization: "Stress, Mindfulness, Sleep", experience: "6 years", languages: "English, Hindi, Gujarati", rating: 4.7, reviews: 156, image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop", available: true },
-  { name: "Dr. Arun Patel", role: "Clinical Psychologist", specialization: "Addiction, Trauma, Crisis", experience: "18 years", languages: "English, Hindi, Bengali", rating: 4.9, reviews: 278, image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop", available: true },
-  { name: "Sneha Iyer", role: "Mentor & EQ Coach", specialization: "Leadership, EQ, Communication", experience: "10 years", languages: "English, Tamil, Kannada", rating: 4.8, reviews: 201, image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop", available: true },
+  { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", specialization: "Anxiety, Depression, Trauma", experience: "12 years", languages: "English, Hindi", rating: 4.9, reviews: 234, image: "/images/prof-dr-ananya.png", available: true },
+  { name: "Rahul Mehta", role: "Counsellor", specialization: "Relationships, Career, Burnout", experience: "8 years", languages: "English, Hindi, Marathi", rating: 4.8, reviews: 189, image: "/images/prof-rahul.png", available: true },
+  { name: "Dr. Priya Nair", role: "Psychologist", specialization: "Children, ADHD, Learning", experience: "15 years", languages: "English, Malayalam, Tamil", rating: 4.9, reviews: 312, image: "/images/prof-dr-ananya.png", available: false },
+  { name: "Kavita Desai", role: "Wellness Coach", specialization: "Stress, Mindfulness, Sleep", experience: "6 years", languages: "English, Hindi, Gujarati", rating: 4.7, reviews: 156, image: "/images/prof-kavita.png", available: true },
+  { name: "Dr. Arun Patel", role: "Clinical Psychologist", specialization: "Addiction, Trauma, Crisis", experience: "18 years", languages: "English, Hindi, Bengali", rating: 4.9, reviews: 278, image: "/images/prof-rahul.png", available: true },
+  { name: "Sneha Iyer", role: "Mentor & EQ Coach", specialization: "Leadership, EQ, Communication", experience: "10 years", languages: "English, Tamil, Kannada", rating: 4.8, reviews: 201, image: "/images/prof-kavita.png", available: true },
 ];
 
 const categories = [
@@ -48,7 +48,7 @@ export default function Professionals() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=550&h=450&fit=crop"
+                src="/images/therapist-session.png"
                 alt="Professional counselling session"
                 width={550}
                 height={450}

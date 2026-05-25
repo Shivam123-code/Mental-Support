@@ -45,7 +45,7 @@ export default function Careers() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=550&h=450&fit=crop"
+                src="/images/therapist-session.png"
                 alt="Professional at work"
                 width={550}
                 height={450}

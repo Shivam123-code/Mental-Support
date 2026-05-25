@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Background: Transparent -->
+  
+  <!-- Orbit 3: Bottom Tilted Ellipse (lavender, 2 dots) -->
+  <g transform="rotate(35 100 100)">
+    <ellipse cx="100" cy="100" rx="80" ry="48" stroke="#BCA6F2" stroke-width="3" fill="none" />
+    <!-- Small lavender dot on the left (theta = 150) -->
+    <circle cx="30.7" cy="124" r="5.5" fill="#BCA6F2" />
+    <!-- Large lavender dot on the right (theta = 45) -->
+    <circle cx="156.6" cy="133.9" r="8.5" fill="#BCA6F2" />
+  </g>
+
+  <!-- Orbit 2: Horizontal/Yellow (lavender & golden yellow segment, 1 dot) -->
+  <g transform="rotate(15 100 100)">
+    <!-- Purple base ellipse -->
+    <ellipse cx="100" cy="100" rx="72" ry="34" stroke="#BCA6F2" stroke-width="3" fill="none" />
+    <!-- Golden yellow overlay arc (from theta = -30 to 60) -->
+    <path d="M 162.4 83 A 72 34 0 0 1 136 129.4" stroke="#F7A01D" stroke-width="3" fill="none" />
+    <!-- Golden yellow dot at theta = 10 -->
+    <circle cx="170.9" cy="105.9" r="6.5" fill="#F7A01D" />
+  </g>
+
+  <!-- Orbit 1: Large Tilted Ellipse (lavender, 1 dark purple dot) -->
+  <g transform="rotate(-25 100 100)">
+    <ellipse cx="100" cy="100" rx="88" ry="58" stroke="#BCA6F2" stroke-width="3" fill="none" />
+    <!-- Dark purple dot at theta = -115 -->
+    <circle cx="62.8" cy="47.4" r="7.5" fill="#29005C" />
+  </g>
+
+  <!-- Meditator Figure (dark purple) -->
+  <!-- Head -->
+  <circle cx="100" cy="68" r="9.5" stroke="#29005C" stroke-width="7.5" fill="none" />
+  
+  <!-- Torso (loops at waist and shoulders) -->
+  <path d="M 100,120 C 84,112 80,95 80,86 C 80,80 88,78 100,78 C 112,78 120,80 120,86 C 120,95 116,112 100,120 Z" stroke="#29005C" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- Legs (figure-8 horizontal loop crossing at bottom center) -->
+  <path d="M 72,136 C 72,122 88,120 100,120 C 112,120 128,122 128,136 C 128,146 114,146 100,132 C 86,146 72,146 72,136 Z" stroke="#29005C" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+</svg>

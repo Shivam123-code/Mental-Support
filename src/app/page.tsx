@@ -19,14 +19,14 @@ const categories = [
 ];
 
 const programs = [
-  { name: "Anxiety Recovery", duration: "8 weeks", image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop" },
-  { name: "Burnout Reset", duration: "6 weeks", image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=400&h=300&fit=crop" },
-  { name: "Emotional Fitness", duration: "12 weeks", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop" },
-  { name: "Parenting Confidence", duration: "8 weeks", image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=400&h=300&fit=crop" },
-  { name: "Student Focus", duration: "4 weeks", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=300&fit=crop" },
-  { name: "Relationship Healing", duration: "10 weeks", image: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=300&fit=crop" },
-  { name: "Sleep Recovery", duration: "6 weeks", image: "https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=400&h=300&fit=crop" },
-  { name: "Confidence Building", duration: "8 weeks", image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&h=300&fit=crop" },
+  { name: "Anxiety Recovery", duration: "8 weeks", image: "/images/anxiety-recovery.png" },
+  { name: "Burnout Reset", duration: "6 weeks", image: "/images/burnout-reset.png" },
+  { name: "Emotional Fitness", duration: "12 weeks", image: "/images/emotional-fitness.png" },
+  { name: "Parenting Confidence", duration: "8 weeks", image: "/images/parenting-confidence.png" },
+  { name: "Student Focus", duration: "4 weeks", image: "/images/student-focus.png" },
+  { name: "Relationship Healing", duration: "10 weeks", image: "/images/relationship-healing.png" },
+  { name: "Sleep Recovery", duration: "6 weeks", image: "/images/sleep-recovery.png" },
+  { name: "Confidence Building", duration: "8 weeks", image: "/images/confidence-building.png" },
 ];
 
 const steps = [
@@ -97,7 +97,7 @@ export default function Home() {
             </div>
             <div className="relative hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&h=700&fit=crop"
+                src="/images/hero-woman.png"
                 alt="Person feeling peaceful and supported"
                 width={600}
                 height={700}
@@ -232,7 +232,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <Image
-                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=500&fit=crop"
+                src="/images/community-support.png"
                 alt="People supporting each other"
                 width={600}
                 height={500}
@@ -330,7 +330,7 @@ export default function Home() {
             </div>
             <div className="relative">
               <Image
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=450&fit=crop"
+                src="/images/enterprise-team.png"
                 alt="Team collaboration and wellbeing"
                 width={600}
                 height={450}

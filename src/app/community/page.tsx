@@ -3,14 +3,14 @@ import Link from "next/link";
 import { Users, Heart, Shield, Star, MessageCircle, ArrowRight, Sparkles } from "lucide-react";
 
 const communityGroups = [
-  { name: "Student Wellness", members: "2.5K+", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=300&fit=crop", description: "Support for academic stress and student life" },
-  { name: "Startup Founders", members: "1.2K+", image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop", description: "Navigating entrepreneurial stress and burnout" },
-  { name: "Parenting Support", members: "3.1K+", image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=400&h=300&fit=crop", description: "A safe space for parents to grow together" },
-  { name: "Grief Healing", members: "1.8K+", image: "https://images.unsplash.com/photo-1516534775068-ba3e7a1d2dad?w=400&h=300&fit=crop", description: "Compassionate community for processing loss" },
-  { name: "Men's Wellness", members: "2.0K+", image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&h=300&fit=crop", description: "Breaking stigma — men supporting men" },
-  { name: "Women Leadership", members: "1.5K+", image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?w=400&h=300&fit=crop", description: "Empowering women leaders with resilience" },
-  { name: "Relationship Healing", members: "2.2K+", image: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=300&fit=crop", description: "Rebuilding trust and healing relationships" },
-  { name: "Senior Wellbeing", members: "900+", image: "https://images.unsplash.com/photo-1447005497901-b3e9ee359928?w=400&h=300&fit=crop", description: "Connection and support for seniors" },
+  { name: "Student Wellness", members: "2.5K+", image: "/images/student-focus.png", description: "Support for academic stress and student life" },
+  { name: "Startup Founders", members: "1.2K+", image: "/images/burnout-reset.png", description: "Navigating entrepreneurial stress and burnout" },
+  { name: "Parenting Support", members: "3.1K+", image: "/images/parenting-confidence.png", description: "A safe space for parents to grow together" },
+  { name: "Grief Healing", members: "1.8K+", image: "/images/get-support.png", description: "Compassionate community for processing loss" },
+  { name: "Men's Wellness", members: "2.0K+", image: "/images/confidence-building.png", description: "Breaking stigma — men supporting men" },
+  { name: "Women Leadership", members: "1.5K+", image: "/images/emotional-fitness.png", description: "Empowering women leaders with resilience" },
+  { name: "Relationship Healing", members: "2.2K+", image: "/images/relationship-healing.png", description: "Rebuilding trust and healing relationships" },
+  { name: "Senior Wellbeing", members: "900+", image: "/images/community-support.png", description: "Connection and support for seniors" },
 ];
 
 const features = [
@@ -44,7 +44,7 @@ export default function Community() {
               </Link>
             </div>
             <div className="hidden lg:block">
-              <Image src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=550&h=450&fit=crop" alt="Community" width={550} height={450} className="rounded-xl shadow-ambient" />
+              <Image src="/images/community-support.png" alt="Community" width={550} height={450} className="rounded-xl shadow-ambient" />
             </div>
           </div>
         </div>

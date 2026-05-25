@@ -121,156 +121,159 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 glass-nav border-b border-hairline">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16 sm:h-[72px]">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
-              <img
-                src="/logo.svg"
-                alt="KleverKlues"
-                width={40}
-                height={40}
-                className="object-contain w-full h-full"
-              />
-            </div>
-            <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
-              KleverKlues&trade;
-            </span>
-          </Link>
-
-          {/* Desktop Navigation with Dropdowns */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {topLevelLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className="px-3 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
-              >
-                {link.name}
-              </Link>
-            ))}
-            {navGroups.map((group) => (
-              <DropdownMenu
-                key={group.label}
-                group={group}
-                isOpen={openDropdown === group.label}
-                onToggle={() => handleToggle(group.label)}
-              />
-            ))}
-          </nav>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/sos"
-              className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[var(--error)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all duration-200"
-            >
-              <Phone size={14} />
-              SOS
-            </Link>
-            <Link
-              href="/role-selection"
-              className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/assessments"
-              className="hidden md:block btn-primary !py-2.5 !px-5 !text-sm"
-            >
-              Start Assessment
-            </Link>
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
-            >
-              <Search size={18} />
-            </button>
-            <div className="hidden md:block">
-              <LanguageSelector />
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden flex items-center justify-center w-10 h-10 text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
-            >
-              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="lg:hidden bg-[var(--surface-container-lowest)] border-t border-[var(--outline-variant)] shadow-ambient max-h-[calc(100vh-64px)] overflow-y-auto">
-          <nav className="px-4 sm:px-6 py-6">
-            {/* Home link */}
-            <Link
-              href="/"
-              onClick={() => setIsMenuOpen(false)}
-              className="block px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
-            >
-              Home
-            </Link>
-
-            {/* Grouped sections */}
-            {navGroups.map((group) => (
-              <div key={group.label} className="mt-4">
-                <p className="px-4 text-label-bold text-[var(--outline)] uppercase tracking-wider mb-2">
-                  {group.label}
-                </p>
-                {group.items.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
-                  >
-                    <div className="w-7 h-7 rounded-md bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0">
-                      <item.icon size={13} className="text-[var(--primary)]" />
-                    </div>
-                    <div>
-                      <span className="block text-sm">{item.name}</span>
-                      <span className="block text-xs text-[var(--on-surface-variant)]/70">{item.desc}</span>
-                    </div>
-                  </Link>
-                ))}
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-hairline">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16 sm:h-[72px]">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
+                <img
+                  src="/logo.jpg"
+                  alt="KleverKlues"
+                  width={40}
+                  height={40}
+                  className="object-contain w-full h-full"
+                />
               </div>
-            ))}
+              <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
+                KleverKlues&trade;
+              </span>
+            </Link>
 
-            {/* CTA Buttons */}
-            <div className="pt-6 mt-6 border-t border-[var(--outline-variant)] flex flex-col gap-3">
+            {/* Desktop Navigation with Dropdowns */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {topLevelLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className="px-3 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+                >
+                  {link.name}
+                </Link>
+              ))}
+              {navGroups.map((group) => (
+                <DropdownMenu
+                  key={group.label}
+                  group={group}
+                  isOpen={openDropdown === group.label}
+                  onToggle={() => handleToggle(group.label)}
+                />
+              ))}
+            </nav>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/sos"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--error)] text-white font-semibold rounded-lg"
+                className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[var(--error)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all duration-200"
               >
-                <Phone size={16} />
-                SOS — Get Help Now
-              </Link>
-              <Link
-                href="/assessments"
-                onClick={() => setIsMenuOpen(false)}
-                className="btn-primary text-center"
-              >
-                Start Free Assessment
+                <Phone size={14} />
+                SOS
               </Link>
               <Link
                 href="/role-selection"
-                onClick={() => setIsMenuOpen(false)}
-                className="btn-secondary text-center"
+                className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
               >
                 Sign In
               </Link>
+              <Link
+                href="/assessments"
+                className="!hidden md:!inline-block btn-primary !py-2.5 !px-5 !text-sm"
+              >
+                Start Assessment
+              </Link>
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+              >
+                <Search size={18} />
+              </button>
+              <div className="hidden md:block">
+                <LanguageSelector />
+              </div>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="lg:hidden flex items-center justify-center w-10 h-10 text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
+              >
+                {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
             </div>
-          </nav>
+          </div>
         </div>
-      )}
-      {/* Search Modal */}
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-    </header>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="lg:hidden bg-[var(--surface-container-lowest)] border-t border-[var(--outline-variant)] shadow-ambient max-h-[calc(100vh-64px)] overflow-y-auto">
+            <nav className="px-4 sm:px-6 py-6">
+              {/* Home link */}
+              <Link
+                href="/"
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
+              >
+                Home
+              </Link>
+
+              {/* Grouped sections */}
+              {navGroups.map((group) => (
+                <div key={group.label} className="mt-4">
+                  <p className="px-4 text-label-bold text-[var(--outline)] uppercase tracking-wider mb-2">
+                    {group.label}
+                  </p>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
+                    >
+                      <div className="w-7 h-7 rounded-md bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0">
+                        <item.icon size={13} className="text-[var(--primary)]" />
+                      </div>
+                      <div>
+                        <span className="block text-sm">{item.name}</span>
+                        <span className="block text-xs text-[var(--on-surface-variant)]/70">{item.desc}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ))}
+
+              {/* CTA Buttons */}
+              <div className="pt-6 mt-6 border-t border-[var(--outline-variant)] flex flex-col gap-3">
+                <Link
+                  href="/sos"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--error)] text-white font-semibold rounded-lg"
+                >
+                  <Phone size={16} />
+                  SOS — Get Help Now
+                </Link>
+                <Link
+                  href="/assessments"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="btn-primary text-center"
+                >
+                  Start Free Assessment
+                </Link>
+                <Link
+                  href="/role-selection"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="btn-secondary text-center"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
+        {/* Search Modal */}
+        <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      </header>
+      <div className="h-16 sm:h-[72px]" />
+    </>
   );
 }
