@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight } from "lucide-react";
-import SafetyDisclaimer from "@/components/SafetyDisclaimer";
+import SafetyDisclaimer from "@/components/ui/SafetyDisclaimer";
 
 const professionals = [
   { name: "Dr. Ananya Sharma", role: "Clinical Psychologist", specialization: "Anxiety, Depression, Trauma", experience: "12 years", languages: "English, Hindi", rating: 4.9, reviews: 234, image: "/images/prof-dr-ananya.png", available: true },

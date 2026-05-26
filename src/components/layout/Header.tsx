@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, GraduationCap, BookOpen, Shield } from "lucide-react";
-import SearchModal from "./SearchModal";
-import LanguageSelector from "./LanguageSelector";
+import SearchModal from "@/components/ui/SearchModal";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 interface DropdownItem {
   name: string;
@@ -112,6 +113,7 @@ function DropdownMenu({ group, isOpen, onToggle }: { group: NavGroup; isOpen: bo
 }
 
 export default function Header() {
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -119,6 +121,10 @@ export default function Header() {
   const handleToggle = (label: string) => {
     setOpenDropdown(openDropdown === label ? null : label);
   };
+
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
 
   return (
     <>

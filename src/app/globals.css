@@ -314,28 +314,28 @@ body {
 
 /* Section Spacing */
 .section-gap {
-  padding-top: 60px;
-  padding-bottom: 60px;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 @media (min-width: 640px) {
   .section-gap {
-    padding-top: 80px;
-    padding-bottom: 80px;
+    padding-top: 48px;
+    padding-bottom: 48px;
   }
 }
 
 @media (min-width: 768px) {
   .section-gap {
-    padding-top: 100px;
-    padding-bottom: 100px;
+    padding-top: 56px;
+    padding-bottom: 56px;
   }
 }
 
 @media (min-width: 1024px) {
   .section-gap {
-    padding-top: 120px;
-    padding-bottom: 120px;
+    padding-top: 72px;
+    padding-bottom: 72px;
   }
 }
 

@@ -10,14 +10,14 @@ const cards = [
   { title: "Resources", desc: "Clinical tools, templates, and guides", icon: BookOpen, href: "/resources" },
 ];
 
-export default function ConsultantDashboard() {
+export default function ProfessionalDashboard() {
   return (
     <div>
       {/* Hero */}
       <section className="section-gap bg-[var(--surface)]">
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="chip mb-6"><Users size={14} /> Professional Hub</div>
-          <h1 className="text-display-xl text-[var(--on-surface)] mb-4">Consultant Dashboard</h1>
+          <h1 className="text-display-xl text-[var(--on-surface)] mb-4">Professional Dashboard</h1>
           <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mb-12">
             Manage your practice, track sessions, and grow your impact — all from one professional workspace.
           </p>

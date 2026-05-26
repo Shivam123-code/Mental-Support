@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Brain, Heart, Users, Briefcase, TrendingUp, Shield, ArrowRight, Clock, CheckCircle } from "lucide-react";
-import SafetyDisclaimer from "@/components/SafetyDisclaimer";
+import SafetyDisclaimer from "@/components/ui/SafetyDisclaimer";
+import { slugify } from "@/data/assessments";
 
 const assessmentCategories = [
   {
@@ -115,7 +116,7 @@ export default function Assessments() {
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.assessments.map((assessment) => (
-                  <div key={assessment.name} className="card group cursor-pointer hover:-translate-y-1 transition-all duration-300">
+                  <Link href={`/assessments/${slugify(assessment.name)}`} key={assessment.name} className="card group cursor-pointer hover:-translate-y-1 transition-all duration-300 block decoration-none">
                     <h3 className="font-semibold text-[var(--on-surface)] mb-2 group-hover:text-[var(--primary)] transition-colors">{assessment.name}</h3>
                     <p className="text-sm text-[var(--on-surface-variant)] mb-5 leading-relaxed">{assessment.description}</p>
                     <div className="flex items-center justify-between">
@@ -124,7 +125,7 @@ export default function Assessments() {
                       </span>
                       <ArrowRight size={16} className="text-[var(--primary)] group-hover:translate-x-1 transition-transform" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

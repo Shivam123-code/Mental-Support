@@ -40,6 +40,18 @@ const roles = [
     iconColor: "text-[var(--secondary)]",
     borderHover: "hover:border-[var(--secondary-muted)]",
   },
+  {
+    id: "admin",
+    icon: Shield,
+    title: "Platform Admin",
+    subtitle: "Administrator / Safety Team",
+    description: "Monitor platform health, verify professionals, oversee clinical governance, and audit safety logs.",
+    features: ["System analytics", "Safety escalations", "Consultant verification", "Manage resources"],
+    href: "/login/admin",
+    color: "bg-indigo-50 dark:bg-indigo-950/30",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    borderHover: "hover:border-indigo-500",
+  },
 ];
 
 export default function RoleSelection() {
@@ -61,8 +73,8 @@ export default function RoleSelection() {
 
       {/* Role Cards */}
       <div className="flex-1 flex items-start justify-center px-4 sm:px-6 pb-12 sm:pb-20">
-        <div className="w-full max-w-4xl">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="w-full max-w-6xl">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {roles.map((role) => (
               <Link
                 key={role.id}

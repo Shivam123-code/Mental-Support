@@ -1,55 +1,57 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock, Users, Star, CheckCircle } from "lucide-react";
+import { slugify } from "@/data/programs";
 
 const programCategories = [
   {
     title: "Emotional Recovery",
     description: "Heal and rebuild your emotional foundation",
     programs: [
-      { name: "Anxiety Reset", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=280&fit=crop", rating: 4.9 },
-      { name: "Emotional Healing", duration: "12 weeks", sessions: 24, image: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400&h=280&fit=crop", rating: 4.8 },
-      { name: "Burnout Recovery", duration: "6 weeks", sessions: 12, image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=400&h=280&fit=crop", rating: 4.9 },
-      { name: "Confidence Rebuild", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&h=280&fit=crop", rating: 4.7 },
+      { name: "Anxiety Reset", duration: "8 weeks", sessions: 16, image: "/images/anxiety-recovery.png", rating: 4.9 },
+      { name: "Emotional Healing", duration: "12 weeks", sessions: 24, image: "/images/get-support.png", rating: 4.8 },
+      { name: "Burnout Recovery", duration: "6 weeks", sessions: 12, image: "/images/burnout-reset.png", rating: 4.9 },
+      { name: "Confidence Rebuild", duration: "8 weeks", sessions: 16, image: "/images/confidence-building.png", rating: 4.7 },
     ],
   },
   {
     title: "Relationships",
     description: "Strengthen bonds and heal connections",
     programs: [
-      { name: "Couple Reconnection", duration: "10 weeks", sessions: 20, image: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=280&fit=crop", rating: 4.8 },
-      { name: "Marriage Wellbeing", duration: "12 weeks", sessions: 24, image: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&h=280&fit=crop", rating: 4.9 },
-      { name: "Parenting Confidence", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=400&h=280&fit=crop", rating: 4.8 },
+      { name: "Couple Reconnection", duration: "10 weeks", sessions: 20, image: "/images/relationship-healing.png", rating: 4.8 },
+      { name: "Marriage Wellbeing", duration: "12 weeks", sessions: 24, image: "/images/relationship-healing.png", rating: 4.9 },
+      { name: "Parenting Confidence", duration: "8 weeks", sessions: 16, image: "/images/parenting-confidence.png", rating: 4.8 },
     ],
   },
   {
     title: "Student Programs",
     description: "Academic success and emotional growth",
     programs: [
-      { name: "Focus Improvement", duration: "4 weeks", sessions: 8, image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=280&fit=crop", rating: 4.7 },
-      { name: "Exam Confidence", duration: "6 weeks", sessions: 12, image: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=400&h=280&fit=crop", rating: 4.8 },
-      { name: "Emotional Resilience", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=280&fit=crop", rating: 4.9 },
+      { name: "Focus Improvement", duration: "4 weeks", sessions: 8, image: "/images/student-focus.png", rating: 4.7 },
+      { name: "Exam Confidence", duration: "6 weeks", sessions: 12, image: "/images/student-focus.png", rating: 4.8 },
+      { name: "Emotional Resilience", duration: "8 weeks", sessions: 16, image: "/images/assessment-focus.png", rating: 4.9 },
     ],
   },
   {
     title: "Workplace Programs",
     description: "Thrive at work without burning out",
     programs: [
-      { name: "Leadership Wellbeing", duration: "10 weeks", sessions: 20, image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=280&fit=crop", rating: 4.8 },
-      { name: "Burnout Prevention", duration: "6 weeks", sessions: 12, image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=280&fit=crop", rating: 4.9 },
-      { name: "Workplace EQ", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=280&fit=crop", rating: 4.7 },
+      { name: "Leadership Wellbeing", duration: "10 weeks", sessions: 20, image: "/images/enterprise-team.png", rating: 4.8 },
+      { name: "Burnout Prevention", duration: "6 weeks", sessions: 12, image: "/images/burnout-reset.png", rating: 4.9 },
+      { name: "Workplace EQ", duration: "8 weeks", sessions: 16, image: "/images/community-support.png", rating: 4.7 },
     ],
   },
   {
     title: "Lifestyle Wellness",
     description: "Build healthy habits for lasting wellbeing",
     programs: [
-      { name: "Sleep Recovery", duration: "6 weeks", sessions: 12, image: "https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=400&h=280&fit=crop", rating: 4.9 },
-      { name: "Mindfulness Journey", duration: "8 weeks", sessions: 16, image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=280&fit=crop", rating: 4.8 },
-      { name: "Emotional Fitness", duration: "12 weeks", sessions: 24, image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=280&fit=crop", rating: 4.8 },
+      { name: "Sleep Recovery", duration: "6 weeks", sessions: 12, image: "/images/sleep-recovery.png", rating: 4.9 },
+      { name: "Mindfulness Journey", duration: "8 weeks", sessions: 16, image: "/images/hero-woman.png", rating: 4.8 },
+      { name: "Emotional Fitness", duration: "12 weeks", sessions: 24, image: "/images/emotional-fitness.png", rating: 4.8 },
     ],
   },
 ];
+
 
 export default function Programs() {
   return (
@@ -83,7 +85,7 @@ export default function Programs() {
             </div>
             <div className="hidden lg:block">
               <Image
-                src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=550&h=450&fit=crop"
+                src="/images/hero-woman.png"
                 alt="Personal growth journey"
                 width={550}
                 height={450}
@@ -105,7 +107,11 @@ export default function Programs() {
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {category.programs.map((program) => (
-                  <div key={program.name} className="bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300 group cursor-pointer">
+                  <Link
+                    key={program.name}
+                    href={`/programs/${slugify(program.name)}`}
+                    className="bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300 group block"
+                  >
                     <div className="relative h-44 overflow-hidden">
                       <Image src={program.image} alt={program.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
@@ -123,7 +129,7 @@ export default function Programs() {
                         <ArrowRight size={14} className="text-[var(--primary)] group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

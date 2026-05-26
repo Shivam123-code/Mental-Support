@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Newsreader, Manrope } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import ConditionalFooter from "@/components/ConditionalFooter";
-import SOSButton from "@/components/SOSButton";
-import QuickExit from "@/components/QuickExit";
-import WhatsAppButton from "@/components/WhatsAppButton";
+import Header from "@/components/layout/Header";
+import ConditionalFooter from "@/components/layout/ConditionalFooter";
+import SOSButton from "@/components/layout/SOSButton";
+import QuickExit from "@/components/layout/QuickExit";
+import WhatsAppButton from "@/components/layout/WhatsAppButton";
 
 const newsreader = Newsreader({
   subsets: ["latin"],

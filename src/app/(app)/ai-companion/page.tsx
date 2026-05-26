@@ -6,7 +6,7 @@ import {
   Brain, MessageCircle, TrendingUp, Shield, Sparkles, 
   ArrowRight, Heart, Lock, AlertTriangle, Send, X, Phone 
 } from "lucide-react";
-import AIMascot from "@/components/AIMascot";
+import AIMascot from "@/components/ui/AIMascot";
 
 const aiModules = [
   { icon: MessageCircle, title: "AI Companion", desc: "Daily emotional support through intelligent, empathetic conversations. Always available, never judgmental.", tag: "Daily Support" },

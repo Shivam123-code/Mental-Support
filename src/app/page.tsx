@@ -52,7 +52,7 @@ export default function Home() {
         <div className="absolute top-40 right-[15%] w-[250px] h-[250px] border border-[var(--tertiary-bright)]/10 rounded-full pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
 
-        <div className="max-w-[1280px] mx-auto px-6 py-20 md:py-32 lg:py-40">
+        <div className="max-w-[1280px] mx-auto px-6 py-10 md:py-16 lg:py-20">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-10">
               <div className="chip">
