@@ -137,7 +137,7 @@ export default function UserDashboard() {
         <div className="flex items-center gap-2">
           <button 
             onClick={handleQuickExit}
-            className="px-2.5 py-1.5 bg-rose-600 text-white rounded text-[10px] font-bold uppercase tracking-wider"
+            className="px-2.5 py-1.5 bg-rose-600 text-white rounded text-label-bold uppercase"
           >
             Quick Exit
           </button>
@@ -229,7 +229,7 @@ export default function UserDashboard() {
         
         {/* Top Header / Quick Actions */}
         <header className="h-16 border-b border-[var(--outline-variant)]/60 bg-[var(--surface-container-lowest)] px-6 lg:px-8 flex items-center justify-between sticky top-16 lg:top-0 z-30">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+          <h2 className="text-label-bold uppercase text-[var(--on-surface-variant)]">
             {activeTab} Module
           </h2>
 
@@ -263,10 +263,10 @@ export default function UserDashboard() {
                   <span className="text-[10px] bg-emerald-600/10 text-emerald-600 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full inline-block">
                     SAFE SPACE ACTIVE
                   </span>
-                  <h1 className="text-2xl sm:text-3xl font-display font-medium text-[var(--on-surface)]">
+                  <h1 className="text-headline-lg text-[var(--on-surface)]">
                     Good Day, {anonymousMode ? "Friend" : userName}
                   </h1>
-                  <p className="text-xs sm:text-sm text-[var(--on-surface-variant)] max-w-xl">
+                  <p className="text-body-md text-[var(--on-surface-variant)] max-w-xl">
                     Take a deep breath. You are safe here. How is your heart feeling in this moment?
                   </p>
                 </div>
@@ -302,7 +302,7 @@ export default function UserDashboard() {
                 {/* 1. Daily checkin card */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-5 lg:col-span-2 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] flex items-center gap-1.5">
+                    <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)] flex items-center gap-1.5">
                       <Activity size={14} className="text-emerald-600" /> Today's Emotional Check-In
                     </h3>
                     <p className="text-[10px] text-[var(--on-surface-variant)]/60">Log your energy and sleep metrics to help the AI map insights.</p>
@@ -377,7 +377,7 @@ export default function UserDashboard() {
                 {/* 2. Mini AI Companion breathing widget */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4 lg:col-span-1 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] flex items-center gap-1.5">
+                    <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)] flex items-center gap-1.5">
                       <Sparkles size={14} className="text-indigo-600 animate-pulse" /> AI Companion
                     </h3>
                     <p className="text-[10px] text-[var(--on-surface-variant)]/60">Gentle mental wellness guidelines</p>
@@ -415,7 +415,7 @@ export default function UserDashboard() {
 
               {/* score dials & wellbeing score grid */}
               <section className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Weekly Wellbeing Indicators</h3>
+                <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Weekly Wellbeing Indicators</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   
                   {[
@@ -459,7 +459,7 @@ export default function UserDashboard() {
                 
                 {/* 1. Care Journey checklist */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4 lg:col-span-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Your Care Journey</h3>
+                  <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Your Care Journey</h3>
                   <div className="space-y-3.5 pt-2">
                     {[
                       { step: "Anxiety Index Assessment", done: true },
@@ -492,7 +492,7 @@ export default function UserDashboard() {
 
                 {/* 2. Active Programs list */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4 lg:col-span-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Active Programs</h3>
+                  <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Active Programs</h3>
                   
                   <div className="space-y-4 pt-1">
                     {[
@@ -527,7 +527,7 @@ export default function UserDashboard() {
                 {/* 3. Reflection Journal Widget */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4 lg:col-span-1 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Today's Reflection</h3>
+                    <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Today's Reflection</h3>
                     <p className="text-[10px] text-[var(--on-surface-variant)]/60">What helped you feel emotionally safe this week?</p>
                   </div>
 
@@ -560,7 +560,7 @@ export default function UserDashboard() {
                 
                 {/* Recommended Ecosystem Actions */}
                 <div className="card p-6 bg-[var(--surface-container-low)] space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Recommended For You</h3>
+                  <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Recommended For You</h3>
                   <div className="space-y-3 pt-1">
                     {[
                       { action: "Start Sleep Recovery Program", path: "Programs", detail: "Suggested based on low sleep recovery check-ins." },
@@ -586,7 +586,7 @@ export default function UserDashboard() {
 
                 {/* Resource Feed */}
                 <div className="card p-6 bg-[var(--surface-container-low)] space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Calming Resource Feed</h3>
+                  <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Calming Resource Feed</h3>
                   <div className="space-y-3 pt-1">
                     {[
                       { title: "Understanding Stress Cycles", format: "Podcast • 12 mins", category: "Stress Management" },
@@ -860,7 +860,7 @@ export default function UserDashboard() {
                 {/* Impact score card */}
                 <div className="card bg-[var(--surface-container-low)] p-5 space-y-4 md:col-span-1 flex flex-col justify-between">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600">Your Impact & Gratitude Score</h4>
+                    <h4 className="text-label-bold uppercase text-emerald-600">Your Impact & Gratitude Score</h4>
                     <p className="text-3xl font-bold font-display mt-2">{impactScore}</p>
                     <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">You encouraged <strong>{encouragedCount}</strong> peers on the gratitude wall this week!</p>
                   </div>
@@ -874,7 +874,7 @@ export default function UserDashboard() {
 
                 {/* Active Circles */}
                 <div className="card bg-[var(--surface-container-low)] p-5 space-y-4 md:col-span-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Your Active Circles</h4>
+                  <h4 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Your Active Circles</h4>
                   
                   <div className="space-y-3 pt-1">
                     {[
@@ -963,7 +963,7 @@ export default function UserDashboard() {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Score */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4 text-center">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Your Gratitude Index</h4>
+                  <h4 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Your Gratitude Index</h4>
                   <div className="w-28 h-28 rounded-full bg-emerald-600/10 border-2 border-emerald-600/20 flex flex-col items-center justify-center mx-auto">
                     <span className="text-3xl font-bold text-emerald-600 font-display">{impactScore}</span>
                     <span className="text-[8px] uppercase font-bold text-[var(--on-surface-variant)]">Total Points</span>
@@ -973,7 +973,7 @@ export default function UserDashboard() {
 
                 {/* peer feed */}
                 <div className="card bg-[var(--surface-container-low)] p-6 space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Gratitude Highlights</h4>
+                  <h4 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Gratitude Highlights</h4>
                   <div className="space-y-3 pt-1">
                     {[
                       "Peer #148: 'Thanks for the encouragement, the breathing exercise guidelines helped! 💚'",
@@ -1007,7 +1007,7 @@ export default function UserDashboard() {
                 
                 {/* Emergency numbers */}
                 <div className="card p-6 bg-[var(--surface-container-low)] space-y-4 border-l-4 border-rose-500">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-rose-500">24/7 Helpline Telephones</h4>
+                  <h4 className="text-label-bold uppercase text-rose-500">24/7 Helpline Telephones</h4>
                   <div className="space-y-3.5 pt-2 text-xs">
                     <p className="flex justify-between font-semibold border-b border-[var(--outline-variant)]/40 pb-2">
                       <span>Vandrevala Foundation Helpline</span>
@@ -1026,7 +1026,7 @@ export default function UserDashboard() {
 
                 {/* Safety protocols */}
                 <div className="card p-6 bg-[var(--surface-container-low)] space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Guided Grounding Exercise</h4>
+                  <h4 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Guided Grounding Exercise</h4>
                   <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
                     To help restore cognitive calm immediately, focus on your surroundings and try the 5-4-3-2-1 technique:
                   </p>

@@ -302,7 +302,7 @@ export default function MasterAdminDashboard() {
                 {/* Health Metrics */}
                 <div className="card p-5 bg-[var(--surface-container-low)] space-y-4">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Platform Health</span>
+                    <span className="text-label-bold uppercase text-indigo-600">Platform Health</span>
                     <Heart size={16} className="text-indigo-600" />
                   </div>
                   <div className="space-y-1.5">
@@ -319,7 +319,7 @@ export default function MasterAdminDashboard() {
                 {/* Safety Metrics */}
                 <div className="card p-5 bg-[var(--surface-container-low)] space-y-4">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Safety & Crisis</span>
+                    <span className="text-label-bold uppercase text-rose-500">Safety & Crisis</span>
                     <AlertTriangle size={16} className="text-rose-500 animate-pulse" />
                   </div>
                   <div className="space-y-1.5">
@@ -338,7 +338,7 @@ export default function MasterAdminDashboard() {
                 {/* Engagement Metrics */}
                 <div className="card p-5 bg-[var(--surface-container-low)] space-y-4">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Engagement</span>
+                    <span className="text-label-bold uppercase text-emerald-600">Engagement</span>
                     <Smile size={16} className="text-emerald-600" />
                   </div>
                   <div className="space-y-1.5">
@@ -355,7 +355,7 @@ export default function MasterAdminDashboard() {
                 {/* AI Safety Metrics */}
                 <div className="card p-5 bg-[var(--surface-container-low)] space-y-4">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">AI Governance</span>
+                    <span className="text-label-bold uppercase text-amber-500">AI Governance</span>
                     <Cpu size={16} className="text-amber-500" />
                   </div>
                   <div className="space-y-1.5">

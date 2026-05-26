@@ -110,7 +110,7 @@ export default function EnterpriseDashboard() {
               {stats.map((stat, i) => (
                 <div key={i} className="card p-5 bg-[var(--surface-container-low)] space-y-4">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--on-surface-variant)]/70">{stat.title}</span>
+                    <span className="text-label-bold uppercase text-[var(--on-surface-variant)]/70">{stat.title}</span>
                     <stat.icon size={16} className={stat.color} />
                   </div>
                   <div className="space-y-1">
@@ -125,7 +125,7 @@ export default function EnterpriseDashboard() {
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Active EAP Programs usage */}
               <div className="card lg:col-span-2 p-6 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Active EAP Program Completion</h3>
+                <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Active EAP Program Completion</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
@@ -157,7 +157,7 @@ export default function EnterpriseDashboard() {
               {/* Wellbeing Index Meter */}
               <div className="card lg:col-span-1 p-6 space-y-6 flex flex-col justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Overall Workplace Score</h3>
+                  <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Overall Workplace Score</h3>
                   <p className="text-[10px] text-[var(--on-surface-variant)]/60">Anonymized wellness quotient</p>
                 </div>
                 <div className="flex flex-col items-center gap-2 py-3">
@@ -201,7 +201,7 @@ export default function EnterpriseDashboard() {
               
               <div className="grid md:grid-cols-2 gap-6 pt-4">
                 <div className="space-y-4 p-4 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600">Therapist Sessions Coverage</h4>
+                  <h4 className="text-label-bold uppercase text-indigo-600">Therapist Sessions Coverage</h4>
                   <div className="space-y-2 text-xs">
                     <p className="flex justify-between"><span>Max Allowed Sessions / Employee / Year</span> <strong>12 sessions</strong></p>
                     <p className="flex justify-between"><span>Allowed Specialties</span> <strong>Clinical, Stress & Burnout</strong></p>
@@ -210,7 +210,7 @@ export default function EnterpriseDashboard() {
                 </div>
 
                 <div className="space-y-4 p-4 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600">Proactive Interventions</h4>
+                  <h4 className="text-label-bold uppercase text-emerald-600">Proactive Interventions</h4>
                   <div className="space-y-2 text-xs">
                     <p className="flex justify-between"><span>Anonymous AI Risk Flagging</span> <strong className="text-emerald-600">Enabled</strong></p>
                     <p className="flex justify-between"><span>Burnout threshold alert</span> <strong>&gt;40% risk rating</strong></p>
@@ -226,7 +226,7 @@ export default function EnterpriseDashboard() {
         {activeTab === "Department Insights" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="card p-6 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Departmental wellbeing participation & risk rating</h3>
+              <h3 className="text-label-bold uppercase text-[var(--on-surface-variant)]">Departmental wellbeing participation & risk rating</h3>
               <div className="space-y-4">
                 {departmentHealth.map((dept, i) => (
                   <div key={i} className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-[var(--surface-container-low)] border-hairline rounded-xl gap-4">
