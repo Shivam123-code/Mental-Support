@@ -6,6 +6,7 @@ import ConditionalFooter from "@/components/layout/ConditionalFooter";
 import SOSButton from "@/components/layout/SOSButton";
 import QuickExit from "@/components/layout/QuickExit";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const newsreader = Newsreader({
   subsets: ["latin"],
@@ -35,14 +36,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${newsreader.variable} ${manrope.variable}`}>
       <body className="font-body min-h-screen">
-        <Header />
-        <main className="min-h-screen">
-          {children}
-        </main>
-        <ConditionalFooter />
-        <SOSButton />
-        <QuickExit />
-        <WhatsAppButton />
+        <AuthProvider>
+          <Header />
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <ConditionalFooter />
+          <SOSButton />
+          <QuickExit />
+          <WhatsAppButton />
+        </AuthProvider>
       </body>
     </html>
   );

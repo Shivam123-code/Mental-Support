@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, GraduationCap, BookOpen, Shield } from "lucide-react";
+import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, GraduationCap, BookOpen, Shield, LogOut, User as UserIcon } from "lucide-react";
 import SearchModal from "@/components/ui/SearchModal";
 import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DropdownItem {
   name: string;
@@ -114,12 +115,19 @@ function DropdownMenu({ group, isOpen, onToggle }: { group: NavGroup; isOpen: bo
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleToggle = (label: string) => {
     setOpenDropdown(openDropdown === label ? null : label);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
   };
 
   if (pathname.startsWith("/dashboard")) {
@@ -177,12 +185,59 @@ export default function Header() {
                 <Phone size={14} />
                 SOS
               </Link>
-              <Link
-                href="/role-selection"
-                className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
-              >
-                Sign In
-              </Link>
+
+              {/* User Menu or Sign In */}
+              {isAuthenticated && user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-[var(--surface-container)] rounded-lg transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center">
+                      <UserIcon size={16} className="text-[var(--primary)]" />
+                    </div>
+                    <span className="hidden md:block text-sm font-medium text-[var(--on-surface)]">
+                      {user.firstName || user.email}
+                    </span>
+                    <ChevronDown size={14} className={`hidden md:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-56 bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)] rounded-xl shadow-ambient-hover p-2 z-50">
+                      <div className="px-3 py-2 border-b border-[var(--outline-variant)] mb-2">
+                        <p className="text-sm font-semibold text-[var(--on-surface)]">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="text-xs text-[var(--on-surface-variant)]">{user.email}</p>
+                        <p className="text-xs text-[var(--primary)] mt-1">{user.role}</p>
+                      </div>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--surface-container)] transition-all"
+                      >
+                        <UserIcon size={16} className="text-[var(--on-surface-variant)]" />
+                        <span className="text-sm text-[var(--on-surface)]">Dashboard</span>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--error-container)] text-[var(--error)] transition-all"
+                      >
+                        <LogOut size={16} />
+                        <span className="text-sm">Logout</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+                >
+                  Sign In
+                </Link>
+              )}
+
               <Link
                 href="/assessments"
                 className="!hidden md:!inline-block btn-primary !py-2.5 !px-5 !text-sm"
