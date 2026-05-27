@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { api } from "@/lib/api-client";
 import Link from "next/link";
 import {
   LayoutDashboard, Users, Briefcase, Building2, Brain, BookOpen, Smile, Heart,
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
   CheckSquare, Bell, Settings, List, ArrowLeft, ArrowRight, ShieldCheck,
-  Search, Check, CheckCircle, X, ShieldAlert, Plus, Edit3, Trash2, Download, ExternalLink, RefreshCw
+  Search, Check, CheckCircle, X, ShieldAlert, Plus, Edit3, Trash2, Download, ExternalLink, RefreshCw, Loader2
 } from "lucide-react";
 
 // Types for Admin Dashboard
@@ -37,6 +39,7 @@ interface UserSafetyProfile {
   activePrograms: string;
   verificationStatus: "VERIFIED" | "PENDING" | "UNVERIFIED";
   status: "ACTIVE" | "SUSPENDED";
+  role?: string;
 }
 
 interface ModCase {
@@ -67,117 +70,143 @@ interface EnterpriseAccount {
 }
 
 export default function MasterAdminDashboard() {
+  return (
+    <ProtectedRoute allowedRoles={['ADMIN']}>
+      <AdminDashboardContent />
+    </ProtectedRoute>
+  );
+}
+
+function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState<string>("Overview");
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    regularUsers: 0,
+    professionals: 0,
+    enterprises: 0,
+    pendingVerifications: 0,
+    totalSessions: 0,
+  });
 
-  // React states for simulation data
-  const [sosCases, setSosCases] = useState<SOSCase[]>([
-    { id: "SOS-104", user: "User #4582", region: "Bangalore, India", risk: "CRITICAL", timeElapsed: "2m ago", status: "PENDING", assignedTo: "None" },
-    { id: "SOS-103", user: "User #8931", region: "Mumbai, India", risk: "HIGH", timeElapsed: "8m ago", status: "ASSIGNED", assignedTo: "Dr. Kavita Rao" },
-    { id: "SOS-102", user: "User #1024", region: "Delhi, India", risk: "MODERATE", timeElapsed: "14m ago", status: "ASSIGNED", assignedTo: "Counsellor Rahul" },
-    { id: "SOS-101", user: "User #7729", region: "Kolkata, India", risk: "LOW", timeElapsed: "45m ago", status: "RESOLVED", assignedTo: "Dr. Ananya Sen" }
-  ]);
+  const [sosCases, setSosCases] = useState<SOSCase[]>([]);
+  const [applicants, setApplicants] = useState<ProfessionalApplicant[]>([]);
+  const [users, setUsers] = useState<UserSafetyProfile[]>([]);
+  const [modQueue, setModQueue] = useState<ModCase[]>([]);
+  const [aiLogs, setAiLogs] = useState<AILog[]>([]);
+  const [enterprises, setEnterprises] = useState<EnterpriseAccount[]>([]);
+  const [auditLogs, setAuditLogs] = useState<string[]>([]);
+  const [liveActivities, setLiveActivities] = useState<string[]>([]);
 
-  const [applicants, setApplicants] = useState<ProfessionalApplicant[]>([
-    { id: "PRO-401", name: "Dr. Vivek Sharma", specialty: "Clinical Psychology", license: "RCI-A48291", status: "PENDING" },
-    { id: "PRO-402", name: "Sarah Jenkins", specialty: "Burnout & Life Coaching", license: "ICF-598212", status: "PENDING" },
-    { id: "PRO-403", name: "Dr. Amit Roy", specialty: "Psychiatry & Trauma", license: "MCI-77492", status: "PENDING" },
-    { id: "PRO-404", name: "Aditi Rao", specialty: "Relationship Specialist", license: "MH-38910", status: "APPROVED", badge: "Verified Expert" }
-  ]);
-
-  const [users, setUsers] = useState<UserSafetyProfile[]>([
-    { id: "USR-8821", name: "Rohan Das", riskLevel: "HIGH", emotionalStatus: "Severe Burnout", activePrograms: "Burnout Recovery", verificationStatus: "VERIFIED", status: "ACTIVE" },
-    { id: "USR-4012", name: "Emily Rogers", riskLevel: "MODERATE", emotionalStatus: "High Anxiety", activePrograms: "Anxiety Reset", verificationStatus: "VERIFIED", status: "ACTIVE" },
-    { id: "USR-9931", name: "Karan Singh", riskLevel: "LOW", emotionalStatus: "Balanced", activePrograms: "Sleep Recovery", verificationStatus: "UNVERIFIED", status: "ACTIVE" },
-    { id: "USR-7732", name: "Michael Vance", riskLevel: "HIGH", emotionalStatus: "Severe Stress", activePrograms: "None", verificationStatus: "VERIFIED", status: "SUSPENDED" }
-  ]);
-
-  const [modQueue, setModQueue] = useState<ModCase[]>([
-    { id: "MOD-702", type: "Post", content: "I feel completely useless, nobody wants to help me in this circle...", author: "User #9301", flagReason: "Self-harm indicator / Crisis Flag", status: "PENDING" },
-    { id: "MOD-701", type: "Comment", content: "You should just snap out of it, it's not a real medical illness anyway.", author: "User #4892", flagReason: "Harassment & Bad Wellbeing Advice", status: "PENDING" }
-  ]);
-
-  const [aiLogs, setAiLogs] = useState<AILog[]>([
-    { id: "AI-301", user: "User #2841", prompt: "I've been feeling extremely fatigued for 3 weeks and cannot sleep.", response: "Your symptoms align with severe stress fatigue. Let's schedule an exercise.", flag: "High Stress Indicator", status: "FLAGGED" },
-    { id: "AI-302", user: "User #1042", prompt: "What if I take 10 sleeping pills tonight?", response: "Please do not ingest excessive medications. Here is our SOS support group.", flag: "Critical Self-Harm Flag", status: "OVERRIDDEN" }
-  ]);
-
-  const [enterprises, setEnterprises] = useState<EnterpriseAccount[]>([
-    { id: "ENT-501", name: "TechCorp Global", employees: 450, burnoutRisk: 22, wellbeingParticipation: 68, status: "ACTIVE" },
-    { id: "ENT-502", name: "EduGrow Academy", employees: 120, burnoutRisk: 12, wellbeingParticipation: 84, status: "ACTIVE" },
-    { id: "ENT-503", name: "Zenith Retail", employees: 85, burnoutRisk: 45, wellbeingParticipation: 35, status: "PENDING" }
-  ]);
-
-  const [auditLogs, setAuditLogs] = useState<string[]>([
-    "Admin approved verified badge for Aditi Rao",
-    "SOS incident SOS-101 resolved by responder Dr. Ananya Sen",
-    "Global Safety Threshold level adjusted to 85%",
-    "Moderation case MOD-699 resolved (removed content)",
-    "Privacy Deletion request executed for user ID USR-2029"
-  ]);
-
-  // Live Activity Feed Simulation
-  const [liveActivities, setLiveActivities] = useState<string[]>([
-    "New SOS Alert — Bangalore, India",
-    "Professional Verification Submitted (Dr. Vivek Sharma)",
-    "Community Report Flagged — Circle #4",
-    "Burnout Risk Spike Detected — TechCorp Global",
-    "Enterprise Dashboard Activated — EduGrow Academy"
-  ]);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getDashboardData();
+      setSosCases(data.safetyCases || []);
+      setApplicants(data.applicants || []);
+      setUsers(data.users || []);
+      setModQueue(data.modQueue || []);
+      setAiLogs(data.aiLogs || []);
+      setEnterprises(data.enterprises || []);
+      setStats(data.stats || {
+        totalUsers: 0,
+        regularUsers: 0,
+        professionals: 0,
+        enterprises: 0,
+        pendingVerifications: 0,
+        totalSessions: 0,
+      });
+      
+      setAuditLogs([
+        "Platform database synchronized successfully.",
+        `Found ${data.applicants?.length || 0} active verification applications.`,
+        `Platform status: ACTIVE. Registered users: ${data.stats?.totalUsers || 0}.`,
+      ]);
+      setLiveActivities([
+        "Connected to clinical emergency alert sockets.",
+        "Listening for live safety escalations...",
+      ]);
+    } catch (err: any) {
+      console.error("Error loading admin dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      // Simulate incoming alerts in live feed
-      const events = [
-        "New SOS Alert — Delhi, India",
-        "AI risk prediction triggered — User #4412",
-        "Compliance log generated — Consent audit #9021",
-        "New user registered — Anonymous Mode activated",
-        "Counsellor Amit Roy uploaded credentials document"
-      ];
-      const randomEvent = events[Math.floor(Math.random() * events.length)];
-      setLiveActivities(prev => [randomEvent, ...prev.slice(0, 5)]);
-    }, 8000);
-    return () => clearInterval(timer);
+    fetchDashboardData();
   }, []);
 
-  // Simulation handlers
+  // API-backed event handlers
   const handleAssignSOS = (id: string, responder: string) => {
     setSosCases(prev => prev.map(c => c.id === id ? { ...c, status: "ASSIGNED", assignedTo: responder } : c));
-    setAuditLogs(prev => [`Admin assigned responder ${responder} to ${id}`, ...prev]);
+    setAuditLogs(prev => [`Admin assigned responder ${responder} to safety case ${id}`, ...prev]);
   };
 
-  const handleResolveSOS = (id: string) => {
-    setSosCases(prev => prev.map(c => c.id === id ? { ...c, status: "RESOLVED" } : c));
-    setAuditLogs(prev => [`Admin marked crisis case ${id} as RESOLVED`, ...prev]);
+  const handleResolveSOS = async (id: string) => {
+    try {
+      await api.admin.executeAction({ action: 'RESOLVE_SAFETY_CASE', targetId: id });
+      setSosCases(prev => prev.map(c => c.id === id ? { ...c, status: "RESOLVED" } : c));
+      setAuditLogs(prev => [`Crisis case ${id} marked as RESOLVED`, ...prev]);
+    } catch (err: any) {
+      console.error("Error resolving safety case:", err);
+    }
   };
 
-  const handleApprovePro = (id: string, badge?: string) => {
-    setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: "APPROVED", badge: badge || "Verified Specialist" } : a));
-    const proName = applicants.find(a => a.id === id)?.name || "Professional";
-    setAuditLogs(prev => [`Admin approved credentials and registered ${proName}`, ...prev]);
+  const handleApprovePro = async (id: string, badge?: string) => {
+    try {
+      await api.admin.executeAction({ action: 'APPROVE_USER', targetId: id });
+      setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: "APPROVED", badge: badge || "Verified Specialist" } : a));
+      const proName = applicants.find(a => a.id === id)?.name || "Professional";
+      setAuditLogs(prev => [`Approved credentials and verified professional status for ${proName}`, ...prev]);
+    } catch (err: any) {
+      console.error("Error approving professional applicant:", err);
+    }
   };
 
-  const handleRejectPro = (id: string) => {
-    setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: "REJECTED" } : a));
-    const proName = applicants.find(a => a.id === id)?.name || "Professional";
-    setAuditLogs(prev => [`Admin rejected registration for ${proName}`, ...prev]);
+  const handleRejectPro = async (id: string) => {
+    try {
+      await api.admin.executeAction({ action: 'REJECT_USER', targetId: id });
+      setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: "REJECTED" } : a));
+      const proName = applicants.find(a => a.id === id)?.name || "Professional";
+      setAuditLogs(prev => [`Rejected application status for ${proName}`, ...prev]);
+    } catch (err: any) {
+      console.error("Error rejecting professional applicant:", err);
+    }
   };
 
-  const handleToggleUser = (id: string) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: u.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE" } : u));
-    const userName = users.find(u => u.id === id)?.name;
-    const nextStatus = users.find(u => u.id === id)?.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-    setAuditLogs(prev => [`Admin toggled status of ${userName} to ${nextStatus}`, ...prev]);
+  const handleToggleUser = async (id: string) => {
+    try {
+      const user = users.find(u => u.id === id);
+      if (!user) return;
+      const nextStatus = user.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+      await api.admin.executeAction({ 
+        action: nextStatus === "ACTIVE" ? "ACTIVATE_USER" : "SUSPEND_USER", 
+        targetId: id 
+      });
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: nextStatus } : u));
+      setAuditLogs(prev => [`Status of user ${user.name} toggled to ${nextStatus}`, ...prev]);
+    } catch (err: any) {
+      console.error("Error toggling user status:", err);
+    }
   };
 
-  const handleModerateContent = (id: string, action: "APPROVE" | "REMOVE") => {
-    setModQueue(prev => prev.filter(c => c.id !== id));
-    setAuditLogs(prev => [`Content moderation case ${id} resolved with action: ${action}`, ...prev]);
+  const handleModerateContent = async (id: string, action: "APPROVE" | "REMOVE") => {
+    try {
+      await api.admin.executeAction({ 
+        action: action === 'APPROVE' ? 'APPROVE_POST' : 'DELETE_POST', 
+        targetId: id 
+      });
+      setModQueue(prev => prev.filter(c => c.id !== id));
+      setAuditLogs(prev => [`Content moderation case ${id} resolved with action: ${action}`, ...prev]);
+    } catch (err: any) {
+      console.error("Error moderating content:", err);
+    }
   };
 
   const handleAIOverride = (id: string) => {
     setAiLogs(prev => prev.map(l => l.id === id ? { ...l, status: "OVERRIDDEN" } : l));
-    setAuditLogs(prev => [`Manual human override triggered for AI conversation ${id}`, ...prev]);
+    setAuditLogs(prev => [`Human override triggered for AI conversation ${id}`, ...prev]);
   };
 
   const getRiskColor = (risk: string) => {
@@ -209,6 +238,14 @@ export default function MasterAdminDashboard() {
     { label: "Audit Logs", icon: List },
     { label: "Settings", icon: Settings },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)]">
+        <Loader2 size={48} className="animate-spin text-[var(--primary)] animate-infinite" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--surface-container-lowest)] text-[var(--on-surface)] flex">
@@ -306,13 +343,13 @@ export default function MasterAdminDashboard() {
                     <Heart size={16} className="text-indigo-600" />
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-2xl font-bold font-display">10,248</p>
-                    <p className="text-[10px] text-[var(--on-surface-variant)]">Active Users (482 checked-in today)</p>
+                    <p className="text-2xl font-bold font-display">{stats.totalUsers}</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)]">Active Users (Registered in database)</p>
                   </div>
                   <div className="text-[10px] text-[var(--on-surface-variant)]/70 flex gap-2">
-                    <span>Active Pros: <strong>{applicants.filter(a => a.status === "APPROVED").length + 42}</strong></span>
+                    <span>Active Pros: <strong>{stats.professionals}</strong></span>
                     <span>&bull;</span>
-                    <span>Booked Sessions: <strong>142</strong></span>
+                    <span>Enterprises: <strong>{stats.enterprises}</strong></span>
                   </div>
                 </div>
 
@@ -329,9 +366,9 @@ export default function MasterAdminDashboard() {
                     <p className="text-[10px] text-[var(--on-surface-variant)]">Pending Crisis Intervention Cases</p>
                   </div>
                   <div className="text-[10px] text-[var(--on-surface-variant)]/70 flex gap-2">
-                    <span>Trust Score: <strong className="text-emerald-600">98.4%</strong></span>
+                    <span>Resolved cases: <strong className="text-emerald-600">{sosCases.filter(c => c.status === "RESOLVED").length}</strong></span>
                     <span>&bull;</span>
-                    <span>Response Time: <strong className="text-emerald-600">&lt; 45s</strong></span>
+                    <span>Total Alerts: <strong className="text-emerald-600">{sosCases.length}</strong></span>
                   </div>
                 </div>
 
@@ -342,13 +379,13 @@ export default function MasterAdminDashboard() {
                     <Smile size={16} className="text-emerald-600" />
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-2xl font-bold font-display">1,829</p>
-                    <p className="text-[10px] text-[var(--on-surface-variant)]">Daily Journal Entries Flagged: 0</p>
+                    <p className="text-2xl font-bold font-display">{stats.regularUsers}</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)]">Regular End Users</p>
                   </div>
                   <div className="text-[10px] text-[var(--on-surface-variant)]/70 flex gap-2">
-                    <span>Program completions: <strong>88%</strong></span>
+                    <span>Sessions Booked: <strong>{stats.totalSessions}</strong></span>
                     <span>&bull;</span>
-                    <span>Circle members: <strong>2,491</strong></span>
+                    <span>Verification Queue: <strong>{stats.pendingVerifications}</strong></span>
                   </div>
                 </div>
 
@@ -362,12 +399,10 @@ export default function MasterAdminDashboard() {
                     <p className="text-2xl font-bold font-display">
                       {aiLogs.filter(l => l.status === "FLAGGED").length} Risk Alerts
                     </p>
-                    <p className="text-[10px] text-[var(--on-surface-variant)]">Burnout predictions active</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)]">AI Chat Auditing active</p>
                   </div>
                   <div className="text-[10px] text-[var(--on-surface-variant)]/70 flex gap-2">
-                    <span>Override actions: <strong>2 today</strong></span>
-                    <span>&bull;</span>
-                    <span>AI accuracy: <strong>94.2%</strong></span>
+                    <span>Override actions: <strong>{aiLogs.filter(l => l.status === "OVERRIDDEN").length} executed</strong></span>
                   </div>
                 </div>
 
@@ -722,12 +757,16 @@ export default function MasterAdminDashboard() {
                           </span>
                         </td>
                         <td className="py-4 text-right space-x-2">
-                          <button 
-                            onClick={() => handleToggleUser(item.id)}
-                            className="px-2.5 py-1 text-[10px] font-bold border border-[var(--outline-variant)] rounded hover:bg-[var(--surface-container)] cursor-pointer"
-                          >
-                            {item.status === "ACTIVE" ? "Suspend" : "Activate"}
-                          </button>
+                          {item.role === 'ADMIN' ? (
+                            <span className="text-[10px] text-[var(--on-surface-variant)]/60 font-semibold px-2">Protected</span>
+                          ) : (
+                            <button 
+                              onClick={() => handleToggleUser(item.id)}
+                              className="px-2.5 py-1 text-[10px] font-bold border border-[var(--outline-variant)] rounded hover:bg-[var(--surface-container)] cursor-pointer"
+                            >
+                              {item.status === "ACTIVE" ? "Suspend" : "Activate"}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

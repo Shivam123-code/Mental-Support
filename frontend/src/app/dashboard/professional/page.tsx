@@ -1,4 +1,8 @@
+'use client';
+
 import Link from "next/link";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import { Users, Calendar, Wallet, Star, Clock, BookOpen, ArrowRight } from "lucide-react";
 
 const cards = [
@@ -11,6 +15,15 @@ const cards = [
 ];
 
 export default function ProfessionalDashboard() {
+  return (
+    <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
+      <ProfessionalDashboardContent />
+    </ProtectedRoute>
+  );
+}
+
+function ProfessionalDashboardContent() {
+  const { logout } = useAuth();
   return (
     <div>
       {/* Hero */}
@@ -39,9 +52,9 @@ export default function ProfessionalDashboard() {
             ))}
           </div>
           <div className="text-center mt-12">
-            <Link href="/login" className="btn-primary inline-flex items-center gap-2">
-              Sign In to Access <ArrowRight size={16} />
-            </Link>
+            <button onClick={logout} className="btn-secondary inline-flex items-center gap-2 text-[var(--error)] border-[var(--error)] hover:bg-rose-50">
+              Log Out
+            </button>
           </div>
         </div>
       </section>

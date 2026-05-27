@@ -28,9 +28,9 @@ async function apiRequest<T = any>(
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
   // Build headers
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...fetchOptions.headers,
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
   // Add Authorization header if token exists and not skipped
@@ -194,6 +194,25 @@ export const journalApi = {
 };
 
 // ============================================
+// Admin API
+// ============================================
+
+export interface AdminActionData {
+  action: string;
+  targetId: string;
+  updateValue?: any;
+}
+
+export const adminApi = {
+  getDashboardData: () => apiRequest('/admin/dashboard'),
+  executeAction: (data: AdminActionData) =>
+    apiRequest('/admin/dashboard', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
 // Unified API Export
 // ============================================
 
@@ -203,6 +222,7 @@ export const api = {
   programs: programApi,
   mood: moodApi,
   journal: journalApi,
+  admin: adminApi,
 };
 
 export default api;

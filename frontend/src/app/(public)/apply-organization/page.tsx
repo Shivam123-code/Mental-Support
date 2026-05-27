@@ -43,13 +43,14 @@ const interestedServices = [
 export default function ApplyOrganization() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     // Step 1 - Business
     orgName: "", industry: "", website: "", regNumber: "",
     country: "", employeeCount: "",
     // Step 2 - Representative
-    repName: "", repEmail: "", repPhone: "", repDesignation: "",
+    repName: "", repEmail: "", repPhone: "", repDesignation: "", repPassword: "",
     // Step 3 - Needs
     goals: [] as string[], services: [] as string[], challenges: "",
     // Step 4 - Compliance
@@ -73,13 +74,43 @@ export default function ApplyOrganization() {
 
   const canNext = () => {
     if (step === 1) return form.orgName && form.industry && form.employeeCount;
-    if (step === 2) return form.repName && form.repEmail && form.repPhone && form.repDesignation;
+    if (step === 2) return form.repName && form.repEmail && form.repPhone && form.repDesignation && form.repPassword && form.repPassword.length >= 8;
     if (step === 3) return form.goals.length > 0 && form.services.length > 0;
     if (step === 4) return form.agreePrivacy && form.agreeEthical && form.agreeConsent && form.agreeConfidential && form.agreeTerms;
     return true;
   };
 
-  const handleSubmit = () => setSubmitted(true);
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const names = form.repName.trim().split(' ');
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.repEmail,
+          password: form.repPassword,
+          firstName,
+          lastName,
+          role: 'ENTERPRISE',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      alert(err.message || 'An error occurred during submission.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -268,10 +299,17 @@ export default function ApplyOrganization() {
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
                   />
                 </div>
-                <div>
+                 <div>
                   <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Phone Number *</label>
                   <input type="tel" placeholder="+91-XXXXX-XXXXX" value={form.repPhone}
                     onChange={e => update("repPhone", e.target.value)}
+                    className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Create Password * (min 8 chars)</label>
+                  <input type="password" placeholder="Choose a secure password" value={form.repPassword}
+                    onChange={e => update("repPassword", e.target.value)}
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
                   />
                 </div>

@@ -33,9 +33,17 @@ export async function POST(request: NextRequest) {
       return errorResponse('Invalid email or password', 401);
     }
 
-    // Check if user is active
-    if (user.status !== 'ACTIVE' && user.status !== 'PENDING_VERIFICATION') {
-      return errorResponse('Account is suspended or inactive', 403);
+    // Check if user is suspended or inactive
+    if (user.status === 'SUSPENDED') {
+      return errorResponse('Your account has been suspended. Please contact clinical support.', 403);
+    }
+    if (user.status === 'INACTIVE') {
+      return errorResponse('Your account is currently inactive.', 403);
+    }
+
+    // Check if user is pending verification (only required for PROFESSIONAL and ENTERPRISE)
+    if ((user.role === 'PROFESSIONAL' || user.role === 'ENTERPRISE') && user.status === 'PENDING_VERIFICATION') {
+      return errorResponse('Account is pending verification or inactive. Once approved, credentials will be sent to your email.', 403);
     }
 
     // Update last login

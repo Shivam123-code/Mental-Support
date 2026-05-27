@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Building2, Users, TrendingUp, Heart, AlertTriangle, ShieldCheck,
   Award, BarChart3, Download, RefreshCw, Calendar, ArrowLeft,
@@ -9,6 +11,15 @@ import {
 } from "lucide-react";
 
 export default function EnterpriseDashboard() {
+  return (
+    <ProtectedRoute allowedRoles={['ENTERPRISE']}>
+      <EnterpriseDashboardContent />
+    </ProtectedRoute>
+  );
+}
+
+function EnterpriseDashboardContent() {
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState("Analytics");
 
   // Mock enterprise metrics
@@ -73,9 +84,9 @@ export default function EnterpriseDashboard() {
             <ShieldCheck size={14} className="text-emerald-600" />
             <span>DPDP & GDPR Compliant</span>
           </div>
-          <Link href="/role-selection" className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1">
+          <button onClick={logout} className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer">
             <ArrowLeft size={10} /> Exit Workspace
-          </Link>
+          </button>
         </div>
       </aside>
 

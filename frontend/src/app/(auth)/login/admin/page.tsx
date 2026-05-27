@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, Mail, Eye, EyeOff, Shield, ArrowRight, RefreshCw, AlertCircle, ArrowLeft } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { Lock, Mail, Eye, EyeOff, Shield, ArrowRight, RefreshCw, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function AdminLogin() {
   const router = useRouter();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !justLoggedIn) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, authLoading, justLoggedIn, router]);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleAdminLoginSubmit = (e: React.FormEvent) => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -25,24 +34,31 @@ export default function AdminLogin() {
       return;
     }
 
-    // Mock verification
-    if (trimmedEmail === "admin@kleverklues.com" && trimmedPass === "adminsecure123") {
-      setIsLoading(true);
-      // Simulate network verification lag for a premium feel
-      setTimeout(() => {
-        setIsLoading(false);
-        router.push("/dashboard/admin");
-      }, 1500);
-    } else {
-      setErrorMsg("Invalid credentials. Please use the demo credentials provided below.");
+    setIsLoading(true);
+    try {
+      setJustLoggedIn(true);
+      await login(trimmedEmail, trimmedPass);
+    } catch (err: any) {
+      setJustLoggedIn(false);
+      setErrorMsg(err.message || "Invalid credentials.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleFillDemoCredentials = () => {
     setEmail("admin@kleverklues.com");
-    setPassword("adminsecure123");
+    setPassword("Admin@123");
     setErrorMsg("");
   };
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)]">
+        <Loader2 size={32} className="animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-72px)] flex flex-col lg:flex-row bg-[var(--surface)]">
@@ -148,7 +164,7 @@ export default function AdminLogin() {
             </p>
             <div className="text-[11px] font-mono bg-[var(--surface-container-low)] p-2 rounded border border-[var(--outline-variant)]/40 space-y-1">
               <div>Email: <span className="font-semibold text-indigo-600 dark:text-indigo-400">admin@kleverklues.com</span></div>
-              <div>Pass: <span className="font-semibold text-indigo-600 dark:text-indigo-400">adminsecure123</span></div>
+              <div>Pass: <span className="font-semibold text-indigo-600 dark:text-indigo-400">Admin@123</span></div>
             </div>
             <button
               onClick={handleFillDemoCredentials}

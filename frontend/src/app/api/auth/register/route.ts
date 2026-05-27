@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         role,
+        status: role === 'USER' ? 'ACTIVE' : 'PENDING_VERIFICATION',
         profile: {
           create: {},
         },

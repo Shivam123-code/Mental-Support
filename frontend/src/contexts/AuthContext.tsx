@@ -46,9 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const userData = await api.auth.me();
         setUser(userData);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+      } catch (error: any) {
+        if (error?.status !== 401 && error?.status !== 403) {
+          console.error('Auth initialization error:', error);
+        }
         localStorage.removeItem('auth_token');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -69,13 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Redirect based on role
       if (userData.role === 'ADMIN') {
-        router.push('/dashboard/admin');
+        router.replace('/dashboard/admin');
       } else if (userData.role === 'PROFESSIONAL') {
-        router.push('/dashboard/professional');
+        router.replace('/dashboard/professional');
       } else if (userData.role === 'ENTERPRISE') {
-        router.push('/dashboard/enterprise');
+        router.replace('/dashboard/enterprise');
       } else {
-        router.push('/dashboard/user');
+        router.replace('/dashboard/user');
       }
     } catch (error) {
       if (error instanceof ApiError) {
@@ -97,11 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Redirect to appropriate dashboard
       if (userData.role === 'PROFESSIONAL') {
-        router.push('/apply-professional');
+        router.replace('/apply-professional');
       } else if (userData.role === 'ENTERPRISE') {
-        router.push('/apply-organization');
+        router.replace('/apply-organization');
       } else {
-        router.push('/dashboard/user');
+        router.replace('/dashboard/user');
       }
     } catch (error) {
       if (error instanceof ApiError) {
@@ -128,8 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userData = await api.auth.me();
       setUser(userData);
-    } catch (error) {
-      console.error('Refresh user error:', error);
+    } catch (error: any) {
+      if (error?.status !== 401 && error?.status !== 403) {
+        console.error('Refresh user error:', error);
+      }
       localStorage.removeItem('auth_token');
       setUser(null);
     }

@@ -42,11 +42,12 @@ const languages = [
 export default function ApplyProfessional() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
     // Step 1
-    fullName: "", category: "", email: "", phone: "", country: "",
+    fullName: "", category: "", email: "", phone: "", country: "", password: "",
     // Step 2
     qualification: "", license: "", yearsExp: "", institution: "",
     certName: "", certYear: "",
@@ -73,14 +74,44 @@ export default function ApplyProfessional() {
   };
 
   const canNext = () => {
-    if (step === 1) return form.fullName && form.category && form.email && form.phone;
+    if (step === 1) return form.fullName && form.category && form.email && form.phone && form.password && form.password.length >= 8;
     if (step === 2) return form.qualification && form.yearsExp;
     if (step === 3) return form.specializations.length > 0 && form.languages.length > 0;
     if (step === 4) return form.agreePrivacy && form.agreeConduct && form.agreeCrisis && form.agreeChildSafety && form.agreeTerms && form.agreeAI;
     return true;
   };
 
-  const handleSubmit = () => setSubmitted(true);
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const names = form.fullName.trim().split(' ');
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          firstName,
+          lastName,
+          role: 'PROFESSIONAL',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      alert(err.message || 'An error occurred during submission.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (submitted) {
     return (
@@ -204,6 +235,13 @@ export default function ApplyProfessional() {
                   <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Phone Number *</label>
                   <input type="tel" placeholder="+91-XXXXX-XXXXX" value={form.phone}
                     onChange={e => update("phone", e.target.value)}
+                    className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--primary-bright)] focus:ring-1 focus:ring-[var(--primary-bright)] transition-all"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Create Password * (min 8 chars)</label>
+                  <input type="password" placeholder="Choose a secure password" value={form.password}
+                    onChange={e => update("password", e.target.value)}
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--primary-bright)] focus:ring-1 focus:ring-[var(--primary-bright)] transition-all"
                   />
                 </div>

@@ -8,9 +8,4 @@ const DATABASE_URL =
 
 export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
-  migrate: {
-    async adapter() {
-      return new PrismaPg({ connectionString: DATABASE_URL });
-    },
-  },
 });

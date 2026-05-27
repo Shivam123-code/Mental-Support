@@ -231,7 +231,7 @@ export default function Header() {
                 </div>
               ) : (
                 <Link
-                  href="/login"
+                  href="/role-selection"
                   className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
                 >
                   Sign In
@@ -320,13 +320,34 @@ export default function Header() {
                 >
                   Start Free Assessment
                 </Link>
-                <Link
-                  href="/role-selection"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="btn-secondary text-center"
-                >
-                  Sign In
-                </Link>
+                {isAuthenticated && user ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="btn-primary text-center"
+                    >
+                      Go to Dashboard
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="btn-secondary text-center text-[var(--error)] border-[var(--error)] hover:bg-red-50"
+                    >
+                      Log Out
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/role-selection"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="btn-secondary text-center"
+                  >
+                    Sign In
+                  </Link>
+                )}
               </div>
             </nav>
           </div>

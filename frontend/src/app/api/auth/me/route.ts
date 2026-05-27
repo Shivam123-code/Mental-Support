@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     const token = authHeader.substring(7);
     const user = await getUserFromToken(token);
 
-    if (!user) {
-      return unauthorizedResponse('Invalid or expired token');
+    if (!user || user.status === 'SUSPENDED') {
+      return unauthorizedResponse('Invalid, expired, or suspended account');
     }
 
     // Remove sensitive data

@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Briefcase, Building2, ArrowRight, Shield, Heart } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { User, Briefcase, Building2, ArrowRight, Shield, Heart, Loader2 } from "lucide-react";
 
 const roles = [
   {
@@ -11,7 +14,7 @@ const roles = [
     subtitle: "Individual / User",
     description: "Get emotional support, take assessments, join programs, and connect with verified professionals.",
     features: ["Free assessments", "Book sessions", "Join community", "Track progress"],
-    href: "/login",
+    href: "/login/user",
     color: "bg-[var(--primary-fixed)]",
     iconColor: "text-[var(--primary)]",
     borderHover: "hover:border-[var(--primary-bright)]",
@@ -55,6 +58,23 @@ const roles = [
 ];
 
 export default function RoleSelection() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)]">
+        <Loader2 size={32} className="animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-72px)] bg-[var(--surface)] flex flex-col">
       {/* Header */}
@@ -132,12 +152,18 @@ export default function RoleSelection() {
           </div>
 
           {/* Already have account */}
-          <p className="text-center mt-8 text-sm text-[var(--on-surface-variant)]">
-            Already have an account?{" "}
-            <Link href="/login" className="text-[var(--primary)] font-semibold hover:underline">
-              Sign In
-            </Link>
-          </p>
+          <div className="text-center mt-8 text-sm text-[var(--on-surface-variant)] space-y-3">
+            <p>Already have an account? Choose your sign in portal:</p>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+              <Link href="/login/user" className="text-[var(--primary)] hover:underline">User Sign In</Link>
+              <span>&bull;</span>
+              <Link href="/login/professional" className="text-[var(--tertiary)] hover:underline">Professional Sign In</Link>
+              <span>&bull;</span>
+              <Link href="/login/enterprise" className="text-[var(--secondary)] hover:underline">Enterprise Sign In</Link>
+              <span>&bull;</span>
+              <Link href="/login/admin" className="text-indigo-600 hover:underline">Admin Sign In</Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
