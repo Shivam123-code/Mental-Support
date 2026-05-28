@@ -69,6 +69,8 @@ model User {
   notifications     Notification[]
   subscriptions     Subscription[]
   emergencyAlerts   EmergencyAlert[]
+  professionalApplications ProfessionalApplication[]
+  organizationApplications OrganizationApplication[]
   
   @@index([email])
   @@index([role])
@@ -640,3 +642,118 @@ model EmergencyAlert {
   @@index([userId])
 }
 
+// ============================================
+// VERIFICATION APPLICATIONS
+// ============================================
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfessionalApplication {
+  id                String            @id @default(cuid())
+
+  // Personal Info
+  firstName         String
+  lastName          String
+  email             String            @unique
+  phone             String
+  dateOfBirth       String
+  gender            String
+  address           String
+  city              String
+  state             String
+  pincode           String
+
+  // Qualifications
+  highestDegree     String
+  fieldOfStudy      String
+  institution       String
+  graduationYear    String
+  licenseNumber     String
+  licenseAuthority  String
+  licenseExpiry     String
+  specialty         String
+  yearsOfExperience String
+
+  // Profile
+  bio               String            @db.Text
+  languages         String            // JSON array as string
+  consultationFee   String
+  sessionTypes      String            // JSON array as string
+  availability      String            @default("[]")
+
+  // Document file paths (relative to /public/uploads/)
+  licenseDocPath    String?
+  degreeDocPath     String?
+  idProofPath       String?
+  profilePhotoPath  String?
+
+  // Review
+  status            ApplicationStatus @default(PENDING)
+  adminNotes        String?
+  rejectionReason   String?
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // After approval — linked user account
+  userId            String?
+  user              User?             @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([email])
+}
+
+model OrganizationApplication {
+  id                  String            @id @default(cuid())
+
+  // Organization Details
+  orgName             String
+  orgType             String
+  registrationNumber  String
+  website             String?
+  email               String            @unique
+  phone               String
+
+  // Address
+  address             String
+  city                String
+  state               String
+  pincode             String
+
+  // Contact Person
+  contactName         String
+  contactDesignation  String
+  contactEmail        String
+  contactPhone        String
+
+  // Program Info
+  employeeCount       String
+  departments         String            // JSON array
+  wellbeingPrograms   String            // JSON array
+  additionalInfo      String?           @db.Text
+
+  // Document paths
+  regCertPath         String?
+  gstCertPath         String?
+  authLetterPath      String?
+  logoPath            String?
+
+  // Review
+  status              ApplicationStatus @default(PENDING)
+  adminNotes          String?
+  rejectionReason     String?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  userId              String?
+  user                User?             @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([email])
+}

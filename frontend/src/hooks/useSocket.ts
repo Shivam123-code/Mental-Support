@@ -89,7 +89,15 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string) 
 
       socket.once('emergency:error', (error) => {
         setIsSending(false);
-        reject(error);
+        // Socket server sends { error, details } — convert to real Error instance
+        if (error instanceof Error) {
+          reject(error);
+        } else if (error && typeof error === 'object' && 'error' in error) {
+          const e = error as { error: string; details?: string };
+          reject(new Error(e.details || e.error || 'Emergency server error'));
+        } else {
+          reject(new Error('Failed to send emergency alert'));
+        }
       });
 
       setTimeout(() => {

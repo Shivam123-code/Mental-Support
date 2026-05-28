@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api } from "@/lib/api-client";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEmergencyAlerts } from "@/hooks/useSocket";
 import {
   LayoutDashboard, Users, Briefcase, Building2, Brain, BookOpen, Smile, Heart,
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
-  CheckSquare, Bell, Settings, List, ArrowLeft, ArrowRight, ShieldCheck,
-  Search, Check, CheckCircle, X, ShieldAlert, Plus, Edit3, Trash2, Download, ExternalLink, RefreshCw, Loader2
+  CheckSquare, Bell, Settings, List, ArrowLeft, ShieldCheck,
+  CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio
 } from "lucide-react";
 
 // Types for Admin Dashboard
@@ -78,6 +80,7 @@ export default function MasterAdminDashboard() {
 }
 
 function AdminDashboardContent() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("Overview");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -97,6 +100,11 @@ function AdminDashboardContent() {
   const [enterprises, setEnterprises] = useState<EnterpriseAccount[]>([]);
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
   const [liveActivities, setLiveActivities] = useState<string[]>([]);
+
+  // ── Real-time WebSocket SOS alerts ──
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth } =
+    useEmergencyAlerts(user?.id, token || undefined);
 
   const fetchDashboardData = async () => {
     try {
@@ -123,8 +131,9 @@ function AdminDashboardContent() {
         `Platform status: ACTIVE. Registered users: ${data.stats?.totalUsers || 0}.`,
       ]);
       setLiveActivities([
-        "Connected to clinical emergency alert sockets.",
-        "Listening for live safety escalations...",
+        "WebSocket SOS server connected on port 3001.",
+        "Listening for live SOS activations in real-time...",
+        "Admin authenticated — joined emergency admin-room.",
       ]);
     } catch (err: any) {
       console.error("Error loading admin dashboard data:", err);
@@ -220,11 +229,11 @@ function AdminDashboardContent() {
 
   const menuItems = [
     { label: "Overview", icon: LayoutDashboard },
-    { label: "SOS & Crisis", icon: AlertTriangle, alert: true },
+    { label: "SOS & Crisis", icon: AlertTriangle, alert: true, liveCount: liveAlerts.filter(a => a.status === 'ACTIVE').length },
     { label: "Trust & Safety", icon: Shield },
     { label: "Professionals", icon: Briefcase },
     { label: "Users", icon: Users },
-    { label: "AI Governance", icon: Cpu },
+    { label: "AI Governance", icon: CpuIcon },
     { label: "Community", icon: Smile },
     { label: "Organizations", icon: Building2 },
     { label: "Assessments", icon: Brain },
@@ -280,7 +289,13 @@ function AdminDashboardContent() {
                   <span>{item.label}</span>
                 </div>
                 {item.alert && (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                  <span className={`min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center px-1 ${
+                    (item as any).liveCount > 0
+                      ? 'bg-rose-500 text-white animate-pulse'
+                      : 'bg-rose-500/30 text-rose-400'
+                  }`}>
+                    {(item as any).liveCount > 0 ? (item as any).liveCount : '•'}
+                  </span>
                 )}
               </button>
             );
@@ -303,6 +318,7 @@ function AdminDashboardContent() {
           </Link>
         </div>
       </aside>
+
 
       {/* Main Content Area */}
       <div className="flex-1 pl-64 flex flex-col min-h-screen">
@@ -531,80 +547,176 @@ function AdminDashboardContent() {
             </div>
           )}
 
-          {/* TAB 2: SOS & CRISIS */}
+          {/* TAB 2: SOS & CRISIS — Live WebSocket Feed */}
           {activeTab === "SOS & Crisis" && (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-start gap-4">
-                <AlertTriangle className="text-rose-500 flex-shrink-0 animate-bounce mt-0.5" size={24} />
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm text-[var(--on-surface)]">Live Incident Response Console</h3>
-                  <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
-                    This terminal displays active emergency requests. Incoming calls, high-risk sentiment triggers from AI chat conversations, and manual SOS activations are routed here. Every alert requires immediate responder assignment or direct supervisor escalation.
+            <div className="space-y-6 animate-in fade-in duration-300">
+
+              {/* Header + Connection Status */}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--on-surface)] flex items-center gap-2">
+                    <span className="text-2xl">🚨</span> Live SOS Alert Center
+                  </h2>
+                  <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">
+                    Real-time alerts via WebSocket — updates instantly, no refresh needed
                   </p>
+                </div>
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border ${
+                  socketConnected && socketAuth
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : socketConnected
+                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                    : 'bg-rose-50 border-rose-200 text-rose-700'
+                }`}>
+                  <Radio size={14} className={socketConnected && socketAuth ? 'animate-pulse' : ''} />
+                  {socketConnected && socketAuth ? 'Connected & Listening' : socketConnected ? 'Authenticating…' : 'Disconnected'}
                 </div>
               </div>
 
-              {/* Master Active SOS Alert Cards */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {sosCases.map((c) => (
-                  <div 
-                    key={c.id} 
-                    className="card p-6 border-hairline bg-[var(--surface-container-low)] space-y-4 flex flex-col justify-between"
-                    style={{ borderLeft: c.status !== "RESOLVED" ? `4px solid ${c.risk === "CRITICAL" ? "red" : "orange"}` : "none" }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] font-mono text-indigo-600 font-bold block">{c.id}</span>
-                        <h4 className="text-sm font-bold text-[var(--on-surface)] mt-1">{c.user}</h4>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getRiskColor(c.risk)}`}>
-                        {c.risk}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5 text-xs text-[var(--on-surface-variant)]">
-                      <p>Region: <strong>{c.region}</strong></p>
-                      <p>Time Elapsed: <strong>{c.timeElapsed}</strong></p>
-                      <p>Assigned Responder: <strong>{c.assignedTo}</strong></p>
-                      <p>Status: <strong className="text-indigo-600">{c.status}</strong></p>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2 border-t border-[var(--outline-variant)]/30">
-                      {c.status === "PENDING" && (
-                        <>
-                          <button 
-                            onClick={() => handleAssignSOS(c.id, "Dr. Ananya Sen")}
-                            className="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-bold hover:bg-indigo-700 cursor-pointer"
-                          >
-                            Assign to Dr. Ananya
-                          </button>
-                          <button 
-                            onClick={() => handleAssignSOS(c.id, "Supervisor Escalation")}
-                            className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs font-bold hover:bg-orange-700 cursor-pointer"
-                          >
-                            Escalate to Supervisor
-                          </button>
-                        </>
-                      )}
-                      {c.status !== "RESOLVED" && (
-                        <button 
-                          onClick={() => handleResolveSOS(c.id)}
-                          className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                        >
-                          Resolve Case
-                        </button>
-                      )}
-                      {c.status === "RESOLVED" && (
-                        <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                          <CheckCircle size={14} /> Resolved & Audited
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              {/* Stats Row */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="card p-4 bg-rose-50 border border-rose-100">
+                  <p className="text-2xl font-bold text-rose-600">{liveAlerts.filter(a => a.status === 'ACTIVE').length}</p>
+                  <p className="text-xs text-rose-500 font-semibold mt-0.5">Active Alerts</p>
+                </div>
+                <div className="card p-4 bg-amber-50 border border-amber-100">
+                  <p className="text-2xl font-bold text-amber-600">{liveAlerts.filter(a => a.status === 'ACKNOWLEDGED').length}</p>
+                  <p className="text-xs text-amber-500 font-semibold mt-0.5">Acknowledged</p>
+                </div>
+                <div className="card p-4 bg-emerald-50 border border-emerald-100">
+                  <p className="text-2xl font-bold text-emerald-600">{liveAlerts.length}</p>
+                  <p className="text-xs text-emerald-500 font-semibold mt-0.5">Total This Session</p>
+                </div>
               </div>
+
+              {/* Alerts Feed */}
+              <div className="card overflow-hidden">
+                <div className="px-5 py-3 border-b border-[var(--outline-variant)]/40 flex items-center justify-between bg-[var(--surface-container-low)]">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                    Incoming SOS Alerts
+                  </h3>
+                  <span className="text-[10px] text-[var(--on-surface-variant)]/60">Updates in real-time — no refresh needed</span>
+                </div>
+
+                {liveAlerts.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle size={28} className="text-emerald-500" />
+                    </div>
+                    <p className="font-semibold text-[var(--on-surface)] text-sm">No Active Alerts</p>
+                    <p className="text-xs text-[var(--on-surface-variant)] mt-1">
+                      {socketConnected && socketAuth
+                        ? 'All clear — listening for incoming SOS triggers'
+                        : 'Waiting for WebSocket connection…'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--outline-variant)]/30">
+                    {liveAlerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className={`p-5 hover:bg-[var(--surface-container-low)] transition-colors ${
+                          alert.status === 'ACTIVE' ? 'border-l-4 border-rose-500' :
+                          alert.status === 'ACKNOWLEDGED' ? 'border-l-4 border-amber-400' :
+                          'border-l-4 border-emerald-400'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            {/* Badges */}
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                alert.status === 'ACTIVE' ? 'bg-rose-500 text-white animate-pulse' :
+                                alert.status === 'ACKNOWLEDGED' ? 'bg-amber-500 text-white' :
+                                'bg-emerald-500 text-white'
+                              }`}>
+                                {alert.status}
+                              </span>
+                              <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border ${
+                                alert.severity === 'CRITICAL' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                alert.severity === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              }`}>
+                                {alert.severity}
+                              </span>
+                              <span className="text-[10px] text-[var(--on-surface-variant)]">
+                                {new Date(alert.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+
+                            {/* User ID */}
+                            <p className="text-xs text-[var(--on-surface-variant)] mb-1">
+                              <span className="font-semibold text-[var(--on-surface)]">User:</span>{' '}
+                              <span className="font-mono">{alert.userId}</span>
+                            </p>
+
+                            {/* Message */}
+                            {alert.message && (
+                              <p className="text-sm text-[var(--on-surface)] font-medium mb-2">"{alert.message}"</p>
+                            )}
+
+                            {/* GPS Map Link */}
+                            <a
+                              href={`https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
+                            >
+                              <MapPin size={13} />
+                              {alert.latitude.toFixed(5)}, {alert.longitude.toFixed(5)}
+                              <Eye size={12} className="opacity-60" />
+                              View on Maps
+                            </a>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-col gap-2 flex-shrink-0">
+                            {alert.status === 'ACTIVE' && (
+                              <button
+                                onClick={() => acknowledgeAlert(alert.id)}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                              >
+                                Acknowledge
+                              </button>
+                            )}
+                            {alert.status === 'ACKNOWLEDGED' && (
+                              <button
+                                onClick={() => resolveAlert(alert.id)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                              >
+                                ✓ Resolve
+                              </button>
+                            )}
+                            {alert.status === 'RESOLVED' && (
+                              <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                                <CheckCircle size={13} /> Resolved
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Not connected warning */}
+              {!socketConnected && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-sm">
+                  <AlertTriangle size={18} className="text-amber-500 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-800">Socket server not reachable</p>
+                    <p className="text-amber-600 text-xs mt-0.5">
+                      Run <code className="bg-amber-100 px-1 rounded">npm run dev</code> inside the <code className="bg-amber-100 px-1 rounded">socket-server/</code> folder.
+                    </p>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
+
 
           {/* TAB 3: TRUST & SAFETY */}
           {activeTab === "Trust & Safety" && (
