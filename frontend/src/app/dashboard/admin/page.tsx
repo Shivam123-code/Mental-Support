@@ -10,7 +10,8 @@ import {
   LayoutDashboard, Users, Briefcase, Building2, Brain, BookOpen, Smile, Heart,
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
   CheckSquare, Bell, Settings, List, ArrowLeft, ShieldCheck,
-  CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio
+  CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio,
+  Plus, Edit3, Trash2, Download, ExternalLink
 } from "lucide-react";
 
 // Types for Admin Dashboard
@@ -101,9 +102,17 @@ function AdminDashboardContent() {
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
   const [liveActivities, setLiveActivities] = useState<string[]>([]);
 
+  // ── New verification applications from real DB ──
+  const [professionalApps, setProfessionalApps] = useState<any[]>([]);
+  const [orgApps, setOrgApps] = useState<any[]>([]);
+  const [appLoading, setAppLoading] = useState(false);
+  const [rejectModal, setRejectModal] = useState<{ id: string; type: 'professional' | 'organization' } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   // ── Real-time WebSocket SOS alerts ──
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth } =
+  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded } =
     useEmergencyAlerts(user?.id, token || undefined);
 
   const fetchDashboardData = async () => {
@@ -142,8 +151,28 @@ function AdminDashboardContent() {
     }
   };
 
+  const fetchApplications = async () => {
+    setAppLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch('/api/admin/applications?status=ALL', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfessionalApps(data.data.professional || []);
+        setOrgApps(data.data.organization || []);
+      }
+    } catch (err) {
+      console.error('Error fetching applications:', err);
+    } finally {
+      setAppLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    fetchApplications();
   }, []);
 
   // API-backed event handlers
@@ -181,6 +210,59 @@ function AdminDashboardContent() {
       setAuditLogs(prev => [`Rejected application status for ${proName}`, ...prev]);
     } catch (err: any) {
       console.error("Error rejecting professional applicant:", err);
+    }
+  };
+
+  // ── NEW: Approve/Reject from new application DB ──
+  const handleApproveApplication = async (id: string, type: 'professional' | 'organization') => {
+    setActionLoading(id);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`/api/admin/applications/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      if (type === 'professional') {
+        setProfessionalApps(prev => prev.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
+      } else {
+        setOrgApps(prev => prev.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
+      }
+      setAuditLogs(prev => [`Application ${id} APPROVED — credentials sent via email`, ...prev]);
+    } catch (err: any) {
+      alert('Approval failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectApplication = async () => {
+    if (!rejectModal) return;
+    const { id, type } = rejectModal;
+    setActionLoading(id);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`/api/admin/applications/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type, reason: rejectReason }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      if (type === 'professional') {
+        setProfessionalApps(prev => prev.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
+      } else {
+        setOrgApps(prev => prev.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
+      }
+      setAuditLogs(prev => [`Application ${id} REJECTED — rejection email sent`, ...prev]);
+      setRejectModal(null);
+      setRejectReason("");
+    } catch (err: any) {
+      alert('Rejection failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -574,7 +656,7 @@ function AdminDashboardContent() {
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="card p-4 bg-rose-50 border border-rose-100">
                   <p className="text-2xl font-bold text-rose-600">{liveAlerts.filter(a => a.status === 'ACTIVE').length}</p>
                   <p className="text-xs text-rose-500 font-semibold mt-0.5">Active Alerts</p>
@@ -584,8 +666,12 @@ function AdminDashboardContent() {
                   <p className="text-xs text-amber-500 font-semibold mt-0.5">Acknowledged</p>
                 </div>
                 <div className="card p-4 bg-emerald-50 border border-emerald-100">
-                  <p className="text-2xl font-bold text-emerald-600">{liveAlerts.length}</p>
-                  <p className="text-xs text-emerald-500 font-semibold mt-0.5">Total This Session</p>
+                  <p className="text-2xl font-bold text-emerald-600">{liveAlerts.filter(a => a.status === 'RESOLVED').length}</p>
+                  <p className="text-xs text-emerald-500 font-semibold mt-0.5">Resolved</p>
+                </div>
+                <div className="card p-4 bg-indigo-50 border border-indigo-100">
+                  <p className="text-2xl font-bold text-indigo-600">{liveAlerts.length}</p>
+                  <p className="text-xs text-indigo-500 font-semibold mt-0.5">Total in DB</p>
                 </div>
               </div>
 
@@ -594,17 +680,30 @@ function AdminDashboardContent() {
                 <div className="px-5 py-3 border-b border-[var(--outline-variant)]/40 flex items-center justify-between bg-[var(--surface-container-low)]">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                    Incoming SOS Alerts
+                    SOS Alert History (Persistent)
                   </h3>
-                  <span className="text-[10px] text-[var(--on-surface-variant)]/60">Updates in real-time — no refresh needed</span>
+                  <div className="flex items-center gap-3">
+                    {!dbLoaded && (
+                      <span className="text-[10px] text-amber-600 font-semibold animate-pulse">Loading history…</span>
+                    )}
+                    {dbLoaded && (
+                      <span className="text-[10px] text-emerald-600 font-semibold">✓ DB loaded — {liveAlerts.length} records</span>
+                    )}
+                    <span className="text-[10px] text-[var(--on-surface-variant)]/60">Live + persistent across logins</span>
+                  </div>
                 </div>
 
-                {liveAlerts.length === 0 ? (
+                {!dbLoaded ? (
+                  <div className="py-16 text-center">
+                    <Loader2 size={32} className="animate-spin text-indigo-400 mx-auto mb-3" />
+                    <p className="text-sm text-[var(--on-surface-variant)]">Loading alert history from database…</p>
+                  </div>
+                ) : liveAlerts.length === 0 ? (
                   <div className="py-16 text-center">
                     <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
                       <CheckCircle size={28} className="text-emerald-500" />
                     </div>
-                    <p className="font-semibold text-[var(--on-surface)] text-sm">No Active Alerts</p>
+                    <p className="font-semibold text-[var(--on-surface)] text-sm">No SOS Alerts Found</p>
                     <p className="text-xs text-[var(--on-surface-variant)] mt-1">
                       {socketConnected && socketAuth
                         ? 'All clear — listening for incoming SOS triggers'
@@ -785,47 +884,226 @@ function AdminDashboardContent() {
           {/* TAB 4: PROFESSIONALS */}
           {activeTab === "Professionals" && (
             <div className="space-y-8 animate-in fade-in duration-300">
-              
-              {/* Verification Queue */}
+
+              {/* Reject Reason Modal */}
+              {rejectModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <h3 className="text-sm font-bold mb-3">Reject Application</h3>
+                    <p className="text-xs text-[var(--on-surface-variant)] mb-4">Provide a reason for rejection (will be emailed to applicant):</p>
+                    <textarea
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
+                      rows={4}
+                      placeholder="e.g. Incomplete documents, unverifiable license..."
+                      className="w-full px-3 py-2 text-sm border border-[var(--outline-variant)] rounded-lg bg-[var(--surface-container)] focus:outline-none resize-none mb-4"
+                    />
+                    <div className="flex gap-3 justify-end">
+                      <button onClick={() => { setRejectModal(null); setRejectReason(""); }}
+                        className="px-4 py-2 text-xs font-bold border border-[var(--outline-variant)] rounded-lg hover:bg-[var(--surface-container)]">
+                        Cancel
+                      </button>
+                      <button onClick={handleRejectApplication}
+                        disabled={actionLoading === rejectModal.id}
+                        className="px-4 py-2 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-60">
+                        {actionLoading === rejectModal.id ? 'Rejecting…' : 'Send Rejection'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Professional Applications from DB */}
               <div className="card p-6 space-y-4">
-                <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                  Professional Registration & Verification Queue
-                </h3>
-                
-                <div className="space-y-4">
-                  {applicants.map((a) => (
-                    <div key={a.id} className="flex flex-col md:flex-row justify-between md:items-center p-4 bg-[var(--surface-container-low)] border-hairline rounded-2xl gap-4">
-                      <div>
-                        <span className="font-mono text-indigo-600 text-[10px] font-bold block">{a.id}</span>
-                        <h4 className="text-sm font-bold text-[var(--on-surface)]">{a.name}</h4>
-                        <p className="text-xs text-[var(--on-surface-variant)]">{a.specialty} &bull; License: <strong>{a.license}</strong></p>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        {a.status === "PENDING" ? (
-                          <>
-                            <button 
-                              onClick={() => handleApprovePro(a.id, "Verified Therapist")}
-                              className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleRejectPro(a.id)}
-                              className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        ) : (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${a.status === "APPROVED" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-500"}`}>
-                            {a.status} {a.badge && `(${a.badge})`}
-                          </span>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
+                    Professional Therapist Applications
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
+                      {professionalApps.filter(a => a.status === 'PENDING').length} PENDING
+                    </span>
+                    <button onClick={fetchApplications}
+                      className="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer">
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                {appLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-indigo-600" />
+                  </div>
+                ) : professionalApps.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-[var(--on-surface-variant)]">
+                    No professional applications found.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {professionalApps.map(app => (
+                      <div key={app.id} className="p-4 bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/40 rounded-2xl space-y-3">
+                        <div className="flex flex-col md:flex-row justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="font-mono text-indigo-600 text-[10px] font-bold block">ID: {app.id}</span>
+                            <h4 className="text-sm font-bold">{app.firstName} {app.lastName}</h4>
+                            <p className="text-xs text-[var(--on-surface-variant)]">
+                              {app.specialty} • {app.yearsOfExperience} exp • License: <strong>{app.licenseNumber || 'N/A'}</strong>
+                            </p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">📧 {app.email} • 📞 {app.phone}</p>
+                            <p className="text-[10px] text-[var(--on-surface-variant)]/70">
+                              {app.highestDegree} — {app.institution} ({app.graduationYear})
+                            </p>
+                            <p className="text-[10px] text-[var(--on-surface-variant)]/60">
+                              Submitted: {new Date(app.createdAt).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+
+                          {/* Status + Actions */}
+                          <div className="flex flex-col gap-2 min-w-[120px]">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase ${
+                              app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                              app.status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>{app.status}</span>
+
+                            {app.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveApplication(app.id, 'professional')}
+                                  disabled={actionLoading === app.id}
+                                  className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer disabled:opacity-60">
+                                  {actionLoading === app.id ? '…' : '✓ Approve & Send Credentials'}
+                                </button>
+                                <button
+                                  onClick={() => { setRejectModal({ id: app.id, type: 'professional' }); setRejectReason(''); }}
+                                  className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 cursor-pointer">
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'APPROVED' && (
+                              <p className="text-[10px] text-emerald-600 font-semibold text-center">Credentials emailed ✓</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Uploaded Documents */}
+                        {(app.licenseDocPath || app.degreeDocPath || app.idProofPath || app.profilePhotoPath) && (
+                          <div className="border-t border-[var(--outline-variant)]/30 pt-2">
+                            <p className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase mb-2">Submitted Documents</p>
+                            <div className="flex flex-wrap gap-2">
+                              {app.idProofPath && (
+                                <a href={app.idProofPath} target="_blank" rel="noopener noreferrer"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">
+                                  📄 ID Proof
+                                </a>
+                              )}
+                              {app.degreeDocPath && (
+                                <a href={app.degreeDocPath} target="_blank" rel="noopener noreferrer"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">
+                                  🎓 Degree
+                                </a>
+                              )}
+                              {app.licenseDocPath && (
+                                <a href={app.licenseDocPath} target="_blank" rel="noopener noreferrer"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">
+                                  📋 License
+                                </a>
+                              )}
+                              {app.profilePhotoPath && (
+                                <a href={app.profilePhotoPath} target="_blank" rel="noopener noreferrer"
+                                  className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">
+                                  🖼 Photo
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {app.bio && (
+                          <p className="text-[11px] text-[var(--on-surface-variant)] italic border-t border-[var(--outline-variant)]/30 pt-2">
+                            "{app.bio.slice(0, 180)}{app.bio.length > 180 ? '…' : ''}"
+                          </p>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Organization Applications */}
+              <div className="card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
+                    Enterprise / Organization Applications
+                  </h3>
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
+                    {orgApps.filter(a => a.status === 'PENDING').length} PENDING
+                  </span>
                 </div>
+
+                {orgApps.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-[var(--on-surface-variant)]">No organization applications found.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {orgApps.map(app => (
+                      <div key={app.id} className="p-4 bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/40 rounded-2xl space-y-3">
+                        <div className="flex flex-col md:flex-row justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="font-mono text-indigo-600 text-[10px] font-bold block">ID: {app.id}</span>
+                            <h4 className="text-sm font-bold">{app.orgName}</h4>
+                            <p className="text-xs text-[var(--on-surface-variant)]"
+                            >{app.orgType} • {app.employeeCount} employees • Reg: <strong>{app.registrationNumber || 'N/A'}</strong></p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">Contact: {app.contactName} ({app.contactDesignation})</p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">📧 {app.email} • 📞 {app.phone}</p>
+                            <p className="text-[10px] text-[var(--on-surface-variant)]/60">
+                              Submitted: {new Date(app.createdAt).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col gap-2 min-w-[120px]">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase ${
+                              app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                              app.status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>{app.status}</span>
+
+                            {app.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveApplication(app.id, 'organization')}
+                                  disabled={actionLoading === app.id}
+                                  className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer disabled:opacity-60">
+                                  {actionLoading === app.id ? '…' : '✓ Approve & Send Credentials'}
+                                </button>
+                                <button
+                                  onClick={() => { setRejectModal({ id: app.id, type: 'organization' }); setRejectReason(''); }}
+                                  className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 cursor-pointer">
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'APPROVED' && (
+                              <p className="text-[10px] text-emerald-600 font-semibold text-center">Credentials emailed ✓</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Uploaded Documents */}
+                        {(app.regCertPath || app.gstCertPath || app.authLetterPath || app.logoPath) && (
+                          <div className="border-t border-[var(--outline-variant)]/30 pt-2">
+                            <p className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase mb-2">Submitted Documents</p>
+                            <div className="flex flex-wrap gap-2">
+                              {app.regCertPath && <a href={app.regCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📄 Reg. Cert</a>}
+                              {app.gstCertPath && <a href={app.gstCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📋 GST Cert</a>}
+                              {app.authLetterPath && <a href={app.authLetterPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">✉ Auth Letter</a>}
+                              {app.logoPath && <a href={app.logoPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">🖼 Logo</a>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>

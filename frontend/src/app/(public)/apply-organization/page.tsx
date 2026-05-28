@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowRight, ArrowLeft, CheckCircle, Upload, Shield,
-  Building2, Users, FileText, BarChart3, Clock, Star, Briefcase
+  Building2, Users, FileText, BarChart3, Star, Briefcase,
+  AlertCircle, Loader2, X, File
 } from "lucide-react";
 
 const STEPS = [
@@ -21,18 +22,13 @@ const industries = [
   "Logistics / Supply Chain", "Armed Forces", "NGO / Non-Profit",
   "Startup / Tech", "Wellness Institution", "Other",
 ];
-
-const employeeRanges = [
-  "1–50", "51–200", "201–500", "501–1000", "1001–5000", "5000+",
-];
-
+const employeeRanges = ["1–50", "51–200", "201–500", "501–1000", "1001–5000", "5000+"];
 const wellbeingGoals = [
   "Reduce Employee Burnout", "Improve Work-Life Balance", "Mental Health Support",
   "Stress Management", "Leadership Emotional Resilience", "Prevent Absenteeism",
   "Improve Team Engagement", "Student Wellbeing", "Crisis Intervention",
   "Workforce Productivity", "Anonymous Support Access", "Wellbeing Analytics",
 ];
-
 const interestedServices = [
   "Employee Assistance Program (EAP)", "Burnout Risk Analytics",
   "Wellbeing Dashboards", "Leadership Coaching", "Anonymous Emotional Support",
@@ -40,116 +36,187 @@ const interestedServices = [
   "Mental Health Assessments", "Crisis Response System",
 ];
 
+// ── File Upload Box ──────────────────────────────────────────────────────────
+function FileUploadBox({ label, field, accept, file, onSelect }: {
+  label: string; field: string; accept: string;
+  file: File | null; onSelect: (f: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div
+      onClick={() => inputRef.current?.click()}
+      className={`relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all group ${
+        file ? "border-[var(--secondary)] bg-[var(--secondary-fixed)]/20" : "border-[var(--outline-variant)] hover:border-[var(--secondary-muted)]"
+      }`}
+    >
+      <input ref={inputRef} type="file" accept={accept} className="hidden"
+        onChange={e => onSelect(e.target.files?.[0] || null)} />
+      {file ? (
+        <div className="flex items-center justify-center gap-2">
+          <File size={14} className="text-[var(--secondary)]" />
+          <span className="text-xs font-medium text-[var(--secondary)] truncate max-w-[160px]">{file.name}</span>
+          <button type="button" onClick={e => { e.stopPropagation(); onSelect(null); if (inputRef.current) inputRef.current.value = ''; }}
+            className="ml-1 text-rose-500 hover:text-rose-700"><X size={12} /></button>
+        </div>
+      ) : (
+        <>
+          <Upload size={18} className="mx-auto mb-1 text-[var(--outline)] group-hover:text-[var(--secondary)]" />
+          <p className="text-xs font-medium text-[var(--on-surface-variant)]">{label}</p>
+          <p className="text-[10px] text-[var(--outline)] mt-0.5">PDF, JPG, PNG</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ApplyOrganization() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [applicationId, setApplicationId] = useState("");
+
+  // Email validation
+  const [emailError, setEmailError] = useState("");
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailValid, setEmailValid] = useState(false);
+
+  // File uploads
+  const [files, setFiles] = useState<{
+    registrationCert: File | null; gstCert: File | null;
+    authLetter: File | null; logo: File | null;
+  }>({ registrationCert: null, gstCert: null, authLetter: null, logo: null });
+  const setFile = (field: keyof typeof files) => (f: File | null) =>
+    setFiles(prev => ({ ...prev, [field]: f }));
 
   const [form, setForm] = useState({
-    // Step 1 - Business
-    orgName: "", industry: "", website: "", regNumber: "",
-    country: "", employeeCount: "",
-    // Step 2 - Representative
-    repName: "", repEmail: "", repPhone: "", repDesignation: "", repPassword: "",
-    // Step 3 - Needs
+    orgName: "", industry: "", website: "", regNumber: "", country: "", employeeCount: "",
+    repName: "", repEmail: "", repPhone: "", repDesignation: "",
     goals: [] as string[], services: [] as string[], challenges: "",
-    // Step 4 - Compliance
     agreePrivacy: false, agreeEthical: false, agreeConsent: false,
     agreeConfidential: false, agreeTerms: false,
   });
 
-  const update = (field: string, value: string | boolean | string[]) => {
+  const update = (field: string, value: string | boolean | string[]) =>
     setForm(prev => ({ ...prev, [field]: value }));
-  };
 
-  const toggleMulti = (field: "goals" | "services", value: string) => {
+  const toggleMulti = (field: "goals" | "services", value: string) =>
     setForm(prev => {
       const arr = prev[field];
-      return {
-        ...prev,
-        [field]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value],
-      };
+      return { ...prev, [field]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value] };
     });
-  };
+
+  // ── Real-time email validation ────────────────────────────────────────────
+  const validateEmail = useCallback(async (email: string) => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Enter a valid email address.");
+      setEmailValid(false);
+      return;
+    }
+    setEmailChecking(true);
+    setEmailError("");
+    try {
+      const res = await fetch('/api/validate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) { setEmailValid(true); setEmailError(""); }
+      else { setEmailValid(false); setEmailError(data.error || "Invalid email domain."); }
+    } catch {
+      setEmailValid(false);
+      setEmailError("Could not verify email. Please check your connection.");
+    } finally {
+      setEmailChecking(false);
+    }
+  }, []);
 
   const canNext = () => {
     if (step === 1) return form.orgName && form.industry && form.employeeCount;
-    if (step === 2) return form.repName && form.repEmail && form.repPhone && form.repDesignation && form.repPassword && form.repPassword.length >= 8;
+    if (step === 2) return form.repName && form.repEmail && form.repPhone && form.repDesignation && emailValid;
     if (step === 3) return form.goals.length > 0 && form.services.length > 0;
     if (step === 4) return form.agreePrivacy && form.agreeEthical && form.agreeConsent && form.agreeConfidential && form.agreeTerms;
     return true;
   };
 
+  // ── Real Submit ───────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setSubmitting(true);
+    setSubmitError("");
     try {
-      const names = form.repName.trim().split(' ');
-      const firstName = names[0] || '';
-      const lastName = names.slice(1).join(' ') || '';
+      const fd = new FormData();
+      fd.append("orgName", form.orgName);
+      fd.append("orgType", form.industry);
+      fd.append("registrationNumber", form.regNumber);
+      fd.append("website", form.website);
+      fd.append("email", form.repEmail);
+      fd.append("phone", form.repPhone);
+      fd.append("address", "");
+      fd.append("city", "");
+      fd.append("state", form.country);
+      fd.append("pincode", "");
+      fd.append("contactName", form.repName);
+      fd.append("contactDesignation", form.repDesignation);
+      fd.append("contactEmail", form.repEmail);
+      fd.append("contactPhone", form.repPhone);
+      fd.append("employeeCount", form.employeeCount);
+      fd.append("departments", JSON.stringify(form.goals));
+      fd.append("wellbeingPrograms", JSON.stringify(form.services));
+      fd.append("additionalInfo", form.challenges);
 
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: form.repEmail,
-          password: form.repPassword,
-          firstName,
-          lastName,
-          role: 'ENTERPRISE',
-        }),
-      });
+      if (files.registrationCert) fd.append("registrationCert", files.registrationCert);
+      if (files.gstCert) fd.append("gstCert", files.gstCert);
+      if (files.authLetter) fd.append("authLetter", files.authLetter);
+      if (files.logo) fd.append("logo", files.logo);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Registration failed');
-      }
+      const res = await fetch("/api/apply/organization", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Submission failed");
 
+      setApplicationId(data.data?.applicationId || "");
       setSubmitted(true);
     } catch (err: any) {
-      alert(err.message || 'An error occurred during submission.');
+      setSubmitError(err.message || "An error occurred. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ── Success Screen ────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="min-h-[calc(100vh-72px)] bg-[var(--surface)] flex items-center justify-center px-4 py-16">
         <div className="max-w-lg w-full text-center">
           <div className="relative w-28 h-28 mx-auto mb-8">
-            <div className="absolute inset-0 rounded-full bg-[var(--secondary-muted)]/10 animate-ping opacity-40" />
-            <div className="w-28 h-28 rounded-full bg-[var(--secondary-fixed)] flex items-center justify-center">
-              <Clock size={48} className="text-[var(--secondary)]" />
+            <div className="absolute inset-0 rounded-full bg-indigo-100 animate-ping opacity-40" />
+            <div className="w-28 h-28 rounded-full bg-indigo-50 border-4 border-indigo-200 flex items-center justify-center">
+              <CheckCircle size={48} className="text-indigo-500" />
             </div>
           </div>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--secondary-fixed)] text-[var(--secondary)] text-sm font-semibold mb-4">
-            <Star size={13} /> Enterprise Application Received
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-sm font-semibold mb-4">
+            <Star size={13} /> Enterprise Application Submitted
           </div>
-          <h1 className="text-headline-lg text-[var(--on-surface)] mb-4">
-            Application Submitted!
-          </h1>
-          <p className="text-body-md text-[var(--on-surface-variant)] mb-6 leading-relaxed">
+          <h1 className="text-headline-lg text-[var(--on-surface)] mb-4">Application Received!</h1>
+          <p className="text-body-md text-[var(--on-surface-variant)] mb-2 leading-relaxed">
             Thank you, <strong>{form.repName}</strong> from <strong>{form.orgName}</strong>. Your enterprise application is now under review.
           </p>
-          <div className="card text-left mb-8 space-y-3">
+          {applicationId && <p className="text-xs text-[var(--outline)] mb-6 font-mono">Ref: {applicationId}</p>}
+          <div className="card text-left mb-8 space-y-3 border border-indigo-100 bg-indigo-50/50">
             {[
-              { icon: Building2, label: "Business verification is in progress" },
-              { icon: Shield, label: "Compliance and ethics review underway" },
-              { icon: Users, label: "Representative credentials being verified" },
-              { icon: CheckCircle, label: "You'll hear from us within 5–7 business days" },
-              { icon: BarChart3, label: "Upon approval, your Enterprise Dashboard will be activated" },
+              { icon: CheckCircle, label: "A confirmation email has been sent to " + form.repEmail },
+              { icon: Shield, label: "Business documents & compliance review in progress" },
+              { icon: Building2, label: "You will receive login credentials via email within 2–3 business days" },
+              { icon: BarChart3, label: "Upon approval, your Enterprise Dashboard will be fully activated" },
             ].map(item => (
               <div key={item.label} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-[var(--secondary-fixed)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <item.icon size={14} className="text-[var(--secondary)]" />
+                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <item.icon size={14} className="text-indigo-600" />
                 </div>
                 <p className="text-sm text-[var(--on-surface-variant)]">{item.label}</p>
               </div>
             ))}
           </div>
-          <p className="text-xs text-[var(--on-surface-variant)]/60 mb-6 italic">
-            &ldquo;Revenue should never compromise emotional trust.&rdquo; — KleverKlues™ Manifesto
-          </p>
           <Link href="/" className="btn-primary inline-flex items-center gap-2">
             Back to Home <ArrowRight size={15} />
           </Link>
@@ -167,9 +234,7 @@ export default function ApplyOrganization() {
             <Building2 size={13} /> Enterprise Application
           </div>
           <h1 className="text-headline-md text-white">Apply as an Organization</h1>
-          <p className="text-sm text-white/60 mt-1">
-            Build emotionally resilient teams with KleverKlues™ Enterprise
-          </p>
+          <p className="text-sm text-white/60 mt-1">Build emotionally resilient teams with KleverKlues™ Enterprise</p>
         </div>
       </div>
 
@@ -226,7 +291,7 @@ export default function ApplyOrganization() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Employee / Member Count *</label>
+                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Employee Count *</label>
                   <select value={form.employeeCount} onChange={e => update("employeeCount", e.target.value)}
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all">
                     <option value="">Select range</option>
@@ -255,22 +320,25 @@ export default function ApplyOrganization() {
                   />
                 </div>
               </div>
-              {/* Document Upload */}
+
+              {/* Real file uploads */}
               <div>
                 <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-3">Verification Documents</label>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {["Registration Certificate", "Business Proof / GST", "Authorization Letter", "Tax / Business ID"].map(doc => (
-                    <div key={doc} className="border-2 border-dashed border-[var(--outline-variant)] rounded-xl p-4 text-center hover:border-[var(--secondary-muted)] transition-colors cursor-pointer group">
-                      <Upload size={18} className="mx-auto mb-2 text-[var(--outline)] group-hover:text-[var(--secondary)]" />
-                      <p className="text-xs font-medium text-[var(--on-surface-variant)]">{doc}</p>
-                    </div>
-                  ))}
+                  <FileUploadBox label="Registration Certificate" field="registrationCert"
+                    accept=".pdf,.jpg,.jpeg,.png" file={files.registrationCert} onSelect={setFile("registrationCert")} />
+                  <FileUploadBox label="Business Proof / GST Certificate" field="gstCert"
+                    accept=".pdf,.jpg,.jpeg,.png" file={files.gstCert} onSelect={setFile("gstCert")} />
+                  <FileUploadBox label="Authorization Letter" field="authLetter"
+                    accept=".pdf,.jpg,.jpeg,.png" file={files.authLetter} onSelect={setFile("authLetter")} />
+                  <FileUploadBox label="Organization Logo (Optional)" field="logo"
+                    accept=".jpg,.jpeg,.png,.svg" file={files.logo} onSelect={setFile("logo")} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── STEP 2: Representative Verification ── */}
+          {/* ── STEP 2: Representative ── */}
           {step === 2 && (
             <div className="space-y-6">
               <div>
@@ -292,32 +360,38 @@ export default function ApplyOrganization() {
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
                   />
                 </div>
-                <div>
-                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Official Email *</label>
-                  <input type="email" placeholder="work@yourcompany.com" value={form.repEmail}
-                    onChange={e => update("repEmail", e.target.value)}
-                    className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
-                  />
+
+                {/* Email with validation */}
+                <div className="sm:col-span-2">
+                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Official Email * <span className="normal-case font-normal text-[11px]">(Credentials will be sent here)</span></label>
+                  <div className="relative">
+                    <input type="email" placeholder="work@yourcompany.com" value={form.repEmail}
+                      onChange={e => { update("repEmail", e.target.value); setEmailValid(false); setEmailError(""); }}
+                      onBlur={e => validateEmail(e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none transition-all pr-10 ${
+                        emailError ? "border-rose-500 focus:ring-rose-200" :
+                        emailValid ? "border-emerald-500 focus:ring-emerald-200" :
+                        "border-[var(--outline-variant)] focus:border-[var(--secondary-muted)] focus:ring-[var(--secondary-muted)]"
+                      } focus:ring-1`}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {emailChecking && <Loader2 size={16} className="animate-spin text-[var(--outline)]" />}
+                      {!emailChecking && emailValid && <CheckCircle size={16} className="text-emerald-500" />}
+                      {!emailChecking && emailError && <AlertCircle size={16} className="text-rose-500" />}
+                    </div>
+                  </div>
+                  {emailError && <p className="text-xs text-rose-500 mt-1 flex items-center gap-1"><AlertCircle size={12} />{emailError}</p>}
+                  {emailValid && <p className="text-xs text-emerald-600 mt-1">✓ Valid email domain verified</p>}
+                  <p className="text-[11px] text-[var(--on-surface-variant)]/60 mt-1">Login credentials will be sent to this email upon approval. Fake/disposable emails are not allowed.</p>
                 </div>
-                 <div>
+
+                <div>
                   <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Phone Number *</label>
                   <input type="tel" placeholder="+91-XXXXX-XXXXX" value={form.repPhone}
                     onChange={e => update("repPhone", e.target.value)}
                     className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Create Password * (min 8 chars)</label>
-                  <input type="password" placeholder="Choose a secure password" value={form.repPassword}
-                    onChange={e => update("repPassword", e.target.value)}
-                    className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all"
-                  />
-                </div>
-              </div>
-              <div className="border-2 border-dashed border-[var(--outline-variant)] rounded-xl p-6 text-center hover:border-[var(--secondary-muted)] transition-colors cursor-pointer group">
-                <Upload size={24} className="mx-auto mb-2 text-[var(--outline)] group-hover:text-[var(--secondary)]" />
-                <p className="text-sm font-medium text-[var(--on-surface-variant)]">Representative ID Proof</p>
-                <p className="text-xs text-[var(--outline)] mt-1">Government issued photo ID — PNG, JPG, PDF</p>
               </div>
               <div className="p-4 bg-[var(--secondary-fixed)]/40 rounded-lg flex gap-3">
                 <Shield size={16} className="text-[var(--secondary)] flex-shrink-0 mt-0.5" />
@@ -331,21 +405,18 @@ export default function ApplyOrganization() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-headline-md text-[var(--on-surface)] mb-1">Wellbeing Needs Assessment</h2>
-                <p className="text-sm text-[var(--on-surface-variant)]">Help us understand your organization&apos;s wellbeing goals so we can tailor the right solution.</p>
+                <p className="text-sm text-[var(--on-surface-variant)]">Help us understand your organization&apos;s wellbeing goals.</p>
               </div>
               <div>
                 <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-3">Wellbeing Goals * <span className="normal-case font-normal text-xs">(Select all that apply)</span></label>
                 <div className="flex flex-wrap gap-2">
                   {wellbeingGoals.map(g => (
-                    <button key={g} type="button"
-                      onClick={() => toggleMulti("goals", g)}
+                    <button key={g} type="button" onClick={() => toggleMulti("goals", g)}
                       className={`px-3 py-2 rounded-full text-xs font-semibold border transition-all ${
                         form.goals.includes(g)
                           ? "bg-[var(--secondary)] text-white border-[var(--secondary)]"
                           : "bg-transparent text-[var(--on-surface-variant)] border-[var(--outline-variant)] hover:border-[var(--secondary-muted)]"
-                      }`}>
-                      {g}
-                    </button>
+                      }`}>{g}</button>
                   ))}
                 </div>
               </div>
@@ -353,21 +424,18 @@ export default function ApplyOrganization() {
                 <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-3">Services Interested In * <span className="normal-case font-normal text-xs">(Select all that apply)</span></label>
                 <div className="flex flex-wrap gap-2">
                   {interestedServices.map(s => (
-                    <button key={s} type="button"
-                      onClick={() => toggleMulti("services", s)}
+                    <button key={s} type="button" onClick={() => toggleMulti("services", s)}
                       className={`px-3 py-2 rounded-full text-xs font-semibold border transition-all ${
                         form.services.includes(s)
                           ? "bg-[var(--primary)] text-white border-[var(--primary)]"
                           : "bg-transparent text-[var(--on-surface-variant)] border-[var(--outline-variant)] hover:border-[var(--primary-bright)]"
-                      }`}>
-                      {s}
-                    </button>
+                      }`}>{s}</button>
                   ))}
                 </div>
               </div>
               <div>
                 <label className="block text-label-bold text-[var(--on-surface-variant)] uppercase mb-2">Current Challenges <span className="normal-case font-normal">(Optional)</span></label>
-                <textarea rows={4} placeholder="Describe the main wellbeing challenges your employees / members face currently..."
+                <textarea rows={4} placeholder="Describe the main wellbeing challenges your employees face..."
                   value={form.challenges} onChange={e => update("challenges", e.target.value)}
                   className="w-full px-4 py-3 border border-[var(--outline-variant)] rounded-lg bg-[var(--surface)] text-[var(--on-surface)] placeholder:text-[var(--outline)] focus:outline-none focus:border-[var(--secondary-muted)] transition-all resize-none"
                 />
@@ -375,18 +443,16 @@ export default function ApplyOrganization() {
             </div>
           )}
 
-          {/* ── STEP 4: Compliance Review ── */}
+          {/* ── STEP 4: Compliance ── */}
           {step === 4 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-headline-md text-[var(--on-surface)] mb-1">Compliance & Ethics Agreement</h2>
-                <p className="text-sm text-[var(--on-surface-variant)]">
-                  KleverKlues™ ensures that wellbeing data is never misused. Organizations must commit to ethical and responsible usage.
-                </p>
+                <p className="text-sm text-[var(--on-surface-variant)]">KleverKlues™ ensures that wellbeing data is never misused.</p>
               </div>
               <div className="space-y-4">
                 {[
-                  { key: "agreePrivacy", title: "Privacy & Data Compliance", desc: "We will comply with DPDP and applicable data protection laws. Employee wellbeing data will never be used for performance management, punitive decisions, or unauthorized purposes." },
+                  { key: "agreePrivacy", title: "Privacy & Data Compliance", desc: "We will comply with DPDP and applicable data protection laws. Employee wellbeing data will never be used for performance management or punitive decisions." },
                   { key: "agreeEthical", title: "Ethical Wellbeing Practices", desc: "We commit to using KleverKlues™ only for genuine employee wellbeing — never for monitoring, surveillance, or exploitative analytics." },
                   { key: "agreeConsent", title: "Consent-Based Participation", desc: "All employee participation will be voluntary and consent-based. We will not mandate or coerce use of the platform." },
                   { key: "agreeConfidential", title: "Employee Confidentiality", desc: "We acknowledge that individual employee session data is strictly confidential and will never be accessed or requested by our organization." },
@@ -436,6 +502,12 @@ export default function ApplyOrganization() {
                   { label: "Official Email", value: form.repEmail },
                   { label: "Wellbeing Goals", value: form.goals.join(", ") || "—" },
                   { label: "Services Requested", value: form.services.join(", ") || "—" },
+                  { label: "Uploaded Docs", value: [
+                    files.registrationCert && "Reg. Cert",
+                    files.gstCert && "GST Cert",
+                    files.authLetter && "Auth Letter",
+                    files.logo && "Logo",
+                  ].filter(Boolean).join(", ") || "None" },
                 ].map(row => (
                   <div key={row.label} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-[var(--outline-variant)] last:border-0">
                     <span className="text-xs font-semibold uppercase tracking-wide text-[var(--on-surface-variant)] sm:w-36 flex-shrink-0">{row.label}</span>
@@ -445,38 +517,38 @@ export default function ApplyOrganization() {
               </div>
               <div className="p-4 bg-[var(--secondary-fixed)]/30 rounded-lg">
                 <p className="text-xs text-[var(--on-surface-variant)]">
-                  Your application will go through <strong>Business Verification → Representative Check → Compliance Review → Enterprise Approval</strong>. Upon approval, your organization&apos;s <strong>Enterprise Dashboard</strong> will be activated with full access to selected services.
+                  Upon approval, the authorized representative at <strong>{form.repEmail}</strong> will receive <strong>login credentials via email</strong> to access the Enterprise Dashboard.
                 </p>
               </div>
+              {submitError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
+                  <AlertCircle size={18} className="text-rose-500 flex-shrink-0" />
+                  <p className="text-sm text-rose-700">{submitError}</p>
+                </div>
+              )}
             </div>
           )}
 
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--outline-variant)]">
-            <button
-              onClick={() => setStep(s => Math.max(1, s - 1))}
-              disabled={step === 1}
-              className="flex items-center gap-2 px-5 py-3 border border-[var(--outline-variant)] rounded-lg text-sm font-medium text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
+            <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1}
+              className="flex items-center gap-2 px-5 py-3 border border-[var(--outline-variant)] rounded-lg text-sm font-medium text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               <ArrowLeft size={15} /> Previous
             </button>
-            <div className="text-xs text-[var(--on-surface-variant)]">
-              Step {step} of {STEPS.length}
-            </div>
+            <div className="text-xs text-[var(--on-surface-variant)]">Step {step} of {STEPS.length}</div>
             {step < STEPS.length ? (
-              <button
-                onClick={() => setStep(s => s + 1)}
-                disabled={!canNext()}
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white font-semibold rounded-lg hover:bg-[var(--on-secondary-container)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button onClick={() => setStep(s => s + 1)} disabled={!canNext()}
+                className="flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white font-semibold rounded-lg hover:bg-[var(--on-secondary-container)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 Next <ArrowRight size={15} />
               </button>
             ) : (
-              <button
-                onClick={handleSubmit}
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white font-semibold rounded-lg hover:bg-[var(--on-secondary-container)] transition-all shadow-lg"
-              >
-                Submit Application <CheckCircle size={15} />
+              <button onClick={handleSubmit} disabled={submitting}
+                className="flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white font-semibold rounded-lg hover:bg-[var(--on-secondary-container)] transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed">
+                {submitting ? (
+                  <><Loader2 size={15} className="animate-spin" /> Submitting…</>
+                ) : (
+                  <>Submit Application <CheckCircle size={15} /></>
+                )}
               </button>
             )}
           </div>

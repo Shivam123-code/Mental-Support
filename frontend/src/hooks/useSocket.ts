@@ -118,14 +118,49 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string) 
 export function useEmergencyAlerts(adminId?: string, token?: string) {
   const { socket, isConnected, isAuthenticated } = useSocket(adminId, 'ADMIN', token);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  // ── Load historical alerts from DB on mount (survives logout/re-login) ──
+  useEffect(() => {
+    if (!token || !adminId) return;
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch('/api/admin/sos-alerts?limit=100', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data?.alerts)) {
+          setAlerts(data.data.alerts);
+        }
+      } catch (err) {
+        console.error('Failed to load SOS alert history:', err);
+      } finally {
+        setDbLoaded(true);
+      }
+    };
+
+    fetchHistory();
+  }, [adminId, token]);
+
+  // ── Merge helper: live event wins if same ID already in list ──
+  const mergeAlert = (prev: any[], incoming: any) => {
+    const exists = prev.some(a => a.id === incoming.id);
+    if (exists) {
+      // Update status of existing alert (live event is always more up-to-date)
+      return prev.map(a => a.id === incoming.id ? { ...a, ...incoming } : a);
+    }
+    return [incoming, ...prev];
+  };
 
   useEffect(() => {
     if (!socket || !isAuthenticated) return;
 
     socket.on('emergency:alert', (alert) => {
       console.log('🚨 New emergency alert:', alert);
-      setAlerts((prev) => [alert, ...prev]);
-      
+      setAlerts((prev) => mergeAlert(prev, alert));
+
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'granted') {
           new Notification('🚨 Emergency Alert', {
@@ -147,8 +182,13 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     });
 
     socket.on('emergency:resolved', (data) => {
+      // Update to RESOLVED in list (don't filter out — admin needs to see history)
       setAlerts((prev) =>
-        prev.filter((alert) => alert.id !== data.alertId)
+        prev.map((alert) =>
+          alert.id === data.alertId
+            ? { ...alert, status: 'RESOLVED' }
+            : alert
+        )
       );
     });
 
@@ -175,5 +215,6 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     resolveAlert,
     isConnected,
     isAuthenticated,
+    dbLoaded,
   };
 }
