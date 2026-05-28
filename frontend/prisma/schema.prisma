@@ -68,6 +68,7 @@ model User {
   communityPosts    CommunityPost[]
   notifications     Notification[]
   subscriptions     Subscription[]
+  emergencyAlerts   EmergencyAlert[]
   
   @@index([email])
   @@index([role])
@@ -581,3 +582,61 @@ model ActivityLog {
   @@index([action])
   @@index([createdAt])
 }
+
+// ============================================
+// GEOSPATIAL - HOSPITALS & EMERGENCY ALERTS
+// ============================================
+
+model Hospital {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  phone       String
+  email       String?
+
+  // Geospatial fields
+  latitude    Float
+  longitude   Float
+  location    Unsupported("geometry(Point, 4326)")?
+
+  // Hospital details
+  type        String   // "Government", "Private", "Clinic"
+  specialties String[]
+  beds        Int?
+  hasER       Boolean  @default(false)
+  is24x7      Boolean  @default(false)
+
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([latitude, longitude])
+}
+
+model EmergencyAlert {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Location
+  latitude       Float
+  longitude      Float
+  location       Unsupported("geometry(Point, 4326)")?
+
+  // Alert details
+  severity       String    // "CRITICAL", "HIGH", "MEDIUM"
+  message        String?
+  status         String    @default("ACTIVE") // "ACTIVE", "ACKNOWLEDGED", "RESOLVED"
+
+  // Response
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+
+  createdAt      DateTime  @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+}
+

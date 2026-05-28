@@ -3,7 +3,7 @@ import { Newsreader, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import ConditionalFooter from "@/components/layout/ConditionalFooter";
-import SOSButton from "@/components/layout/SOSButton";
+import SOSButton from "@/components/SOSButton";
 import QuickExit from "@/components/layout/QuickExit";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
 import { AuthProvider } from "@/contexts/AuthContext";

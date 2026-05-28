@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function Loading() {
+  const [show, setShow] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const calmingQuotes = [
     "Breathing in calmness...",
@@ -13,14 +14,24 @@ export default function Loading() {
   ];
 
   useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      setShow(true);
+    }, 300);
+
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % calmingQuotes.length);
     }, 2500);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearTimeout(delayTimer);
+      clearInterval(interval);
+    };
   }, []);
 
+  if (!show) return null;
+
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--surface)] text-[var(--on-surface)] transition-all duration-300">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--surface)] text-[var(--on-surface)] animate-fade-in">
       <div className="relative flex items-center justify-center w-32 h-32">
         {/* Calming Ripple Effects */}
         <div className="absolute inset-0 rounded-full bg-[var(--primary-bright)]/10 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] opacity-40" />
