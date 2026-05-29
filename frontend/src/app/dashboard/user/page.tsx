@@ -380,7 +380,7 @@ function DashboardContent() {
         </header>
 
         {/* Space Router */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-8 max-w-[1200px] mx-auto w-full">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 max-w-[1200px] mx-auto w-full">
           
           {/* ──────────────── TAB: OVERVIEW ──────────────── */}
           {activeTab === 'Overview' && (
@@ -429,7 +429,7 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
                 
                 {/* Daily Check-In Widget */}
                 <div className="card md:col-span-2 space-y-5 bg-white/50 backdrop-blur-sm">
@@ -766,8 +766,8 @@ function DashboardContent() {
                 const allAnswered = def.questions.every(qq => answers[qq.id] !== undefined);
                 const isLast = currentQuestion === def.questions.length - 1;
                 return (
-                  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
-                    <div className="bg-[var(--surface)] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:px-4">
+                    <div className="bg-[var(--surface)] rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl overflow-hidden max-h-[95vh] sm:max-h-[90vh] flex flex-col">
                       {/* Header */}
                       <div className={`bg-gradient-to-r ${def.color} px-6 py-4 border-b border-[var(--outline-variant)]/20`}>
                         <div className="flex items-center justify-between mb-3">
@@ -795,16 +795,16 @@ function DashboardContent() {
                       </div>
 
                       {/* Question body */}
-                      <div className="px-6 py-8 space-y-6">
-                        <p className="text-base font-semibold text-[var(--on-surface)] leading-relaxed">
+                      <div className="px-4 sm:px-6 py-5 sm:py-8 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
+                        <p className="text-sm sm:text-base font-semibold text-[var(--on-surface)] leading-relaxed">
                           {currentQuestion + 1}. {q.text}
                         </p>
-                        <div className="space-y-2.5">
+                        <div className="space-y-2">
                           {q.options.map(opt => (
                             <button
                               key={opt.value}
                               onClick={() => selectAnswer(q.id, opt.value)}
-                              className={`w-full text-left px-5 py-3.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
+                              className={`w-full text-left px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
                                 answers[q.id] === opt.value
                                   ? 'border-[var(--primary)] bg-[var(--primary-fixed)] text-[var(--primary)]'
                                   : 'border-[var(--outline-variant)]/50 hover:border-[var(--primary-bright)] hover:bg-[var(--surface-container-low)]'
@@ -815,6 +815,7 @@ function DashboardContent() {
                           ))}
                         </div>
                       </div>
+
 
                       {/* Footer nav */}
                       <div className="px-6 py-4 border-t border-[var(--outline-variant)]/20 flex items-center justify-between">

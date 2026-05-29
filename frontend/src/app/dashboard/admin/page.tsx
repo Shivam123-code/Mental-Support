@@ -11,9 +11,8 @@ import {
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
   CheckSquare, Bell, Settings, List, ArrowLeft, ShieldCheck,
   CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio,
-  Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp
+  Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp, Menu, X
 } from "lucide-react";
-
 
 // Types for Admin Dashboard
 interface SOSCase {
@@ -85,6 +84,7 @@ function AdminDashboardContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("Overview");
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     regularUsers: 0,
@@ -364,9 +364,38 @@ function AdminDashboardContent() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-container-lowest)] text-[var(--on-surface)] flex">
-      
+
+      {/* ── Mobile Top Navbar ── */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-[var(--surface-container-lowest)] border-b border-[var(--outline-variant)]/60 px-4 flex items-center justify-between z-50">
+        <div className="flex items-center gap-2">
+          <img src="/logo.jpg" alt="KleverKlues" width={28} height={28} className="object-contain" />
+          <span className="font-display font-semibold text-sm">Admin Panel</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold px-2 py-1 rounded-full hidden sm:flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
+          </span>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--surface-container)] cursor-pointer"
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Mobile Backdrop ── */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar */}
-      <aside className="w-64 border-r border-[var(--outline-variant)]/60 bg-[var(--surface-container-low)] flex flex-col fixed top-0 bottom-0 left-0 z-40 overflow-y-auto">
+      <aside className={`fixed inset-y-0 left-0 w-72 lg:w-64 border-r border-[var(--outline-variant)]/60 bg-[var(--surface-container-low)] flex flex-col z-40 overflow-y-auto transform transition-transform duration-300 lg:translate-x-0 ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Title logo */}
         <div className="p-6 border-b border-[var(--outline-variant)]/40 flex items-center gap-3">
           <img src="/logo.jpg" alt="KleverKlues" width={32} height={32} className="object-contain" />
@@ -383,7 +412,10 @@ function AdminDashboardContent() {
             return (
               <button
                 key={item.label}
-                onClick={() => setActiveTab(item.label)}
+                onClick={() => {
+                  setActiveTab(item.label);
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   isSelected
                     ? "bg-indigo-600 text-white shadow-sm"
@@ -427,29 +459,29 @@ function AdminDashboardContent() {
 
 
       {/* Main Content Area */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
-        
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen pt-14 lg:pt-0">
+
         {/* Top Header Controls */}
-        <header className="h-16 border-b border-[var(--outline-variant)]/60 bg-[var(--surface-container-lowest)] px-8 flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
-              {activeTab} Portal
+        <header className="h-14 lg:h-16 border-b border-[var(--outline-variant)]/60 bg-[var(--surface-container-lowest)] px-4 lg:px-8 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] truncate max-w-[140px] sm:max-w-none">
+              {activeTab}
             </h2>
-            <span className="h-4 w-px bg-[var(--outline-variant)]" />
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse-soft">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> SAFETY SYSTEMS ACTIVE
+            <span className="hidden sm:block h-4 w-px bg-[var(--outline-variant)]" />
+            <span className="hidden sm:flex text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> LIVE
             </span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-[10px] font-bold text-[var(--on-surface-variant)]/60 flex items-center gap-1.5 bg-[var(--surface-container-low)] px-3 py-1.5 rounded-lg border-hairline">
-              <ShieldCheck size={14} className="text-indigo-600" /> DPDP READY &bull; SECURED AUDIT ENABLED
+          <div className="flex items-center gap-2 lg:gap-4">
+            <div className="hidden md:flex text-[10px] font-bold text-[var(--on-surface-variant)]/60 items-center gap-1.5 bg-[var(--surface-container-low)] px-3 py-1.5 rounded-lg border-hairline">
+              <ShieldCheck size={14} className="text-indigo-600" /> DPDP READY
             </div>
           </div>
         </header>
 
         {/* Tab content router */}
-        <main className="flex-1 p-8 overflow-y-auto space-y-8 max-w-[1400px]">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 max-w-[1400px] w-full">
+
           
           {/* TAB 1: OVERVIEW */}
           {activeTab === "Overview" && (
