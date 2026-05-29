@@ -11,8 +11,9 @@ import {
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
   CheckSquare, Bell, Settings, List, ArrowLeft, ShieldCheck,
   CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio,
-  Plus, Edit3, Trash2, Download, ExternalLink
+  Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp
 } from "lucide-react";
+
 
 // Types for Admin Dashboard
 interface SOSCase {
@@ -110,6 +111,14 @@ function AdminDashboardContent() {
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // ── Assessment analytics from DB ──
+  const [adminAssessments, setAdminAssessments] = useState<{
+    totalCompletions: number;
+    typeStats: any[];
+    submissions: any[];
+  }>({ totalCompletions: 0, typeStats: [], submissions: [] });
+  const [assessmentAdminLoading, setAssessmentAdminLoading] = useState(false);
+
   // ── Real-time WebSocket SOS alerts ──
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded } =
@@ -170,9 +179,24 @@ function AdminDashboardContent() {
     }
   };
 
+  const fetchAdminAssessments = async () => {
+    setAssessmentAdminLoading(true);
+    try {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch('/api/admin/assessments', { headers: { Authorization: `Bearer ${t}` } });
+      const data = await res.json();
+      if (data.success) setAdminAssessments(data.data);
+    } catch (err) {
+      console.error('Admin assessments fetch error:', err);
+    } finally {
+      setAssessmentAdminLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
     fetchApplications();
+    fetchAdminAssessments();
   }, []);
 
   // API-backed event handlers
@@ -1340,34 +1364,138 @@ function AdminDashboardContent() {
 
           {/* TAB 9: ASSESSMENTS */}
           {activeTab === "Assessments" && (
-            <div className="card p-6 space-y-4 animate-in fade-in duration-300">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                  Assessments Control Panel & Scoring Banks
-                </h3>
-                <button className="btn-primary !py-2 !px-4 text-xs flex items-center gap-1.5 cursor-pointer">
-                  <Plus size={12} /> Add Assessment Category
+            <div className="space-y-6 animate-in fade-in duration-300">
+
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-[var(--on-surface)]">Assessment Analytics Dashboard</h3>
+                  <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">
+                    Real data from PostgreSQL — {adminAssessments.totalCompletions} total completions
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAdminAssessments}
+                  disabled={assessmentAdminLoading}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold border border-[var(--outline-variant)] rounded-xl hover:bg-[var(--surface-container)] cursor-pointer"
+                >
+                  {assessmentAdminLoading ? <Loader2 size={12} className="animate-spin" /> : <TrendingUp size={12} />}
+                  Refresh Data
                 </button>
               </div>
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { name: "Anxiety Index", count: 8, severity: "High/Mod/Low", completions: "1,248" },
-                  { name: "Burnout Meter", count: 12, severity: "Critical/Mod/Low", completions: "842" },
-                  { name: "Relationship Wellness", count: 10, severity: "High/Mod/Low", completions: "632" }
-                ].map((item) => (
-                  <div key={item.name} className="p-5 bg-[var(--surface-container-low)] border-hairline rounded-xl space-y-3 text-xs">
-                    <h4 className="font-bold text-sm text-[var(--on-surface)]">{item.name}</h4>
-                    <p className="text-[var(--on-surface-variant)]">Question Bank size: <strong>{item.count} items</strong></p>
-                    <p className="text-[var(--on-surface-variant)]">Scoring Logic: <strong>{item.severity}</strong></p>
-                    <p className="text-[var(--on-surface-variant)]">Completions: <strong>{item.completions}</strong></p>
-                    
-                    <div className="pt-2 border-t border-[var(--outline-variant)]/30 flex justify-end gap-2">
-                      <button className="p-1 text-indigo-600 hover:text-indigo-800"><Edit3 size={14} /></button>
-                      <button className="p-1 text-rose-500 hover:text-rose-700"><Trash2 size={14} /></button>
+              {/* Per-type stat cards */}
+              {assessmentAdminLoading && adminAssessments.typeStats.length === 0 ? (
+                <div className="py-10 flex items-center justify-center gap-2 text-sm text-[var(--on-surface-variant)]">
+                  <Loader2 size={18} className="animate-spin text-indigo-500" />
+                  Loading assessment data from database…
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {adminAssessments.typeStats.map(stat => (
+                    <div key={stat.key} className="card p-4 space-y-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-[var(--on-surface)] leading-tight">{stat.title}</h4>
+                        <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{stat.questions} questions</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-[var(--on-surface-variant)]">Completions</span>
+                          <span className="font-bold text-indigo-600">{stat.completions}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-[var(--on-surface-variant)]">Avg Score</span>
+                          <span className="font-bold">{stat.avgScore || '—'}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-[var(--on-surface-variant)]">Avg Level</span>
+                          <span className="font-bold text-[var(--primary)]">{stat.avgPercentage || 0}%</span>
+                        </div>
+                      </div>
+
+                      {/* Level breakdown mini-chart */}
+                      {Object.keys(stat.levelCounts || {}).length > 0 && (
+                        <div className="space-y-1 pt-1 border-t border-[var(--outline-variant)]/20">
+                          {Object.entries(stat.levelCounts).map(([lvl, cnt]: any) => (
+                            <div key={lvl} className="flex justify-between text-[10px]">
+                              <span className={`font-semibold ${ 
+                                ['Minimal','Low','Excellent','Expert'].includes(lvl) ? 'text-emerald-600' :
+                                ['Mild','Good','Proficient'].includes(lvl) ? 'text-blue-600' :
+                                ['Moderate','Needs Work','Developing'].includes(lvl) ? 'text-amber-600' :
+                                'text-rose-600'
+                              }`}>{lvl}</span>
+                              <span className="text-[var(--on-surface-variant)]">{cnt} users</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {stat.completions === 0 && (
+                        <p className="text-[10px] text-[var(--on-surface-variant)]/60 italic">No completions yet</p>
+                      )}
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Submissions table */}
+              <div className="card space-y-4">
+                <div className="flex items-center justify-between border-b border-[var(--outline-variant)]/20 pb-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+                    All User Submissions
+                  </h4>
+                  <span className="text-[10px] text-[var(--on-surface-variant)]/60">
+                    {adminAssessments.submissions.length} records
+                  </span>
+                </div>
+
+                {adminAssessments.submissions.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Brain size={32} className="text-[var(--on-surface-variant)]/30 mx-auto mb-3" />
+                    <p className="text-sm text-[var(--on-surface-variant)]">No assessment submissions yet</p>
+                    <p className="text-xs text-[var(--on-surface-variant)]/60 mt-1">They'll appear here after users complete their first assessment</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-[var(--outline-variant)]/30 text-[var(--on-surface-variant)]/60">
+                          <th className="py-2.5 font-semibold">User</th>
+                          <th className="py-2.5 font-semibold">Assessment</th>
+                          <th className="py-2.5 font-semibold">Score</th>
+                          <th className="py-2.5 font-semibold">Level</th>
+                          <th className="py-2.5 font-semibold">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminAssessments.submissions.slice(0, 50).map(sub => (
+                          <tr key={sub.id} className="border-b border-[var(--outline-variant)]/20 hover:bg-[var(--surface-container-low)]">
+                            <td className="py-3">
+                              <p className="font-semibold text-[var(--on-surface)]">{sub.userName || 'Unknown'}</p>
+                              <p className="text-[10px] text-[var(--on-surface-variant)]/60">{sub.userEmail}</p>
+                            </td>
+                            <td className="py-3 font-medium">{sub.assessmentTitle}</td>
+                            <td className="py-3">
+                              <span className="font-bold text-[var(--primary)]">{sub.score}/{sub.maxScore}</span>
+                              <span className="text-[var(--on-surface-variant)]/60 ml-1">({sub.percentage}%)</span>
+                            </td>
+                            <td className="py-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                ['Minimal','Low','Excellent','Expert'].includes(sub.level) ? 'bg-emerald-100 text-emerald-700' :
+                                ['Mild','Good','Proficient'].includes(sub.level) ? 'bg-blue-100 text-blue-700' :
+                                ['Moderate','Needs Work','Developing'].includes(sub.level) ? 'bg-amber-100 text-amber-700' :
+                                'bg-rose-100 text-rose-600'
+                              }`}>{sub.level}</span>
+                            </td>
+                            <td className="py-3 text-[var(--on-surface-variant)]/60">
+                              {new Date(sub.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

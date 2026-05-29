@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api-client';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -10,8 +10,10 @@ import {
   Sparkles, TrendingUp, Calendar, MessageCircle, Zap, Sun, Moon,
   Cloud, Wind, Smile, Meh, Frown, AlertCircle, CheckCircle, Clock,
   Settings, LogOut, Shield, Compass, BookCheck, ShieldAlert, Star,
-  Menu, X, Send, Eye, ShieldCheck, HeartHandshake, EyeOff, Lock
+  Menu, X, Send, Eye, ShieldCheck, HeartHandshake, EyeOff, Lock,
+  ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw
 } from 'lucide-react';
+import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 
 export default function UserDashboard() {
   return (
@@ -58,6 +60,18 @@ function DashboardContent() {
   const [anonymousMode, setAnonymousMode] = useState(false);
   const [autoDND, setAutoDND] = useState(true);
 
+  // ─── ASSESSMENT STATE ─────────────────────────────────────────────────────
+  const [assessmentHistory, setAssessmentHistory] = useState<any[]>([]);
+  const [latestByType, setLatestByType] = useState<Record<string, any>>({});
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
+
+  // Runner state
+  const [activeAssessment, setActiveAssessment] = useState<AssessmentKey | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [submittingAssessment, setSubmittingAssessment] = useState(false);
+  const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
+
   // Breathing exercise simulator loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -79,8 +93,28 @@ function DashboardContent() {
     return () => clearInterval(interval);
   }, [isBreathingActive]);
 
+  const fetchAssessments = useCallback(async () => {
+    setAssessmentLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (!token) return;
+      const res = await fetch('/api/assessments', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) {
+        setAssessmentHistory(data.data?.results || []);
+        setLatestByType(data.data?.latestByType || {});
+      }
+    } catch (err) {
+      console.error('Assessment history error:', err);
+    } finally {
+      setAssessmentLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
+    fetchAssessments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
@@ -98,6 +132,61 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ─── Start / Answer / Submit ──────────────────────────────────────────────
+  const startAssessment = (key: AssessmentKey) => {
+    setActiveAssessment(key);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setAssessmentResult(null);
+  };
+
+  const selectAnswer = (questionId: string, value: number) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  const goNextQuestion = () => {
+    if (!activeAssessment) return;
+    const def = ASSESSMENTS[activeAssessment];
+    if (currentQuestion < def.questions.length - 1) {
+      setCurrentQuestion(q => q + 1);
+    }
+  };
+
+  const goPrevQuestion = () => {
+    setCurrentQuestion(q => Math.max(0, q - 1));
+  };
+
+  const submitAssessmentAnswers = async () => {
+    if (!activeAssessment) return;
+    setSubmittingAssessment(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ assessmentType: activeAssessment, answers }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAssessmentResult(data.data.insights);
+        fetchAssessments(); // Refresh history
+      } else {
+        alert('Failed to save: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Assessment submit error:', err);
+    } finally {
+      setSubmittingAssessment(false);
+    }
+  };
+
+  const closeAssessment = () => {
+    setActiveAssessment(null);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setAssessmentResult(null);
   };
 
   const submitCheckIn = async (e: React.FormEvent) => {
@@ -667,32 +756,314 @@ function DashboardContent() {
           {/* ──────────────── TAB: ASSESSMENTS ──────────────── */}
           {activeTab === 'Assessments' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <div>
-                <h2 className="text-lg font-bold">Mental Wellbeing Assessments</h2>
-                <p className="text-xs text-[var(--on-surface-variant)]">Scientific wellbeing indicators to evaluate stress, anxiety, burnout, and EQ.</p>
-              </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
-                {[
-                  { title: "Anxiety Index (GAD-7)", desc: "Measure generalized daily anxiety levels.", time: "5 mins", completed: "Completed 7 days ago", score: "Score: 12 (Moderate)", link: "/assessments" },
-                  { title: "Burnout Meter", desc: "Evaluate workplace fatigue and burnout symptoms.", time: "8 mins", completed: "Not completed", action: "Start Test", link: "/assessments" },
-                  { title: "Relationship Wellness", desc: "Assess connection quality and emotional boundaries.", time: "6 mins", completed: "Not completed", action: "Start Test", link: "/assessments" },
-                  { title: "Leadership EQ Test", desc: "Evaluate emotional intelligence traits in professional environments.", time: "10 mins", completed: "Not completed", action: "Start Test", link: "/assessments" }
-                ].map((item, i) => (
-                  <div key={i} className="card flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-[var(--primary-fixed)] px-2.5 py-0.5 rounded-full">{item.time}</span>
-                      <h3 className="text-sm font-bold">{item.title}</h3>
-                      <p className="text-xs text-[var(--on-surface-variant)]">{item.desc}</p>
-                    </div>
+              {/* ── ASSESSMENT RUNNER (Modal overlay) ── */}
+              {activeAssessment && !assessmentResult && (() => {
+                const def = ASSESSMENTS[activeAssessment];
+                const q = def.questions[currentQuestion];
+                const progress = Math.round(((currentQuestion + 1) / def.questions.length) * 100);
+                const answered = answers[q.id] !== undefined;
+                const allAnswered = def.questions.every(qq => answers[qq.id] !== undefined);
+                const isLast = currentQuestion === def.questions.length - 1;
+                return (
+                  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+                    <div className="bg-[var(--surface)] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                      {/* Header */}
+                      <div className={`bg-gradient-to-r ${def.color} px-6 py-4 border-b border-[var(--outline-variant)]/20`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{def.iconEmoji}</span>
+                            <div>
+                              <h3 className="text-sm font-bold text-[var(--on-surface)]">{def.title}</h3>
+                              <p className="text-[10px] text-[var(--on-surface-variant)]">{def.subtitle}</p>
+                            </div>
+                          </div>
+                          <button onClick={closeAssessment} className="p-1.5 rounded-full hover:bg-black/10 text-[var(--on-surface-variant)] cursor-pointer">
+                            <X size={16} />
+                          </button>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] text-[var(--on-surface-variant)]">
+                            <span>Question {currentQuestion + 1} of {def.questions.length}</span>
+                            <span className="font-bold">{progress}% complete</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-[var(--primary)] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="pt-3 border-t border-[var(--outline-variant)]/20 flex justify-between items-center">
-                      <span className="text-[10px] text-[var(--on-surface-variant)]/60 font-semibold">{item.completed} {item.score && `• ${item.score}`}</span>
-                      <Link href={item.link} className="text-xs font-bold text-[var(--primary)] hover:underline">{item.action || "Retake Assessment"}</Link>
+                      {/* Question body */}
+                      <div className="px-6 py-8 space-y-6">
+                        <p className="text-base font-semibold text-[var(--on-surface)] leading-relaxed">
+                          {currentQuestion + 1}. {q.text}
+                        </p>
+                        <div className="space-y-2.5">
+                          {q.options.map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => selectAnswer(q.id, opt.value)}
+                              className={`w-full text-left px-5 py-3.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer ${
+                                answers[q.id] === opt.value
+                                  ? 'border-[var(--primary)] bg-[var(--primary-fixed)] text-[var(--primary)]'
+                                  : 'border-[var(--outline-variant)]/50 hover:border-[var(--primary-bright)] hover:bg-[var(--surface-container-low)]'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Footer nav */}
+                      <div className="px-6 py-4 border-t border-[var(--outline-variant)]/20 flex items-center justify-between">
+                        <button
+                          onClick={goPrevQuestion}
+                          disabled={currentQuestion === 0}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold border border-[var(--outline-variant)] rounded-lg hover:bg-[var(--surface-container)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          <ChevronLeft size={14} /> Previous
+                        </button>
+
+                        <div className="flex gap-1.5">
+                          {def.questions.map((_, i) => (
+                            <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${
+                              i === currentQuestion ? 'bg-[var(--primary)] w-3' :
+                              answers[def.questions[i].id] !== undefined ? 'bg-[var(--primary)]/50' : 'bg-[var(--outline-variant)]'
+                            }`} />
+                          ))}
+                        </div>
+
+                        {isLast ? (
+                          <button
+                            onClick={submitAssessmentAnswers}
+                            disabled={!allAnswered || submittingAssessment}
+                            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-container)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+                          >
+                            {submittingAssessment ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                            {submittingAssessment ? 'Saving…' : 'Submit Assessment'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={goNextQuestion}
+                            disabled={!answered}
+                            className="flex items-center gap-1.5 px-5 py-2 text-xs font-bold bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-container)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+                          >
+                            Next <ChevronRight size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))}
+                );
+              })()}
+
+              {/* ── RESULT SCREEN ── */}
+              {assessmentResult && activeAssessment && (() => {
+                const def = ASSESSMENTS[activeAssessment];
+                const pct = assessmentResult.percentage;
+                const levelColors: Record<string, string> = {
+                  Minimal: 'emerald', Low: 'emerald', Excellent: 'emerald', Expert: 'emerald',
+                  Mild: 'blue', Good: 'blue', Proficient: 'blue',
+                  Moderate: 'amber', High: 'orange', 'Needs Work': 'amber', Developing: 'amber',
+                  Severe: 'rose', Critical: 'rose', Concerning: 'rose', Foundational: 'rose',
+                };
+                const color = levelColors[assessmentResult.level] || 'indigo';
+                return (
+                  <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4">
+                    <div className="bg-[var(--surface)] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                      <div className={`bg-gradient-to-r ${def.color} px-6 py-5 text-center`}>
+                        <div className="text-4xl mb-2">{assessmentResult.badge?.split(' ')[0] || def.iconEmoji}</div>
+                        <h2 className="text-xl font-bold text-[var(--on-surface)]">{def.title} — Complete</h2>
+                        <p className="text-xs text-[var(--on-surface-variant)] mt-1">{assessmentResult.summary}</p>
+                      </div>
+
+                      <div className="px-6 py-6 space-y-6">
+                        {/* Score ring + stats */}
+                        <div className="flex items-center justify-center gap-8">
+                          <div className="text-center">
+                            <div className={`w-24 h-24 rounded-full border-8 border-${color}-200 flex items-center justify-center mx-auto mb-2`} style={{ borderColor: 'currentColor' }}>
+                              <div>
+                                <p className={`text-2xl font-bold font-display text-${color}-600`}>{assessmentResult.score}</p>
+                                <p className="text-[10px] text-[var(--on-surface-variant)]">/{assessmentResult.maxScore}</p>
+                              </div>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${color}-100 text-${color}-700`}>{assessmentResult.level}</span>
+                          </div>
+                          <div className="space-y-2 flex-1 max-w-xs">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-[var(--on-surface-variant)]">Your Score</span>
+                              <span className="font-bold">{pct}%</span>
+                            </div>
+                            <div className="w-full h-3 bg-[var(--surface-container-high)] rounded-full overflow-hidden">
+                              <div className={`h-full bg-${color}-500 rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <p className="text-[10px] text-[var(--on-surface-variant)] text-right">{assessmentResult.badge}</p>
+                          </div>
+                        </div>
+
+                        {/* Recommendations */}
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Recommendations</h3>
+                          <ul className="space-y-2">
+                            {assessmentResult.recommendations?.map((r: string, i: number) => (
+                              <li key={i} className="flex items-start gap-2.5 p-3 bg-[var(--surface-container-low)] rounded-xl text-xs">
+                                <CheckCircle size={14} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                                <span className="text-[var(--on-surface-variant)]">{r}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Next steps */}
+                        <div className="space-y-2">
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Next Steps</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {assessmentResult.nextSteps?.map((s: string, i: number) => (
+                              <span key={i} className="px-3 py-1.5 text-[11px] bg-indigo-50 text-indigo-700 rounded-full font-semibold border border-indigo-100">
+                                → {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={closeAssessment}
+                            className="flex-1 py-2.5 text-xs font-bold border border-[var(--outline-variant)] rounded-xl hover:bg-[var(--surface-container)] cursor-pointer"
+                          >
+                            Back to Assessments
+                          </button>
+                          <button
+                            onClick={() => startAssessment(activeAssessment!)}
+                            className="flex-1 py-2.5 text-xs font-bold bg-[var(--primary)] text-white rounded-xl hover:bg-[var(--primary-container)] cursor-pointer"
+                          >
+                            <RefreshCw size={12} className="inline mr-1.5" /> Retake
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── HEADER ── */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">Mental Wellbeing Assessments</h2>
+                  <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Scientific wellbeing indicators — all results stored to your profile.</p>
+                </div>
+                <button onClick={fetchAssessments} disabled={assessmentLoading}
+                  className="p-2 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all cursor-pointer">
+                  <RefreshCw size={14} className={assessmentLoading ? 'animate-spin' : ''} />
+                </button>
               </div>
+
+              {/* ── ASSESSMENT CARDS ── */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                {(Object.keys(ASSESSMENTS) as AssessmentKey[]).map(key => {
+                  const def = ASSESSMENTS[key];
+                  const past = latestByType[key];
+                  const hasPast = !!past;
+                  return (
+                    <div key={key} className={`card bg-gradient-to-br ${def.color} border-0 flex flex-col justify-between space-y-4`}>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-white/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full">{def.time}</span>
+                          <span className="text-xl">{def.iconEmoji}</span>
+                        </div>
+                        <h3 className="text-sm font-bold text-[var(--on-surface)]">{def.title}</h3>
+                        <p className="text-[11px] text-[var(--on-surface-variant)] leading-relaxed">{def.description}</p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)]/70">{def.questions.length} questions</p>
+                      </div>
+
+                      {hasPast && (
+                        <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase">Last Result</span>
+                            <span className="text-[10px] text-[var(--on-surface-variant)]/60">
+                              {new Date(past.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-[var(--surface-container-high)] rounded-full overflow-hidden">
+                              <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${past.percentage}%` }} />
+                            </div>
+                            <span className="text-[10px] font-bold text-[var(--primary)] whitespace-nowrap">{past.score}/{past.maxScore} • {past.level}</span>
+                          </div>
+                          {(() => {
+                            const ins: any = typeof past.insights === 'string' ? JSON.parse(past.insights) : past.insights;
+                            return ins?.badge ? <p className="text-[10px] text-[var(--on-surface-variant)]">{ins.badge}</p> : null;
+                          })()}
+                        </div>
+                      )}
+
+                      <div className="pt-1 flex items-center justify-between">
+                        {hasPast ? (
+                          <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                            <CheckCircle size={11} /> Completed
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[var(--on-surface-variant)]/60 font-medium">Not yet taken</span>
+                        )}
+                        <button
+                          onClick={() => startAssessment(key)}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-lg hover:bg-[var(--primary-container)] transition-all shadow-sm cursor-pointer"
+                        >
+                          {hasPast ? <><RefreshCw size={11} /> Retake</> : <><ArrowRight size={11} /> Start Test</>}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── HISTORY TABLE ── */}
+              {assessmentHistory.length > 0 && (
+                <div className="card space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b border-[var(--outline-variant)]/20 pb-3">
+                    Assessment History
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="text-[var(--on-surface-variant)]/60 border-b border-[var(--outline-variant)]/30">
+                          <th className="py-2 font-semibold">Assessment</th>
+                          <th className="py-2 font-semibold">Score</th>
+                          <th className="py-2 font-semibold">Level</th>
+                          <th className="py-2 font-semibold">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {assessmentHistory.slice(0, 10).map(r => (
+                          <tr key={r.id} className="border-b border-[var(--outline-variant)]/20 hover:bg-[var(--surface-container-low)]">
+                            <td className="py-2.5 font-semibold">
+                              {ASSESSMENTS[r.assessmentType as AssessmentKey]?.title || r.assessmentType}
+                            </td>
+                            <td className="py-2.5">
+                              <span className="font-bold text-[var(--primary)]">{r.score}/{r.maxScore}</span>
+                              <span className="text-[var(--on-surface-variant)]/60 ml-1">({r.percentage}%)</span>
+                            </td>
+                            <td className="py-2.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                ['Minimal','Low','Excellent','Expert'].includes(r.level) ? 'bg-emerald-100 text-emerald-700' :
+                                ['Mild','Good','Proficient'].includes(r.level) ? 'bg-blue-100 text-blue-700' :
+                                ['Moderate','Needs Work','Developing'].includes(r.level) ? 'bg-amber-100 text-amber-700' :
+                                'bg-rose-100 text-rose-600'
+                              }`}>{r.level}</span>
+                            </td>
+                            <td className="py-2.5 text-[var(--on-surface-variant)]/60">
+                              {new Date(r.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 

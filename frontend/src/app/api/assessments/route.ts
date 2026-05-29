@@ -1,31 +1,36 @@
-// GET /api/assessments - Get User's Assessment History
-// POST /api/assessments - Submit Assessment
+// GET /api/assessments  — User's assessment history
+// POST /api/assessments — Submit answers, score, save result
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getUserFromToken } from '@/lib/auth';
-import { validate, assessmentSubmissionSchema } from '@/lib/validation';
-import { successResponse, errorResponse, unauthorizedResponse, validationErrorResponse } from '@/lib/api-response';
+import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
+import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
+
+const VALID_TYPES: AssessmentKey[] = [
+  'ANXIETY_INDEX', 'BURNOUT_METER', 'RELATIONSHIP_WELLNESS', 'LEADERSHIP_EQ'
+];
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return unauthorizedResponse();
-    }
+    if (!authHeader?.startsWith('Bearer ')) return unauthorizedResponse();
+    const user = await getUserFromToken(authHeader.substring(7));
+    if (!user) return unauthorizedResponse();
 
-    const token = authHeader.substring(7);
-    const user = await getUserFromToken(token);
-
-    if (!user) {
-      return unauthorizedResponse();
-    }
-
-    const assessments = await prisma.assessmentResult.findMany({
+    const results = await prisma.assessmentResult.findMany({
       where: { userId: user.id },
       orderBy: { completedAt: 'desc' },
     });
 
-    return successResponse(assessments);
+    // Group by type — return latest per type + full history
+    const latestByType: Record<string, any> = {};
+    for (const r of results) {
+      if (!latestByType[r.assessmentType]) {
+        latestByType[r.assessmentType] = r;
+      }
+    }
+
+    return successResponse({ results, latestByType });
   } catch (error) {
     console.error('Get assessments error:', error);
     return errorResponse('Failed to fetch assessments', 500);
@@ -35,63 +40,44 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return unauthorizedResponse();
-    }
-
-    const token = authHeader.substring(7);
-    const user = await getUserFromToken(token);
-
-    if (!user) {
-      return unauthorizedResponse();
-    }
+    if (!authHeader?.startsWith('Bearer ')) return unauthorizedResponse();
+    const user = await getUserFromToken(authHeader.substring(7));
+    if (!user) return unauthorizedResponse();
 
     const body = await request.json();
-    const validation = validate(assessmentSubmissionSchema, body);
-    
-    if (!validation.success) {
-      return validationErrorResponse(validation.error);
+    const { assessmentType, answers } = body;
+
+    if (!assessmentType || !VALID_TYPES.includes(assessmentType)) {
+      return errorResponse('Invalid assessment type', 400);
+    }
+    if (!answers || typeof answers !== 'object' || Object.keys(answers).length === 0) {
+      return errorResponse('Answers are required', 400);
     }
 
-    const { assessmentType, answers } = validation.data;
+    const def = ASSESSMENTS[assessmentType as AssessmentKey];
+    if (!def) return errorResponse('Unknown assessment', 400);
 
-    // Calculate score (simplified - you can implement complex scoring logic)
-    const totalQuestions = Object.keys(answers).length;
-    const totalScore = Object.values(answers).reduce((sum: number, val: any) => sum + (val.score || 0), 0);
-    const maxScore = totalQuestions * 4; // Assuming max score per question is 4
-    const percentage = (totalScore / maxScore) * 100;
+    // Score using the engine
+    const insights = scoreAssessment(assessmentType as AssessmentKey, answers as Record<string, number>);
 
-    // Determine level
-    let level = 'Low';
-    if (percentage >= 75) level = 'Severe';
-    else if (percentage >= 50) level = 'High';
-    else if (percentage >= 25) level = 'Moderate';
-
-    // Generate insights (simplified)
-    const insights = {
-      level,
-      recommendations: [
-        'Consider booking a session with a professional',
-        'Join a support circle',
-        'Start a guided program',
-      ],
-      nextSteps: ['Take daily mood logs', 'Practice mindfulness exercises'],
-    };
-
-    const assessment = await prisma.assessmentResult.create({
+    const result = await prisma.assessmentResult.create({
       data: {
         userId: user.id,
         assessmentType,
-        score: totalScore,
-        maxScore,
-        percentage,
-        level,
-        insights,
-        answers,
+        score: insights.score,
+        maxScore: insights.maxScore,
+        percentage: insights.percentage,
+        level: insights.level,
+        insights: insights as any,
+        answers: answers as any,
       },
     });
 
-    return successResponse(assessment, 'Assessment submitted successfully', 201);
+    return successResponse(
+      { result, insights },
+      'Assessment completed successfully',
+      201
+    );
   } catch (error) {
     console.error('Submit assessment error:', error);
     return errorResponse('Failed to submit assessment', 500);
