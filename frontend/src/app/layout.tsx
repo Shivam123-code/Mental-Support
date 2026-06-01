@@ -12,15 +12,18 @@ const newsreader = Newsreader({
   subsets: ["latin"],
   variable: "--font-newsreader",
   display: "swap",
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],   // 600 was preloaded but unused → removed
+  preload: false,           // prevents "preloaded but not used" warning
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700"], // 400 weight unused in practice → removed
+  preload: false,                // prevents "preloaded but not used" warning
 });
+
 
 export const metadata: Metadata = {
   title: "KleverKlues - You're Not Alone | Human Wellbeing & Emotional Support",

@@ -124,6 +124,38 @@ function AdminDashboardContent() {
   const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded } =
     useEmergencyAlerts(user?.id, token || undefined);
 
+  // ── Reverse-geocode each alert's coordinates → human-readable location name ──
+  const [locationLabels, setLocationLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    liveAlerts.forEach((alert) => {
+      const key = `${alert.id}`;
+      if (locationLabels[key] || !alert.latitude || !alert.longitude) return;
+      // Mark as loading so we don't fire twice
+      setLocationLabels((prev) => ({ ...prev, [key]: 'Resolving…' }));
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${alert.latitude}&lon=${alert.longitude}&format=json`
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          const a = data.address || {};
+          const label = [
+            a.suburb || a.neighbourhood || a.road,
+            a.city || a.town || a.village || a.county,
+            a.state,
+            a.country,
+          ]
+            .filter(Boolean)
+            .join(', ');
+          setLocationLabels((prev) => ({ ...prev, [key]: label || `${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}` }));
+        })
+        .catch(() => {
+          setLocationLabels((prev) => ({ ...prev, [key]: `${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}` }));
+        });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveAlerts]);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -811,18 +843,23 @@ function AdminDashboardContent() {
                               <p className="text-sm text-[var(--on-surface)] font-medium mb-2">"{alert.message}"</p>
                             )}
 
-                            {/* GPS Map Link */}
-                            <a
-                              href={`https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
-                            >
-                              <MapPin size={13} />
-                              {alert.latitude.toFixed(5)}, {alert.longitude.toFixed(5)}
-                              <Eye size={12} className="opacity-60" />
-                              View on Maps
-                            </a>
+                            {/* Location — real name from reverse geocoding */}
+                            <div className="flex items-start gap-1.5 mt-1">
+                              <MapPin size={13} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <a
+                                  href={`https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline leading-tight block"
+                                >
+                                  {locationLabels[alert.id] || `${alert.latitude?.toFixed(4)}, ${alert.longitude?.toFixed(4)}`}
+                                </a>
+                                <span className="text-[10px] text-[var(--on-surface-variant)]/60 font-mono">
+                                  {alert.latitude?.toFixed(5)}, {alert.longitude?.toFixed(5)} · <span className="not-italic">View on Maps ↗</span>
+                                </span>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Action Buttons */}
