@@ -1593,7 +1593,31 @@ function DashboardContent() {
                     <div className="p-4 bg-red-50/20 rounded-xl space-y-2 border border-red-100/50">
                       <h4 className="text-xs font-bold text-red-700">Right to be Forgotten</h4>
                       <p className="text-[10px] text-red-600">Delete your account and wipe all stored wellbeing logs permanently from database clusters.</p>
-                      <button className="text-[10px] text-red-600 font-bold hover:underline">Request Account Deletion &rarr;</button>
+                      <button
+                        onClick={async () => {
+                          const confirmed = window.confirm(
+                            '⚠️ Delete Account?\n\nThis will permanently delete your account and ALL your data (moods, journals, assessments, SOS history).\n\nThis action CANNOT be undone.\n\nType OK to confirm.'
+                          );
+                          if (!confirmed) return;
+                          try {
+                            const token = localStorage.getItem('auth_token');
+                            const res = await fetch('/api/auth/me', {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+                            const data = await res.json();
+                            if (!data.success) throw new Error(data.error || 'Deletion failed');
+                            localStorage.removeItem('auth_token');
+                            alert('Your account has been deleted. Goodbye.');
+                            window.location.href = '/';
+                          } catch (err: any) {
+                            alert('Failed to delete account: ' + err.message);
+                          }
+                        }}
+                        className="text-[10px] text-red-600 font-bold hover:underline cursor-pointer bg-transparent border-none p-0"
+                      >
+                        🗑️ Delete My Account Permanently &rarr;
+                      </button>
                     </div>
                   </div>
                 </div>

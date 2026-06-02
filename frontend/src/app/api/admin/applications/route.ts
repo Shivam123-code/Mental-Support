@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
       organization: orgApps,
       total: professionalApps.length + orgApps.length,
     });
-  } catch (error) {
-    console.error('Fetch applications error:', error);
-    return errorResponse('Failed to fetch applications', 500);
+  } catch (error: any) {
+    console.error('❌ Fetch applications error:', error?.message ?? error);
+    console.error('Stack:', error?.stack);
+    return errorResponse('Failed to fetch applications: ' + (error?.message ?? 'Unknown error'), 500);
   }
 }

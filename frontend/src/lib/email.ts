@@ -1,15 +1,14 @@
 import nodemailer from 'nodemailer';
 
-// ── Transporter (configured from env) ────────────────────────────────────────
+// ── Transporter ───────────────────────────────────────────────────────────────
 function getTransporter() {
+  // Gmail App Passwords are shown as "xxxx xxxx xxxx xxxx" — spaces stripped automatically
+  const pass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false,
+    service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Gmail App Password
+      pass,
     },
   });
 }
@@ -80,7 +79,6 @@ export async function sendApprovalEmail(
           <h2 style="color:#166534;font-size:22px;margin:0;">Congratulations, ${name}!</h2>
           <p style="color:#4b5563;margin:8px 0 0;">Your ${dashboardName} application has been <strong style="color:#16a34a;">APPROVED</strong>.</p>
         </div>
-
         <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:20px;margin:20px 0;">
           <p style="color:#0c4a6e;font-weight:700;font-size:15px;margin:0 0 12px;">Your Login Credentials</p>
           <table style="width:100%;font-size:14px;">
@@ -94,20 +92,17 @@ export async function sendApprovalEmail(
             </tr>
           </table>
         </div>
-
         <div style="text-align:center;margin:24px 0;">
-          <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.3px;">
+          <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">
             Sign In to Your Dashboard →
           </a>
         </div>
-
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px;margin-top:20px;">
           <p style="color:#c2410c;font-size:13px;margin:0;font-weight:600;">⚠️ Security Notice</p>
-          <p style="color:#9a3412;font-size:13px;margin:6px 0 0;">Please change your password immediately after your first login. This is a temporary password.</p>
+          <p style="color:#9a3412;font-size:13px;margin:6px 0 0;">Please change your password immediately after your first login.</p>
         </div>
-
         <p style="color:#6b7280;font-size:13px;margin-top:20px;">
-          Login directly at: <a href="${loginUrl}" style="color:#4f46e5;">${loginUrl}</a>
+          Login at: <a href="${loginUrl}" style="color:#4f46e5;">${loginUrl}</a>
         </p>
       </div>
     </div>
@@ -133,8 +128,7 @@ export async function sendRejectionEmail(to: string, name: string, reason: strin
           <p style="color:#b91c1c;font-size:14px;margin:0;">${reason}</p>
         </div>` : ''}
         <p style="color:#4b5563;font-size:14px;">
-          You may re-apply after addressing the above issues. For queries, contact 
-          <a href="mailto:support@kleverklues.com" style="color:#4f46e5;">support@kleverklues.com</a>
+          You may re-apply after addressing the above issues. Contact <a href="mailto:support@kleverklues.com" style="color:#4f46e5;">support@kleverklues.com</a>
         </p>
       </div>
     </div>

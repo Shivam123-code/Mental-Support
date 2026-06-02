@@ -617,8 +617,12 @@ model Hospital {
 
 model EmergencyAlert {
   id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?                                       // nullable — guest SOS allowed
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Caller info (for guest / anonymous SOS)
+  guestName      String?   // optional name if provided
+  guestPhone     String?   // optional phone if provided
 
   // Location
   latitude       Float

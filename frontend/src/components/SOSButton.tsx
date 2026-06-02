@@ -108,6 +108,7 @@ export default function SOSButton() {
   const [errorMsg, setErrorMsg] = useState('');
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM'>('CRITICAL');
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // ── Location state ──────────────────────────────────────────────────────────
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -256,33 +257,47 @@ export default function SOSButton() {
   // ── Send SOS ────────────────────────────────────────────────────────────────
   const handleSendSOS = async () => {
     try {
-      let finalCoords: { latitude: number; longitude: number };
-
       if (!location) {
         setErrorMsg('No location available. Please allow location access or enter your address.');
         setStep('error');
         return;
       }
 
-      finalCoords = { latitude: location.latitude, longitude: location.longitude };
       setStep('sending');
 
-      if (!isConnected || !socketAuth) {
-        throw new Error('Emergency server not connected. Please check your internet and try again, or call 112 directly.');
+      // ─ Logged-in + socket ready: use WebSocket (real-time to admin dashboard) ─
+      if (isAuthenticated && isConnected && socketAuth) {
+        await sendSOS({
+          latitude:  location.latitude,
+          longitude: location.longitude,
+          message:   message.trim() || 'Emergency SOS activated',
+          severity,
+        });
+        setStep('success');
+        setTimeout(() => { setIsOpen(false); resetModal(); }, 3500);
+        return;
       }
 
-      await sendSOS({
-        latitude: finalCoords.latitude,
-        longitude: finalCoords.longitude,
-        message: message.trim() || 'Emergency SOS activated',
-        severity,
+      // ─ Guest / socket not ready: use public REST API (no auth required) ─
+      const res = await fetch('/api/sos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude:  location.latitude,
+          longitude: location.longitude,
+          message:   message.trim() || 'Emergency SOS activated (Guest)',
+          severity,
+          userId:    user?.id || null,
+        }),
       });
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to send SOS. Please call 112 directly.');
+      }
+
       setStep('success');
-      setTimeout(() => {
-        setIsOpen(false);
-        resetModal();
-      }, 3500);
+      setTimeout(() => { setIsOpen(false); resetModal(); }, 3500);
 
     } catch (error) {
       const normalized = normalizeError(error);
@@ -291,6 +306,7 @@ export default function SOSButton() {
       setStep('error');
     }
   };
+
 
   const severityConfig = {
     CRITICAL: { label: 'Critical', cls: 'bg-red-600 text-white', icon: '🔴' },
@@ -552,62 +568,23 @@ export default function SOSButton() {
                     />
                   </div>
 
-                  {/* ── Buttons ── */}
-                  {!isAuthenticated ? (
-                    /* Non-logged-in users: show call buttons + sign-in nudge */
-                    <div className="space-y-3">
-                      <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
-                        <p className="text-sm font-bold text-red-700 mb-1">🚨 Call Emergency Services Now</p>
-                        <p className="text-xs text-red-500 mb-3">For a digital alert, sign in first. In immediate danger, call directly:</p>
-                        <div className="flex gap-2">
-                          <a
-                            href="tel:112"
-                            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm text-center transition-all shadow-lg shadow-red-200"
-                          >
-                            📞 Call 112
-                          </a>
-                          <a
-                            href="tel:18008914416"
-                            className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm text-center transition-all"
-                          >
-                            📞 iCall
-                          </a>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleClose}
-                          className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors"
-                        >
-                          Close
-                        </button>
-                        <a
-                          href="/role-selection"
-                          className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm text-center transition-all"
-                        >
-                          Sign In to Alert Team
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Logged-in users: full digital SOS send */
-                    <div className="flex gap-3 pt-1">
-                      <button
-                        onClick={handleClose}
-                        className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        id="sos-send-btn"
-                        onClick={handleSendSOS}
-                        disabled={!location}
-                        className="flex-2 flex-grow py-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        🚨 Send SOS Alert
-                      </button>
-                    </div>
-                  )}
+                  {/* ── Buttons ── always show full Send button for everyone ── */}
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      id="sos-send-btn"
+                      onClick={handleSendSOS}
+                      disabled={!location}
+                      className="flex-2 flex-grow py-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      🚨 Send SOS Alert
+                    </button>
+                  </div>
 
                   <p className="text-[11px] text-gray-400 text-center pb-1">
                     Life-threatening? Also call{' '}
@@ -615,6 +592,39 @@ export default function SOSButton() {
                     {' '}or{' '}
                     <a href="tel:18008914416" className="text-red-500 font-bold">Vandrevala (24×7)</a>
                   </p>
+
+                  {/* ── YouTube tutorial for finding coordinates ── */}
+                  <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                    <button
+                      onClick={() => setShowTutorial(!showTutorial)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg">📺</span>
+                        <div>
+                          <p className="text-xs font-bold text-gray-700">How to find your coordinates?</p>
+                          <p className="text-[10px] text-gray-400">Watch this quick tutorial</p>
+                        </div>
+                      </div>
+                      <span className={`text-gray-400 text-sm transition-transform duration-200 ${showTutorial ? 'rotate-180' : ''}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {showTutorial && (
+                      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                        <iframe
+                          src="https://www.youtube.com/embed/eF_3oRvyyMc?si=Gxb65F6tNyb_r8u-&autoplay=0&rel=0&modestbranding=1"
+                          title="How to find longitude and latitude"
+                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 w-full h-full"
+                          style={{ border: 'none' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               )}
             </div>

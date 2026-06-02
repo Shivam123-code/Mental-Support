@@ -199,10 +199,22 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/applications?status=ALL', {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // Safe parse — server might return HTML on 500/crash
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Applications fetch: server returned non-JSON', res.status, text.slice(0, 300));
+        alert(`Failed to load applications (HTTP ${res.status}). Check the console for details.\n\nHint: Make sure the dev server is running with latest code.`);
+        return;
+      }
+
       const data = await res.json();
       if (data.success) {
         setProfessionalApps(data.data.professional || []);
         setOrgApps(data.data.organization || []);
+      } else {
+        console.error('Applications fetch error:', data.error);
       }
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -279,14 +291,36 @@ function AdminDashboardContent() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ type }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+
+      // Safe JSON parse — server might return HTML on crash/404
+      let data: any;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text.slice(0, 120)}`);
+      }
+
+      if (!data.success) throw new Error(data.error || data.message || 'Unknown server error');
+
+      // Update local state
       if (type === 'professional') {
         setProfessionalApps(prev => prev.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
       } else {
         setOrgApps(prev => prev.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
       }
-      setAuditLogs(prev => [`Application ${id} APPROVED — credentials sent via email`, ...prev]);
+
+      // Show success — if email failed, show the temp password
+      const emailError = data.data?.emailError;
+      const tempPassword = data.data?.tempPassword;
+      if (emailError && tempPassword) {
+        alert(`✅ Application APPROVED!\n\n⚠️ Email delivery failed: ${emailError}\n\nShare these credentials manually:\nEmail: ${data.data.email}\nTemp Password: ${tempPassword}`);
+        setAuditLogs(prev => [`Application ${id} APPROVED — email failed, manual credential sharing needed`, ...prev]);
+      } else {
+        alert(`✅ Application APPROVED! Credentials sent to ${data.data?.email}`);
+        setAuditLogs(prev => [`Application ${id} APPROVED — credentials sent to ${data.data?.email}`, ...prev]);
+      }
     } catch (err: any) {
       alert('Approval failed: ' + (err.message || 'Unknown error'));
     } finally {
@@ -317,6 +351,31 @@ function AdminDashboardContent() {
       setRejectReason("");
     } catch (err: any) {
       alert('Rejection failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ── Delete application permanently ──
+  const handleDeleteApplication = async (id: string, type: 'professional' | 'organization') => {
+    if (!window.confirm(`Delete this ${type} application permanently? This cannot be undone.`)) return;
+    setActionLoading(id);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`/api/admin/applications/${id}?type=${type}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || data.message);
+      if (type === 'professional') {
+        setProfessionalApps(prev => prev.filter(a => a.id !== id));
+      } else {
+        setOrgApps(prev => prev.filter(a => a.id !== id));
+      }
+      setAuditLogs(prev => [`Application ${id} (${type}) DELETED by admin`, ...prev]);
+    } catch (err: any) {
+      alert('Delete failed: ' + (err.message || 'Unknown error'));
     } finally {
       setActionLoading(null);
     }
@@ -1052,7 +1111,7 @@ function AdminDashboardContent() {
                           </div>
 
                           {/* Status + Actions */}
-                          <div className="flex flex-col gap-2 min-w-[120px]">
+                          <div className="flex flex-col gap-2 min-w-[140px]">
                             <span className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase ${
                               app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
                               app.status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
@@ -1077,6 +1136,13 @@ function AdminDashboardContent() {
                             {app.status === 'APPROVED' && (
                               <p className="text-[10px] text-emerald-600 font-semibold text-center">Credentials emailed ✓</p>
                             )}
+                            {/* Delete always visible */}
+                            <button
+                              onClick={() => handleDeleteApplication(app.id, 'professional')}
+                              disabled={actionLoading === app.id}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-rose-50 text-rose-600 border border-rose-200 rounded text-xs font-bold cursor-pointer disabled:opacity-60 transition-colors">
+                              🗑️ Delete
+                            </button>
                           </div>
                         </div>
 
@@ -1116,82 +1182,6 @@ function AdminDashboardContent() {
                           <p className="text-[11px] text-[var(--on-surface-variant)] italic border-t border-[var(--outline-variant)]/30 pt-2">
                             "{app.bio.slice(0, 180)}{app.bio.length > 180 ? '…' : ''}"
                           </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Organization Applications */}
-              <div className="card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                    Enterprise / Organization Applications
-                  </h3>
-                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
-                    {orgApps.filter(a => a.status === 'PENDING').length} PENDING
-                  </span>
-                </div>
-
-                {orgApps.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-[var(--on-surface-variant)]">No organization applications found.</div>
-                ) : (
-                  <div className="space-y-4">
-                    {orgApps.map(app => (
-                      <div key={app.id} className="p-4 bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/40 rounded-2xl space-y-3">
-                        <div className="flex flex-col md:flex-row justify-between gap-3">
-                          <div className="space-y-1">
-                            <span className="font-mono text-indigo-600 text-[10px] font-bold block">ID: {app.id}</span>
-                            <h4 className="text-sm font-bold">{app.orgName}</h4>
-                            <p className="text-xs text-[var(--on-surface-variant)]"
-                            >{app.orgType} • {app.employeeCount} employees • Reg: <strong>{app.registrationNumber || 'N/A'}</strong></p>
-                            <p className="text-xs text-[var(--on-surface-variant)]">Contact: {app.contactName} ({app.contactDesignation})</p>
-                            <p className="text-xs text-[var(--on-surface-variant)]">📧 {app.email} • 📞 {app.phone}</p>
-                            <p className="text-[10px] text-[var(--on-surface-variant)]/60">
-                              Submitted: {new Date(app.createdAt).toLocaleDateString('en-IN')}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col gap-2 min-w-[120px]">
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase ${
-                              app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
-                              app.status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
-                              'bg-amber-100 text-amber-700'
-                            }`}>{app.status}</span>
-
-                            {app.status === 'PENDING' && (
-                              <>
-                                <button
-                                  onClick={() => handleApproveApplication(app.id, 'organization')}
-                                  disabled={actionLoading === app.id}
-                                  className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer disabled:opacity-60">
-                                  {actionLoading === app.id ? '…' : '✓ Approve & Send Credentials'}
-                                </button>
-                                <button
-                                  onClick={() => { setRejectModal({ id: app.id, type: 'organization' }); setRejectReason(''); }}
-                                  className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 cursor-pointer">
-                                  ✕ Reject
-                                </button>
-                              </>
-                            )}
-                            {app.status === 'APPROVED' && (
-                              <p className="text-[10px] text-emerald-600 font-semibold text-center">Credentials emailed ✓</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Uploaded Documents */}
-                        {(app.regCertPath || app.gstCertPath || app.authLetterPath || app.logoPath) && (
-                          <div className="border-t border-[var(--outline-variant)]/30 pt-2">
-                            <p className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase mb-2">Submitted Documents</p>
-                            <div className="flex flex-wrap gap-2">
-                              {app.regCertPath && <a href={app.regCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📄 Reg. Cert</a>}
-                              {app.gstCertPath && <a href={app.gstCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📋 GST Cert</a>}
-                              {app.authLetterPath && <a href={app.authLetterPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">✉ Auth Letter</a>}
-                              {app.logoPath && <a href={app.logoPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">🖼 Logo</a>}
-                            </div>
-                          </div>
                         )}
                       </div>
                     ))}
@@ -1380,54 +1370,184 @@ function AdminDashboardContent() {
 
           {/* TAB 8: ORGANIZATIONS */}
           {activeTab === "Organizations" && (
-            <div className="card p-6 space-y-4 animate-in fade-in duration-300">
-              <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                Enterprise & Workplace Accounts Directory
-              </h3>
+            <div className="space-y-8 animate-in fade-in duration-300">
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-[var(--outline-variant)] text-[var(--on-surface-variant)]/60">
-                      <th className="py-3 font-semibold">Account ID</th>
-                      <th className="py-3 font-semibold">Company Name</th>
-                      <th className="py-3 font-semibold">Active Members</th>
-                      <th className="py-3 font-semibold">Workforce Burnout Index</th>
-                      <th className="py-3 font-semibold">Wellbeing Participation</th>
-                      <th className="py-3 font-semibold">Status</th>
-                      <th className="py-3 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enterprises.map((item) => (
-                      <tr key={item.id} className="border-b border-[var(--outline-variant)]/30 hover:bg-[var(--surface-container-low)]">
-                        <td className="py-4 font-bold text-indigo-600">{item.id}</td>
-                        <td className="py-4 font-semibold">{item.name}</td>
-                        <td className="py-4">{item.employees} employees</td>
-                        <td className="py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.burnoutRisk > 30 ? "bg-rose-100 text-rose-500" : "bg-emerald-100 text-emerald-600"}`}>
-                            {item.burnoutRisk}% risk
-                          </span>
-                        </td>
-                        <td className="py-4 font-semibold text-indigo-600">{item.wellbeingParticipation}%</td>
-                        <td className="py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.status === "ACTIVE" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-500"}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right space-x-2">
-                          <button 
-                            onClick={() => setAuditLogs(prev => [`Generated workforce report for ${item.name}`, ...prev])}
-                            className="px-2.5 py-1 text-[10px] font-bold border border-[var(--outline-variant)] rounded hover:bg-[var(--surface-container)] cursor-pointer"
-                          >
-                            Report
-                          </button>
-                        </td>
-                      </tr>
+              {/* Reject Reason Modal for org apps */}
+              {rejectModal && rejectModal.type === 'organization' && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                    <h3 className="text-sm font-bold mb-3">Reject Organization Application</h3>
+                    <p className="text-xs text-[var(--on-surface-variant)] mb-4">Provide a reason for rejection (will be emailed to applicant):</p>
+                    <textarea
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
+                      rows={4}
+                      placeholder="e.g. Incomplete documents, unverifiable registration..."
+                      className="w-full px-3 py-2 text-sm border border-[var(--outline-variant)] rounded-lg bg-[var(--surface-container)] focus:outline-none resize-none mb-4"
+                    />
+                    <div className="flex gap-3 justify-end">
+                      <button onClick={() => { setRejectModal(null); setRejectReason(""); }}
+                        className="px-4 py-2 text-xs font-bold border border-[var(--outline-variant)] rounded-lg hover:bg-[var(--surface-container)]">
+                        Cancel
+                      </button>
+                      <button onClick={handleRejectApplication}
+                        disabled={actionLoading === rejectModal.id}
+                        className="px-4 py-2 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-60">
+                        {actionLoading === rejectModal.id ? 'Rejecting…' : 'Send Rejection'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Organization Applications from DB */}
+              <div className="card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
+                    Enterprise / Organization Applications
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
+                      {orgApps.filter(a => a.status === 'PENDING').length} PENDING
+                    </span>
+                    <button onClick={fetchApplications}
+                      className="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer">
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                {appLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-indigo-600" />
+                  </div>
+                ) : orgApps.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-[var(--on-surface-variant)]">No organization applications found.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {orgApps.map(app => (
+                      <div key={app.id} className="p-4 bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/40 rounded-2xl space-y-3">
+                        <div className="flex flex-col md:flex-row justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="font-mono text-indigo-600 text-[10px] font-bold block">ID: {app.id}</span>
+                            <h4 className="text-sm font-bold">{app.orgName}</h4>
+                            <p className="text-xs text-[var(--on-surface-variant)]">{app.orgType} • {app.employeeCount} employees • Reg: <strong>{app.registrationNumber || 'N/A'}</strong></p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">Contact: {app.contactName} ({app.contactDesignation})</p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">📧 {app.email} • 📞 {app.phone}</p>
+                            <p className="text-[10px] text-[var(--on-surface-variant)]/60">
+                              Submitted: {new Date(app.createdAt).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+
+                          {/* Status + Actions */}
+                          <div className="flex flex-col gap-2 min-w-[140px]">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase ${
+                              app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                              app.status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>{app.status}</span>
+
+                            {app.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveApplication(app.id, 'organization')}
+                                  disabled={actionLoading === app.id}
+                                  className="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 cursor-pointer disabled:opacity-60">
+                                  {actionLoading === app.id ? '…' : '✓ Approve & Send Credentials'}
+                                </button>
+                                <button
+                                  onClick={() => { setRejectModal({ id: app.id, type: 'organization' }); setRejectReason(''); }}
+                                  className="px-3 py-1.5 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700 cursor-pointer">
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'APPROVED' && (
+                              <p className="text-[10px] text-emerald-600 font-semibold text-center">Credentials emailed ✓</p>
+                            )}
+                            {/* Delete always visible */}
+                            <button
+                              onClick={() => handleDeleteApplication(app.id, 'organization')}
+                              disabled={actionLoading === app.id}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-rose-50 text-rose-600 border border-rose-200 rounded text-xs font-bold cursor-pointer disabled:opacity-60 transition-colors">
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Uploaded Documents */}
+                        {(app.regCertPath || app.gstCertPath || app.authLetterPath || app.logoPath) && (
+                          <div className="border-t border-[var(--outline-variant)]/30 pt-2">
+                            <p className="text-[10px] font-bold text-[var(--on-surface-variant)] uppercase mb-2">Submitted Documents</p>
+                            <div className="flex flex-wrap gap-2">
+                              {app.regCertPath && <a href={app.regCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📄 Reg. Cert</a>}
+                              {app.gstCertPath && <a href={app.gstCertPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">📋 GST Cert</a>}
+                              {app.authLetterPath && <a href={app.authLetterPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">✉ Auth Letter</a>}
+                              {app.logoPath && <a href={app.logoPath} target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-[10px] font-semibold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 hover:bg-indigo-100">🖼 Logo</a>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                )}
               </div>
+
+              {/* Enterprise Directory Table */}
+              <div className="card p-6 space-y-4">
+                <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
+                  Enterprise &amp; Workplace Accounts Directory
+                </h3>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-[var(--outline-variant)] text-[var(--on-surface-variant)]/60">
+                        <th className="py-3 font-semibold">Account ID</th>
+                        <th className="py-3 font-semibold">Company Name</th>
+                        <th className="py-3 font-semibold">Active Members</th>
+                        <th className="py-3 font-semibold">Workforce Burnout Index</th>
+                        <th className="py-3 font-semibold">Wellbeing Participation</th>
+                        <th className="py-3 font-semibold">Status</th>
+                        <th className="py-3 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enterprises.map((item) => (
+                        <tr key={item.id} className="border-b border-[var(--outline-variant)]/30 hover:bg-[var(--surface-container-low)]">
+                          <td className="py-4 font-bold text-indigo-600">{item.id}</td>
+                          <td className="py-4 font-semibold">{item.name}</td>
+                          <td className="py-4">{item.employees} employees</td>
+                          <td className="py-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.burnoutRisk > 30 ? "bg-rose-100 text-rose-500" : "bg-emerald-100 text-emerald-600"}`}>
+                              {item.burnoutRisk}% risk
+                            </span>
+                          </td>
+                          <td className="py-4 font-semibold text-indigo-600">{item.wellbeingParticipation}%</td>
+                          <td className="py-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.status === "ACTIVE" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-500"}`}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="py-4 text-right space-x-2">
+                            <button
+                              onClick={() => setAuditLogs(prev => [`Generated workforce report for ${item.name}`, ...prev])}
+                              className="px-2.5 py-1 text-[10px] font-bold border border-[var(--outline-variant)] rounded hover:bg-[var(--surface-container)] cursor-pointer">
+                              Report
+                            </button>
+                            <button
+                              onClick={() => handleDeleteApplication(item.id, 'organization')}
+                              className="px-2.5 py-1 text-[10px] font-bold border border-rose-200 text-rose-600 rounded hover:bg-rose-50 cursor-pointer">
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
           )}
 

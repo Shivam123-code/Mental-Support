@@ -66,7 +66,7 @@ export default function Contact() {
                     <p className="text-sm text-green-600 mt-1">Chat with us on WhatsApp</p>
                     <p className="text-xs text-[var(--on-surface-variant)] mt-1">Quick responses, Mon–Sat</p>
                     <a
-                      href="https://wa.me/91XXXXXXXXXX"
+                      href="https://wa.me/8976234036"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-green-600 hover:underline"
