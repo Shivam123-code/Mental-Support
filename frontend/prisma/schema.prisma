@@ -18,6 +18,7 @@ enum UserRole {
   PROFESSIONAL  // Therapists, counselors, coaches
   ADMIN         // Platform administrators
   ENTERPRISE    // Organization accounts
+  VENDOR        // Field responders / emergency support units
 }
 
 enum UserStatus {
@@ -69,6 +70,8 @@ model User {
   notifications     Notification[]
   subscriptions     Subscription[]
   emergencyAlerts   EmergencyAlert[]
+  vendorAssignments EmergencyAlert[] @relation("VendorAssignments")
+  vendorProfile     VendorProfile?
   professionalApplications ProfessionalApplication[]
   organizationApplications OrganizationApplication[]
   
@@ -639,11 +642,20 @@ model EmergencyAlert {
   acknowledgedAt DateTime?
   resolvedAt     DateTime?
 
+  // Vendor Dispatch
+  assignedVendorId  String?                                      // which vendor was assigned
+  assignedVendor    User?     @relation("VendorAssignments", fields: [assignedVendorId], references: [id])
+  vendorAssignedAt  DateTime?                                    // when vendor was first alerted
+  vendorAcceptedAt  DateTime?                                    // when vendor tapped Accept
+  dispatchStatus    String    @default("PENDING")                // PENDING | SEARCHING | VENDOR_ALERTED | VENDOR_ACCEPTED | EN_ROUTE | RESOLVED
+
   createdAt      DateTime  @default(now())
 
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+  @@index([assignedVendorId])
+  @@index([dispatchStatus])
 }
 
 // ============================================
@@ -712,6 +724,36 @@ model ProfessionalApplication {
   @@index([email])
 }
 
+// ============================================
+// VENDOR PROFILES
+// ============================================
+
+model VendorProfile {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Business Info
+  businessName        String
+  serviceType         String    // "First Responder" | "Mental Health Support" | "Security" | "Medical Aid" | "General Support"
+  description         String?
+  phone               String
+
+  // Live location — updated from vendor dashboard each session
+  latitude            Float?
+  longitude           Float?
+  locationUpdatedAt   DateTime?
+
+  // Availability
+  isOnline            Boolean   @default(false)  // vendor toggled ON in dashboard
+  isAvailable         Boolean   @default(true)   // false when actively handling a case
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([isOnline])
+  @@index([isAvailable])
+}
 model OrganizationApplication {
   id                  String            @id @default(cuid())
 

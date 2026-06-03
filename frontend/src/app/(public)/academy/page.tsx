@@ -84,7 +84,7 @@ export default function Academy() {
                 {cat.courses.map((c) => (
                   <div key={c.name} className="bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300 group cursor-pointer">
                     <div className="relative h-44 overflow-hidden">
-                      <Image src={c.image} alt={c.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={c.image} alt={c.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute top-3 right-3 chip !bg-white/90 !backdrop-blur-sm !text-[var(--primary)] text-xs">{c.level}</div>
                     </div>
                     <div className="p-5">

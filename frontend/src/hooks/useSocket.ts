@@ -5,13 +5,16 @@ import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
-export function useSocket(userId?: string, role?: string, token?: string) {
+// ─────────────────────────────────────────────────────────────────────────────
+// useSocket — base hook, manages connection + authentication
+// ─────────────────────────────────────────────────────────────────────────────
+export function useSocket(userId?: string, role?: string, token?: string, enabled = true) {
   const [isConnected, setIsConnected] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!userId || !role || !token) return;
+    if (!enabled || !userId || !role || !token) return;
 
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -50,7 +53,7 @@ export function useSocket(userId?: string, role?: string, token?: string) {
     return () => {
       socket.disconnect();
     };
-  }, [userId, role, token]);
+  }, [enabled, userId, role, token]);
 
   return {
     socket: socketRef.current,
@@ -59,8 +62,11 @@ export function useSocket(userId?: string, role?: string, token?: string) {
   };
 }
 
-export function useEmergencySOS(userId?: string, role?: string, token?: string) {
-  const { socket, isConnected, isAuthenticated } = useSocket(userId, role, token);
+// ─────────────────────────────────────────────────────────────────────────────
+// useEmergencySOS — sends SOS via WebSocket from user
+// ─────────────────────────────────────────────────────────────────────────────
+export function useEmergencySOS(userId?: string, role?: string, token?: string, enabled = false) {
+  const { socket, isConnected, isAuthenticated } = useSocket(userId, role, token, enabled);
   const [isSending, setIsSending] = useState(false);
 
   const sendSOS = async (data: {
@@ -112,9 +118,13 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string) 
     isSending,
     isConnected,
     isAuthenticated,
+    socket,  // expose so callers can attach extra listeners
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// useEmergencyAlerts — admin hook, receives + manages SOS alerts
+// ─────────────────────────────────────────────────────────────────────────────
 export function useEmergencyAlerts(adminId?: string, token?: string) {
   const { socket, isConnected, isAuthenticated } = useSocket(adminId, 'ADMIN', token);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -148,7 +158,6 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
   const mergeAlert = (prev: any[], incoming: any) => {
     const exists = prev.some(a => a.id === incoming.id);
     if (exists) {
-      // Update status of existing alert (live event is always more up-to-date)
       return prev.map(a => a.id === incoming.id ? { ...a, ...incoming } : a);
     }
     return [incoming, ...prev];
@@ -182,7 +191,6 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     });
 
     socket.on('emergency:resolved', (data) => {
-      // Update to RESOLVED in list (don't filter out — admin needs to see history)
       setAlerts((prev) =>
         prev.map((alert) =>
           alert.id === data.alertId
@@ -216,5 +224,57 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     isConnected,
     isAuthenticated,
     dbLoaded,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useSOSStatus — User-side live dispatch status tracker
+// Listens for sos:status_update events pushed by the socket server after SOS.
+// Mount this in the user dashboard or SOSButton to show real-time vendor updates.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface SOSStatusUpdate {
+  alertId: string;
+  dispatchStatus: 'PENDING' | 'SEARCHING' | 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'RESOLVED';
+  message: string;
+  vendorName?: string;
+  vendorPhone?: string;
+}
+
+export function useSOSStatus(userId?: string, role?: string, token?: string) {
+  const { socket, isConnected, isAuthenticated } = useSocket(userId, role, token);
+  const [statusUpdate, setStatusUpdate] = useState<SOSStatusUpdate | null>(null);
+
+  useEffect(() => {
+    if (!socket || !isAuthenticated) return;
+
+    const handleStatus = (update: SOSStatusUpdate) => {
+      console.log('📡 SOS status update:', update);
+      setStatusUpdate(update);
+    };
+
+    socket.on('sos:status_update', handleStatus);
+
+    return () => {
+      socket.off('sos:status_update', handleStatus);
+    };
+  }, [socket, isAuthenticated]);
+
+  const getStatusUI = (status: SOSStatusUpdate['dispatchStatus']) => {
+    const map: Record<string, { icon: string; color: string; label: string }> = {
+      PENDING:         { icon: '⏳', color: 'bg-gray-100 text-gray-700 border-gray-300',   label: 'Alert sent' },
+      SEARCHING:       { icon: '🔍', color: 'bg-blue-50 text-blue-700 border-blue-300',     label: 'Finding vendor...' },
+      VENDOR_ALERTED:  { icon: '📡', color: 'bg-amber-50 text-amber-800 border-amber-300',  label: 'Vendor alerted' },
+      VENDOR_ACCEPTED: { icon: '✅', color: 'bg-green-50 text-green-800 border-green-300',  label: 'Vendor on the way!' },
+      EN_ROUTE:        { icon: '🚗', color: 'bg-green-50 text-green-800 border-green-300',  label: 'En route to you' },
+      RESOLVED:        { icon: '✅', color: 'bg-gray-50 text-gray-600 border-gray-300',     label: 'Resolved' },
+    };
+    return map[status] || map['PENDING'];
+  };
+
+  return {
+    statusUpdate,
+    statusUI: statusUpdate ? getStatusUI(statusUpdate.dispatchStatus) : null,
+    clearStatus: () => setStatusUpdate(null),
+    isConnected,
   };
 }

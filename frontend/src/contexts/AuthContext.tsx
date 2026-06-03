@@ -77,6 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.replace('/dashboard/professional');
       } else if (userData.role === 'ENTERPRISE') {
         router.replace('/dashboard/enterprise');
+      } else if (userData.role === 'VENDOR') {
+        router.replace('/dashboard/vendor');
       } else {
         router.replace('/dashboard/user');
       }

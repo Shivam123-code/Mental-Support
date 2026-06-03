@@ -26,6 +26,9 @@ export default function DashboardRedirect() {
           case 'ENTERPRISE':
             router.replace('/dashboard/enterprise');
             break;
+          case 'VENDOR':
+            router.replace('/dashboard/vendor');
+            break;
           case 'USER':
           default:
             router.replace('/dashboard/user');

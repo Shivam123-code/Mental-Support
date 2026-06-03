@@ -113,7 +113,7 @@ export default function Programs() {
                     className="bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300 group block"
                   >
                     <div className="relative h-44 overflow-hidden">
-                      <Image src={program.image} alt={program.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={program.image} alt={program.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
                     <div className="p-5">
                       <h3 className="font-semibold text-[var(--on-surface)] text-sm mb-2">{program.name}</h3>

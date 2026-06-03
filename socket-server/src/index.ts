@@ -64,7 +64,8 @@ app.get('/stats', (req, res) => {
 
 // Connected clients tracking
 const connectedAdmins = new Map<string, string>(); // socketId -> userId
-const connectedUsers = new Map<string, string>(); // socketId -> userId
+const connectedUsers = new Map<string, string>();  // socketId -> userId
+const connectedVendors = new Map<string, string>(); // socketId -> userId
 
 // Socket.io connection handler
 io.on('connection', (socket) => {
@@ -103,6 +104,10 @@ io.on('connection', (socket) => {
         connectedAdmins.set(socket.id, userId);
         socket.join('admin-room');
         console.log(`✅ 👮 Admin ${userId} joined admin room`);
+      } else if (role === 'VENDOR') {
+        connectedVendors.set(socket.id, userId);
+        socket.join(`vendor-${userId}`);
+        console.log(`✅ 🚐 Vendor ${userId} joined vendor-${userId} room`);
       } else {
         connectedUsers.set(socket.id, userId);
         socket.join(`user-${userId}`);
@@ -129,8 +134,9 @@ io.on('connection', (socket) => {
 
   // Disconnect handler
   socket.on('disconnect', () => {
-    const userId = connectedAdmins.get(socket.id) || connectedUsers.get(socket.id);
+    const userId = connectedAdmins.get(socket.id) || connectedVendors.get(socket.id) || connectedUsers.get(socket.id);
     connectedAdmins.delete(socket.id);
+    connectedVendors.delete(socket.id);
     connectedUsers.delete(socket.id);
     console.log(`❌ Client disconnected: ${socket.id} (User: ${userId || 'unknown'})`);
   });

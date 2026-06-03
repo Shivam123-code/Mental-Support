@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${manrope.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${newsreader.variable} ${manrope.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-body min-h-screen" suppressHydrationWarning>
         <AuthProvider>
           <Header />

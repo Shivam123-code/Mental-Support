@@ -32,49 +32,62 @@ function normalizeError(error: unknown): Error {
   return new Error('An unexpected error occurred. Please call emergency services directly.');
 }
 
-// ─── IP Geolocation (no permission needed, always works) ──────────────────────
-async function getIPLocation(): Promise<LocationData> {
-  const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(8000) });
-  const data = await res.json();
-  if (!data.latitude || !data.longitude) throw new Error('IP location unavailable');
-  const label = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
-  return {
-    latitude: data.latitude,
-    longitude: data.longitude,
-    label: label || 'Your approximate location',
-    accuracy: 'approximate',
-  };
+
+
+// ─── Reverse geocode lat/lon → human label ───────────────────────────────────
+async function reverseGeocode(latitude: number, longitude: number): Promise<string> {
+  const fallback = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const data = await res.json();
+    const a = data.address || {};
+    return (
+      [a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
+        .filter(Boolean)
+        .join(', ') || fallback
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+// ─── Single geolocation attempt helper ───────────────────────────────────────
+function geoRequest(highAccuracy: boolean, timeoutMs: number): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) =>
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: highAccuracy,
+      timeout:            timeoutMs,
+      maximumAge:         highAccuracy ? 60_000 : 300_000,
+    })
+  );
 }
 
 // ─── Browser GPS / WiFi geolocation ──────────────────────────────────────────
-function getBrowserLocation(): Promise<LocationData> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        // Reverse geocode to get a human-readable label
-        let label = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const data = await res.json();
-          const a = data.address || {};
-          label = [a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
-            .filter(Boolean)
-            .join(', ');
-        } catch { /* keep coords as label */ }
-        resolve({ latitude, longitude, label, accuracy: 'precise' });
-      },
-      (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
-    );
-  });
+// Tries two modes in sequence:
+//   1. Network/WiFi (enableHighAccuracy: false) — fast, works on desktops with no GPS chip
+//   2. GPS          (enableHighAccuracy: true)  — precise, requires GPS hardware
+// Whichever succeeds first is used; reject only if BOTH fail.
+async function getBrowserLocation(): Promise<LocationData> {
+  if (!navigator.geolocation) throw new Error('Geolocation not supported by this browser.');
+
+  let pos: GeolocationPosition;
+  try {
+    // Network/WiFi location — typically resolves in < 1 s on most devices
+    pos = await geoRequest(false, 6000);
+  } catch (firstErr) {
+    console.warn('[SOS] Network location failed, trying GPS:', firstErr);
+    // GPS fallback — requires location permission prompt if not already granted
+    pos = await geoRequest(true, 10000);
+  }
+
+  const { latitude, longitude } = pos.coords;
+  const label = await reverseGeocode(latitude, longitude);
+  return { latitude, longitude, label, accuracy: 'precise' };
 }
+
 
 // ─── Geocode a typed address via Nominatim ────────────────────────────────────
 async function geocodeAddress(address: string): Promise<LocationData> {
@@ -110,6 +123,11 @@ export default function SOSButton() {
   const [severity, setSeverity] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM'>('CRITICAL');
   const [showTutorial, setShowTutorial] = useState(false);
 
+  // Live dispatch status shown in success screen
+  const [dispatchStatus, setDispatchStatus] = useState<{
+    icon: string; color: string; label: string; message: string; vendorName?: string;
+  } | null>(null);
+
   // ── Location state ──────────────────────────────────────────────────────────
   const [location, setLocation] = useState<LocationData | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<LocationAccuracy>('detecting');
@@ -119,7 +137,6 @@ export default function SOSButton() {
   const [addressError, setAddressError] = useState('');
   const [geoPermission, setGeoPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
   const gpsAttempted = useRef(false);
-  const ipAttempted = useRef(false);
 
   // Check geolocation permission state on mount and keep it reactive
   useEffect(() => {
@@ -139,61 +156,68 @@ export default function SOSButton() {
     setToken(localStorage.getItem('auth_token'));
   }, [isAuthenticated]);
 
-  const { sendSOS, isConnected, isAuthenticated: socketAuth } = useEmergencySOS(
+  const { sendSOS, isConnected, isAuthenticated: socketAuth, socket } = useEmergencySOS(
     user?.id,
     user?.role,
-    token || undefined
+    token || undefined,
+    isOpen  // ← only connect to socket while modal is open
   );
 
-  // ── Start location detection when modal opens ────────────────────────────────
-  const startLocationDetection = useCallback(async (permission: 'granted' | 'denied' | 'prompt' | 'unknown') => {
+  // Listen for sos:status_update on the same socket connection
+  useEffect(() => {
+    if (!socket) return;
+    const statusMap: Record<string, { icon: string; color: string; label: string }> = {
+      PENDING:         { icon: '⏳', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Alert sent' },
+      SEARCHING:       { icon: '🔍', color: 'bg-blue-50 border-blue-300 text-blue-800',       label: 'Finding nearest vendor...' },
+      VENDOR_ALERTED:  { icon: '📡', color: 'bg-amber-50 border-amber-300 text-amber-900',    label: 'Vendor has been alerted!' },
+      VENDOR_ACCEPTED: { icon: '✅', color: 'bg-green-50 border-green-400 text-green-900',    label: 'Vendor is on the way!' },
+      EN_ROUTE:        { icon: '🚗', color: 'bg-green-50 border-green-400 text-green-900',    label: 'Vendor en route to you' },
+      RESOLVED:        { icon: '✅', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Case resolved' },
+    };
+    const handler = (update: any) => {
+      const ui = statusMap[update.dispatchStatus] || statusMap['PENDING'];
+      setDispatchStatus({ ...ui, message: update.message, vendorName: update.vendorName });
+    };
+    socket.on('sos:status_update', handler);
+    return () => { socket.off('sos:status_update', handler); };
+  }, [socket]);
+
+  // ── Detect location: GPS first, then server-side IP proxy as fallback ──────
+  const startLocationDetection = useCallback(async () => {
     setLocationAccuracy('detecting');
     gpsAttempted.current = false;
-    ipAttempted.current = false;
 
-    if (permission === 'granted') {
-      // GPS already allowed — get precise location immediately, no IP needed
-      try {
-        const loc = await getBrowserLocation();
-        setLocation(loc);
-        setLocationAccuracy('precise');
-      } catch {
-        // GPS failed despite permission (e.g. no signal) — fall back to IP
-        try {
-          const ipLoc = await getIPLocation();
-          setLocation(ipLoc);
-          setLocationAccuracy('approximate');
-        } catch {
-          setLocationAccuracy('none');
-        }
-      }
-      return;
-    }
-
-    // Permission not yet granted — fire IP immediately (always works)
-    // and GPS simultaneously (may show browser prompt)
-    const ipPromise = getIPLocation().then((loc) => {
-      ipAttempted.current = true;
-      setLocation((prev) => {
-        if (prev && prev.accuracy === 'precise') return prev;
-        setLocationAccuracy('approximate');
-        return loc;
-      });
-    }).catch(() => { ipAttempted.current = true; });
-
-    const gpsPromise = getBrowserLocation().then((loc) => {
-      gpsAttempted.current = true;
+    // ── 1. Try browser GPS/WiFi (precise, works when OS location is available)
+    try {
+      const loc = await getBrowserLocation();
       setLocation(loc);
       setLocationAccuracy('precise');
-    }).catch(() => {
-      gpsAttempted.current = true;
-      setLocation((prev) => {
-        if (!prev) setLocationAccuracy('none');
-        return prev;
-      });
-    });
+      return;
+    } catch (err) {
+      console.warn('[SOS] GPS/network location failed, trying IP fallback:', err);
+    }
 
-    await Promise.allSettled([ipPromise, gpsPromise]);
+    // ── 2. Fall back to server-side IP geolocation (/api/location/ip)
+    //    This goes through our own Next.js route — no CORS, no browser restrictions
+    try {
+      const res = await fetch('/api/location/ip');
+      const data = await res.json();
+      if (data.success && data.latitude && data.longitude) {
+        setLocation({
+          latitude:  data.latitude,
+          longitude: data.longitude,
+          label:     data.label || 'Your approximate location',
+          accuracy:  'approximate',
+        });
+        setLocationAccuracy('approximate');
+        return;
+      }
+    } catch (err) {
+      console.warn('[SOS] IP geolocation fallback also failed:', err);
+    }
+
+    // ── 3. Both failed — ask user to enter address manually
+    setLocationAccuracy('none');
   }, []);
 
   const resetModal = useCallback(() => {
@@ -206,15 +230,14 @@ export default function SOSButton() {
     setShowAddressInput(false);
     setAddressInput('');
     setAddressError('');
+    setDispatchStatus(null);
     gpsAttempted.current = false;
-    ipAttempted.current = false;
   }, []);
 
   const handleOpen = () => {
     resetModal();
     setIsOpen(true);
-    // Pass current permission state so GPS-already-granted users skip IP fallback
-    startLocationDetection(geoPermission);
+    startLocationDetection();
   };
 
   const handleClose = useCallback(() => {
@@ -274,7 +297,8 @@ export default function SOSButton() {
           severity,
         });
         setStep('success');
-        setTimeout(() => { setIsOpen(false); resetModal(); }, 3500);
+        // Stay open to show live dispatch status — auto-close after 2 min or on manual close
+        setTimeout(() => { setIsOpen(false); resetModal(); }, 120_000);
         return;
       }
 
@@ -297,7 +321,8 @@ export default function SOSButton() {
       }
 
       setStep('success');
-      setTimeout(() => { setIsOpen(false); resetModal(); }, 3500);
+      // Stay open to show live dispatch status
+      setTimeout(() => { setIsOpen(false); resetModal(); }, 120_000);
 
     } catch (error) {
       const normalized = normalizeError(error);
@@ -373,13 +398,46 @@ export default function SOSButton() {
 
               {/* ── SUCCESS ── */}
               {step === 'success' && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl sm:text-4xl">✅</span>
+                <div className="py-6 space-y-4">
+                  <div className="text-center">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-3xl">✅</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Alert Sent!</h3>
+                    <p className="text-gray-600 text-sm">Your emergency alert has been received.</p>
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Alert Sent!</h3>
-                  <p className="text-gray-600 text-sm">Your emergency alert has been received. Our team is responding now.</p>
-                  <p className="text-xs text-gray-400 mt-3">This window will close automatically…</p>
+
+                  {/* Live dispatch status */}
+                  <div className={`rounded-xl border p-3 transition-all duration-500 ${
+                    dispatchStatus ? dispatchStatus.color : 'bg-blue-50 border-blue-300 text-blue-800'
+                  }`}>
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-lg flex-shrink-0">
+                        {dispatchStatus ? dispatchStatus.icon : '🔍'}
+                      </span>
+                      <div>
+                        <p className="font-bold text-sm">
+                          {dispatchStatus ? dispatchStatus.label : 'Finding nearest vendor...'}
+                        </p>
+                        <p className="text-xs mt-0.5 opacity-80">
+                          {dispatchStatus ? dispatchStatus.message : 'Searching for available responders near you. Stay where you are.'}
+                        </p>
+                        {dispatchStatus?.vendorName && (
+                          <p className="text-xs font-semibold mt-1">Vendor: {dispatchStatus.vendorName}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => { setIsOpen(false); resetModal(); }}
+                    className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition"
+                  >
+                    Close (I understand)
+                  </button>
+                  <p className="text-xs text-gray-400 text-center">
+                    Stay calm — help is on the way. Also keep 📱 112 ready.
+                  </p>
                 </div>
               )}
 
