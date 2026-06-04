@@ -14,6 +14,7 @@ import {
   ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
+import { useSOSStatus } from '@/hooks/useSocket';
 
 export default function UserDashboard() {
   return (
@@ -28,6 +29,29 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('Overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // ── Live SOS status tracking ─────────────────────────────────────────────────
+  const sosToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const { statusUpdate, clearStatus } = useSOSStatus(user?.id, user?.role, sosToken || undefined);
+
+  // Show browser notification when vendor status changes
+  useEffect(() => {
+    if (!statusUpdate) return;
+    const notifMap: Record<string, string> = {
+      EN_ROUTE:        '🚗 Your responder is on the way!',
+      NEARBY:          '📍 Your responder is very close — stay calm!',
+      ARRIVED:         '🟢 Your responder has arrived!',
+      RESOLVED:        '✅ Your case has been resolved. You are safe.',
+      VENDOR_ACCEPTED: '✅ A responder has accepted your alert!',
+    };
+    const msg = notifMap[statusUpdate.dispatchStatus];
+    if (msg && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('🚨 KleverKlues SOS Update', { body: msg, icon: '/logo.jpg' });
+      }
+    }
+  }, [statusUpdate]);
+
   
   // Interactive States
   const [selectedMood, setSelectedMood] = useState<string>('');
@@ -381,7 +405,47 @@ function DashboardContent() {
 
         {/* Space Router */}
         <main className="flex-1 p-3 sm:p-5 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 max-w-[1200px] mx-auto w-full">
-          
+
+          {/* ── LIVE SOS STATUS CARD — visible on ALL tabs while alert is active ── */}
+          {statusUpdate && statusUpdate.dispatchStatus !== 'RESOLVED' && (
+            <div className={`rounded-2xl border-2 p-4 flex items-start gap-4 shadow-lg animate-in slide-in-from-top duration-300 ${
+              statusUpdate.dispatchStatus === 'NEARBY' || statusUpdate.dispatchStatus === 'ARRIVED'
+                ? 'bg-green-50 border-green-400'
+                : 'bg-amber-50 border-amber-400'
+            }`}>
+              <div className="text-3xl flex-shrink-0">
+                {(({'EN_ROUTE': '🚗', 'NEARBY': '📍', 'ARRIVED': '🟢', 'VENDOR_ACCEPTED': '✅', 'VENDOR_ALERTED': '📡', 'SEARCHING': '🔍'} as Record<string,string>)[statusUpdate.dispatchStatus]) || '🚨'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-gray-900">
+                  {(({'EN_ROUTE': 'Responder is on the way!', 'NEARBY': 'Responder is very close — stay calm!', 'ARRIVED': 'Responder has arrived!', 'VENDOR_ACCEPTED': 'Responder accepted your alert!', 'VENDOR_ALERTED': 'Responder is being alerted…', 'SEARCHING': 'Finding nearest responder…'} as Record<string,string>)[statusUpdate.dispatchStatus]) || 'SOS Update'}
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5">{statusUpdate.message}</p>
+                {/* Progress bar */}
+                <div className="flex gap-1 mt-3">
+                  {['SEARCHING','VENDOR_ALERTED','VENDOR_ACCEPTED','EN_ROUTE','NEARBY','ARRIVED'].map((s, i) => {
+                    const order = ['SEARCHING','VENDOR_ALERTED','VENDOR_ACCEPTED','EN_ROUTE','NEARBY','ARRIVED'];
+                    const idx = order.indexOf(statusUpdate.dispatchStatus);
+                    return <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${ i <= idx ? 'bg-orange-500' : 'bg-gray-200'}`} />;
+                  })}
+                </div>
+              </div>
+              <button onClick={clearStatus} className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none">×</button>
+            </div>
+          )}
+
+          {/* Resolved banner — shows briefly then user can dismiss */}
+          {statusUpdate?.dispatchStatus === 'RESOLVED' && (
+            <div className="rounded-2xl border-2 border-green-500 bg-green-50 p-4 flex items-center gap-4 shadow-lg animate-in slide-in-from-top duration-300">
+              <span className="text-3xl">✅</span>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-green-900">Case Resolved — You are safe</p>
+                <p className="text-xs text-green-700 mt-0.5">{statusUpdate.message}</p>
+              </div>
+              <button onClick={clearStatus} className="text-green-600 hover:text-green-800 flex-shrink-0 text-lg leading-none">×</button>
+            </div>
+          )}
+
           {/* ──────────────── TAB: OVERVIEW ──────────────── */}
           {activeTab === 'Overview' && (
             <div className="space-y-6 animate-in fade-in duration-300">

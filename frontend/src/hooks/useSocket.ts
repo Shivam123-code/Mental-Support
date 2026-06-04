@@ -224,6 +224,7 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     isConnected,
     isAuthenticated,
     dbLoaded,
+    socket,  // expose so admin page can attach vendor status listeners
   };
 }
 
@@ -234,7 +235,7 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 export interface SOSStatusUpdate {
   alertId: string;
-  dispatchStatus: 'PENDING' | 'SEARCHING' | 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'RESOLVED';
+  dispatchStatus: 'PENDING' | 'SEARCHING' | 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'NEARBY' | 'ARRIVED' | 'RESOLVED';
   message: string;
   vendorName?: string;
   vendorPhone?: string;
@@ -265,7 +266,9 @@ export function useSOSStatus(userId?: string, role?: string, token?: string) {
       SEARCHING:       { icon: '🔍', color: 'bg-blue-50 text-blue-700 border-blue-300',     label: 'Finding vendor...' },
       VENDOR_ALERTED:  { icon: '📡', color: 'bg-amber-50 text-amber-800 border-amber-300',  label: 'Vendor alerted' },
       VENDOR_ACCEPTED: { icon: '✅', color: 'bg-green-50 text-green-800 border-green-300',  label: 'Vendor on the way!' },
-      EN_ROUTE:        { icon: '🚗', color: 'bg-green-50 text-green-800 border-green-300',  label: 'En route to you' },
+      EN_ROUTE:        { icon: '🚗', color: 'bg-blue-50 text-blue-800 border-blue-300',    label: 'En route to you' },
+      NEARBY:          { icon: '📍', color: 'bg-amber-50 text-amber-900 border-amber-400',  label: 'Very close to you!' },
+      ARRIVED:         { icon: '🟢', color: 'bg-green-50 text-green-900 border-green-400',  label: 'Vendor has arrived!' },
       RESOLVED:        { icon: '✅', color: 'bg-gray-50 text-gray-600 border-gray-300',     label: 'Resolved' },
     };
     return map[status] || map['PENDING'];

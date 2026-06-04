@@ -337,6 +337,76 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
     }
   });
 
+  // ── Vendor updates journey status (EN_ROUTE / NEARBY / ARRIVED / RESOLVED) ──
+  socket.on('vendor:status_update', async (data: {
+    alertId: string;
+    vendorId: string;
+    status: string;
+    message?: string;
+  }) => {
+    try {
+      const { alertId, vendorId, status } = data;
+
+      const statusMessages: Record<string, string> = {
+        EN_ROUTE: '🚗 Your responder is on the way! Stay where you are.',
+        NEARBY:   '📍 Your responder is very close — stay calm, they will be there any moment!',
+        ARRIVED:  '🟢 Your responder has arrived! Help is here.',
+        RESOLVED: '✅ Your case has been resolved. You are safe.',
+      };
+      const userMessage = data.message || statusMessages[status] || `Status updated to ${status}`;
+
+      // Update DB
+      const alert = await (prisma as any).emergencyAlert.update({
+        where: { id: alertId },
+        data:  { dispatchStatus: status },
+        include: { user: { select: { firstName: true, lastName: true } } },
+      }).catch((e: any) => { console.error('DB update failed:', e); return null; });
+
+      if (!alert) {
+        socket.emit('vendor:status_ack', { alertId, status, success: false, error: 'Alert not found' });
+        return;
+      }
+
+      // Notify the user in real-time
+      if (alert.userId) {
+        io.to(`user-${alert.userId}`).emit('sos:status_update', {
+          alertId,
+          dispatchStatus: status,
+          message: userMessage,
+        });
+      }
+
+      // Notify all admins in real-time
+      io.to('admin-room').emit('sos:vendor_status_update', {
+        alertId,
+        vendorId,
+        dispatchStatus: status,
+        message: userMessage,
+        timestamp: new Date(),
+      });
+
+      // If resolved — free the vendor for the next alert
+      if (status === 'RESOLVED') {
+        await (prisma as any).vendorProfile.update({
+          where: { userId: vendorId },
+          data:  { isAvailable: true },
+        }).catch(console.error);
+
+        io.to(`vendor-${vendorId}`).emit('vendor:case_resolved', { alertId });
+        console.log(`✅ Alert ${alertId} RESOLVED by vendor ${vendorId} — vendor freed`);
+      }
+
+      // Acknowledge back to vendor
+      socket.emit('vendor:status_ack', { alertId, status, success: true });
+      console.log(`🔄 Vendor ${vendorId} → alert ${alertId}: ${status}`);
+
+    } catch (error) {
+      console.error('Vendor status update error:', error);
+      socket.emit('error', { message: 'Failed to update status' });
+    }
+  });
+
+
   // ── Admin acknowledges alert ───────────────────────────────────────────────
   socket.on('emergency:acknowledge', async (data: AcknowledgeData) => {
     try {

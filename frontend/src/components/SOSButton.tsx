@@ -171,8 +171,10 @@ export default function SOSButton() {
       SEARCHING:       { icon: '🔍', color: 'bg-blue-50 border-blue-300 text-blue-800',       label: 'Finding nearest vendor...' },
       VENDOR_ALERTED:  { icon: '📡', color: 'bg-amber-50 border-amber-300 text-amber-900',    label: 'Vendor has been alerted!' },
       VENDOR_ACCEPTED: { icon: '✅', color: 'bg-green-50 border-green-400 text-green-900',    label: 'Vendor is on the way!' },
-      EN_ROUTE:        { icon: '🚗', color: 'bg-green-50 border-green-400 text-green-900',    label: 'Vendor en route to you' },
-      RESOLVED:        { icon: '✅', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Case resolved' },
+      EN_ROUTE:        { icon: '🚗', color: 'bg-blue-50 border-blue-400 text-blue-900',       label: 'Vendor is heading to you' },
+      NEARBY:          { icon: '📍', color: 'bg-amber-50 border-amber-400 text-amber-900',    label: 'Vendor is very close — stay calm!' },
+      ARRIVED:         { icon: '🟢', color: 'bg-green-50 border-green-500 text-green-900',    label: 'Vendor has arrived!' },
+      RESOLVED:        { icon: '✅', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Case resolved — you are safe' },
     };
     const handler = (update: any) => {
       const ui = statusMap[update.dispatchStatus] || statusMap['PENDING'];
@@ -493,7 +495,10 @@ export default function SOSButton() {
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wide opacity-70">{badge.text}</p>
                           {location && (
-                            <p className="text-sm font-semibold mt-0.5 truncate">{location.label}</p>
+                            <>
+                              <p className="text-sm font-semibold mt-0.5 truncate">{location.label}</p>
+                              <p className="font-mono text-[10px] opacity-60 mt-0.5">{location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}</p>
+                            </>
                           )}
                           {locationAccuracy === 'detecting' && (
                             <p className="text-xs mt-0.5 opacity-70">Trying GPS & network location…</p>

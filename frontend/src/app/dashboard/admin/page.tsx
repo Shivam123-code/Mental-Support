@@ -11,7 +11,7 @@ import {
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
   CheckSquare, Bell, Settings, List, ArrowLeft, ShieldCheck,
   CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio,
-  Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp, Menu, X
+  Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp, Menu, X, Truck, Navigation, Phone
 } from "lucide-react";
 
 // Types for Admin Dashboard
@@ -103,6 +103,12 @@ function AdminDashboardContent() {
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
   const [liveActivities, setLiveActivities] = useState<string[]>([]);
 
+  // ── Vendor dispatch live state ──
+  const [vendorDispatch, setVendorDispatch] = useState<Record<string, { status: string; message: string; timestamp: Date }>>({});
+  const [allVendors, setAllVendors] = useState<any[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+  const [vendorLocationLabels, setVendorLocationLabels] = useState<Record<string, string>>({});
+
   // ── New verification applications from real DB ──
   const [professionalApps, setProfessionalApps] = useState<any[]>([]);
   const [orgApps, setOrgApps] = useState<any[]>([]);
@@ -121,8 +127,59 @@ function AdminDashboardContent() {
 
   // ── Real-time WebSocket SOS alerts ──
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded } =
+  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded, socket: adminSocket } =
     useEmergencyAlerts(user?.id, token || undefined);
+
+  // Listen for vendor status updates on the admin socket
+  useEffect(() => {
+    if (!adminSocket) return;
+    const handler = (data: { alertId: string; dispatchStatus: string; message: string; timestamp: Date }) => {
+      setVendorDispatch(prev => ({
+        ...prev,
+        [data.alertId]: { status: data.dispatchStatus, message: data.message, timestamp: new Date(data.timestamp) },
+      }));
+      setAuditLogs(prev => [`Alert ${data.alertId.slice(-6)}: vendor → ${data.dispatchStatus}`, ...prev.slice(0, 19)]);
+    };
+    adminSocket.on('sos:vendor_status_update', handler);
+    return () => { adminSocket.off('sos:vendor_status_update', handler); };
+  }, [adminSocket]);
+
+  // Fetch all vendors for the Vendors tab
+  const fetchAllVendors = async () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) return;
+    setVendorsLoading(true);
+    try {
+      const res = await fetch('/api/admin/vendors', { headers: { Authorization: `Bearer ${t}` } });
+      const data = await res.json();
+      if (data.success) setAllVendors(data.data || []);
+    } catch { /* silently ignore */ } finally {
+      setVendorsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'Vendors') fetchAllVendors();
+  }, [activeTab]);
+
+  // Geocode vendor locations when the list loads
+  useEffect(() => {
+    allVendors.forEach((v: any) => {
+      if (!v.latitude || !v.longitude || vendorLocationLabels[v.id]) return;
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${v.latitude}&lon=${v.longitude}&format=json`, {
+        signal: AbortSignal.timeout(6000),
+      })
+        .then(r => r.json())
+        .then(data => {
+          const a = data.address || {};
+          const label = [a.road || a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
+            .filter(Boolean).join(', ') || data.display_name?.split(',').slice(0, 3).join(',') || '';
+          if (label) setVendorLocationLabels(prev => ({ ...prev, [v.id]: label }));
+        })
+        .catch(() => {});
+    });
+  }, [allVendors]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // ── Reverse-geocode each alert's coordinates → human-readable location name ──
   const [locationLabels, setLocationLabels] = useState<Record<string, string>>({});
@@ -427,6 +484,7 @@ function AdminDashboardContent() {
   const menuItems = [
     { label: "Overview", icon: LayoutDashboard },
     { label: "SOS & Crisis", icon: AlertTriangle, alert: true, liveCount: liveAlerts.filter(a => a.status === 'ACTIVE').length },
+    { label: "Vendors", icon: Truck },
     { label: "Trust & Safety", icon: Shield },
     { label: "Professionals", icon: Briefcase },
     { label: "Users", icon: Users },
@@ -965,6 +1023,172 @@ function AdminDashboardContent() {
                 </div>
               )}
 
+            </div>
+          )}
+
+
+          {/* TAB: VENDORS */}
+          {activeTab === "Vendors" && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+
+              {/* Active Dispatch Board */}
+              <div className="card">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="font-display font-bold text-lg">Live Dispatch Board</h2>
+                    <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Real-time vendor → user status tracking</p>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-[10px] bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold px-2 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" /> LIVE
+                  </span>
+                </div>
+
+                {liveAlerts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Truck size={36} className="mx-auto text-gray-300 mb-3" />
+                    <p className="text-sm text-[var(--on-surface-variant)]">No active SOS alerts</p>
+                    <p className="text-xs text-gray-400 mt-1">Alerts will appear here the moment an SOS is triggered</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {liveAlerts.map(alert => {
+                      const vd = vendorDispatch[alert.id];
+                      const currentStatus = vd?.status || alert.dispatchStatus || 'PENDING';
+                      const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
+                        PENDING:         { color: 'bg-gray-100 text-gray-700',        label: 'Pending',        icon: '⏳' },
+                        SEARCHING:       { color: 'bg-blue-100 text-blue-700',         label: 'Searching',      icon: '🔍' },
+                        VENDOR_ALERTED:  { color: 'bg-amber-100 text-amber-800',       label: 'Vendor Alerted', icon: '📡' },
+                        VENDOR_ACCEPTED: { color: 'bg-green-100 text-green-800',       label: 'Accepted',       icon: '✅' },
+                        EN_ROUTE:        { color: 'bg-blue-100 text-blue-800',          label: 'En Route',       icon: '🚗' },
+                        NEARBY:          { color: 'bg-amber-100 text-amber-900',        label: 'Nearby',         icon: '📍' },
+                        ARRIVED:         { color: 'bg-green-100 text-green-900',        label: 'Arrived',        icon: '🟢' },
+                        RESOLVED:        { color: 'bg-gray-100 text-gray-600',          label: 'Resolved',       icon: '🏁' },
+                      };
+                      const sc = statusConfig[currentStatus] || statusConfig['PENDING'];
+
+                      return (
+                        <div key={alert.id} className="border border-[var(--outline-variant)] rounded-xl p-4 space-y-3 hover:bg-[var(--surface-container-low)] transition">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${alert.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : alert.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {alert.severity}
+                              </span>
+                              <span className="text-xs text-[var(--on-surface-variant)]">
+                                {locationLabels[alert.id] || `${alert.latitude?.toFixed(3)}, ${alert.longitude?.toFixed(3)}`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${sc.color}`}>
+                                {sc.icon} {sc.label}
+                              </span>
+                              <a
+                                href={`https://maps.google.com/?q=${alert.latitude},${alert.longitude}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                <Navigation size={12} /> Map
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Status timeline */}
+                          <div className="flex items-center gap-1">
+                            {['VENDOR_ALERTED','VENDOR_ACCEPTED','EN_ROUTE','NEARBY','ARRIVED','RESOLVED'].map((s, i, arr) => {
+                              const order = ['VENDOR_ALERTED','VENDOR_ACCEPTED','EN_ROUTE','NEARBY','ARRIVED','RESOLVED'];
+                              const currentIdx = order.indexOf(currentStatus);
+                              const isActive = i <= currentIdx;
+                              return (
+                                <div key={s} className="flex items-center flex-1">
+                                  <div className={`h-2 flex-1 rounded-full transition-all ${isActive ? 'bg-orange-400' : 'bg-gray-200'}`} />
+                                  {i < arr.length - 1 && <div className="w-0" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {vd && (
+                            <p className="text-xs text-[var(--on-surface-variant)] italic">
+                              Last update: &ldquo;{vd.message}&rdquo;
+                            </p>
+                          )}
+                          <p className="text-[10px] text-gray-400">
+                            Alert #{alert.id.slice(-8)} &middot; {new Date(alert.timestamp || alert.createdAt || Date.now()).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* All Vendors */}
+              <div className="card">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="font-display font-bold text-lg">All Vendors</h2>
+                    <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Registered service providers</p>
+                  </div>
+                  <button onClick={fetchAllVendors} disabled={vendorsLoading}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] rounded-xl transition disabled:opacity-60">
+                    {vendorsLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Refresh
+                  </button>
+                </div>
+
+                {vendorsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-orange-500" />
+                  </div>
+                ) : allVendors.length === 0 ? (
+                  <div className="text-center py-10">
+                    <Truck size={32} className="mx-auto text-gray-300 mb-3" />
+                    <p className="text-sm text-[var(--on-surface-variant)]">No vendors registered yet</p>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {allVendors.map((v: any) => (
+                      <div key={v.id} className="border border-[var(--outline-variant)] rounded-xl p-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-sm">{v.businessName}</p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">{v.serviceType}</p>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            v.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {v.isOnline ? '● Online' : '○ Offline'}
+                          </span>
+                        </div>
+                        {v.phone && (
+                          <a href={`tel:${v.phone}`} className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                            <Phone size={11} /> {v.phone}
+                          </a>
+                        )}
+                        {v.latitude && v.longitude && (
+                          <div className="space-y-0.5">
+                            {vendorLocationLabels[v.id] && (
+                              <p className="text-xs font-medium text-gray-700">
+                                📍 {vendorLocationLabels[v.id]}
+                              </p>
+                            )}
+                            <a
+                              href={`https://maps.google.com/?q=${v.latitude},${v.longitude}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                            >
+                              <MapPin size={11} /> {v.latitude.toFixed(4)}, {v.longitude.toFixed(4)}
+                            </a>
+                          </div>
+                        )}
+                        <p className={`text-[10px] font-semibold ${
+                          v.isAvailable ? 'text-green-600' : 'text-orange-600'
+                        }`}>
+                          {v.isAvailable ? 'Available for dispatch' : 'Currently on assignment'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -9,7 +9,7 @@ import {
   Loader2, RefreshCw, LogOut, ChevronRight, Shield, Map
 } from 'lucide-react';
 
-type DispatchStatus = 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'RESOLVED' | 'PENDING';
+type DispatchStatus = 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'NEARBY' | 'ARRIVED' | 'RESOLVED' | 'PENDING';
 
 interface Assignment {
   id: string;
@@ -67,6 +67,38 @@ function VendorDashboardContent() {
   const [dispatchCountdown, setDispatchCountdown] = useState(30);
   const [accepting, setAccepting] = useState(false);
   const [socket, setSocket] = useState<any>(null);
+  const [caseStatus, setCaseStatus] = useState<string>('VENDOR_ACCEPTED');
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [locationLabels, setLocationLabels] = useState<Record<string, string>>({});
+
+  // Auto-geocode any lat/lon pair into a human-readable label
+  const geocodeCoords = useCallback(async (key: string, lat: number, lon: number) => {
+    if (locationLabels[key]) return; // already fetched
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      const data = await res.json();
+      const a = data.address || {};
+      const label = [a.road || a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
+        .filter(Boolean).join(', ') || data.display_name?.split(',').slice(0, 3).join(',') || '';
+      if (label) setLocationLabels(prev => ({ ...prev, [key]: label }));
+    } catch { /* keep coords only */ }
+  }, [locationLabels]);
+
+  // Geocode incoming dispatch location as soon as alert arrives
+  useEffect(() => {
+    if (incomingDispatch)
+      geocodeCoords(`dispatch-${incomingDispatch.alertId}`, incomingDispatch.latitude, incomingDispatch.longitude);
+  }, [incomingDispatch]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Geocode active assignment location when it loads
+  useEffect(() => {
+    if (activeAssignment)
+      geocodeCoords(`assign-${activeAssignment.id}`, activeAssignment.latitude, activeAssignment.longitude);
+  }, [activeAssignment]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
@@ -124,7 +156,16 @@ function VendorDashboardContent() {
       socketInstance.on('vendor:accept_confirmed', () => {
         setAccepting(false);
         setIncomingDispatch(null);
+        setCaseStatus('VENDOR_ACCEPTED');
         fetchData();
+      });
+
+      socketInstance.on('vendor:status_ack', (data: { status: string; success: boolean }) => {
+        if (data.success) {
+          setCaseStatus(data.status);
+          setStatusLoading(false);
+          if (data.status === 'RESOLVED') setTimeout(fetchData, 1500);
+        }
       });
 
       socketInstance.on('vendor:case_resolved', () => {
@@ -230,6 +271,17 @@ function VendorDashboardContent() {
     setIncomingDispatch(null);
   };
 
+  // ── Update journey status ─────────────────────────────────────────────────
+  const updateJourneyStatus = (status: string) => {
+    if (!socket || !activeAssignment?.id || !user?.id || statusLoading) return;
+    setStatusLoading(true);
+    socket.emit('vendor:status_update', {
+      alertId:  activeAssignment.id,
+      vendorId: user.id,
+      status,
+    });
+  };
+
   const severityColors: Record<string, string> = {
     CRITICAL: 'bg-red-100 text-red-800 border-red-300',
     HIGH: 'bg-orange-100 text-orange-800 border-orange-300',
@@ -283,7 +335,12 @@ function VendorDashboardContent() {
                 <MapPin size={18} className="text-gray-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500 mb-0.5">Location</p>
-                  <p className="font-mono text-sm font-semibold">{incomingDispatch.latitude.toFixed(5)}, {incomingDispatch.longitude.toFixed(5)}</p>
+                  {locationLabels[`dispatch-${incomingDispatch.alertId}`] && (
+                    <p className="text-sm font-semibold text-gray-800 mb-0.5">
+                      📍 {locationLabels[`dispatch-${incomingDispatch.alertId}`]}
+                    </p>
+                  )}
+                  <p className="font-mono text-xs text-gray-500">{incomingDispatch.latitude.toFixed(5)}, {incomingDispatch.longitude.toFixed(5)}</p>
                   <a
                     href={`https://maps.google.com/?q=${incomingDispatch.latitude},${incomingDispatch.longitude}`}
                     target="_blank"
@@ -451,7 +508,12 @@ function VendorDashboardContent() {
                 <MapPin size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500">Location</p>
-                  <p className="font-mono text-sm font-semibold">{activeAssignment.latitude.toFixed(5)}, {activeAssignment.longitude.toFixed(5)}</p>
+                  {locationLabels[`assign-${activeAssignment.id}`] && (
+                    <p className="text-sm font-semibold text-gray-800 mb-0.5">
+                      📍 {locationLabels[`assign-${activeAssignment.id}`]}
+                    </p>
+                  )}
+                  <p className="font-mono text-xs text-gray-500">{activeAssignment.latitude.toFixed(5)}, {activeAssignment.longitude.toFixed(5)}</p>
                   <a
                     href={`https://maps.google.com/?q=${activeAssignment.latitude},${activeAssignment.longitude}`}
                     target="_blank"
@@ -487,9 +549,89 @@ function VendorDashboardContent() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between bg-white rounded-xl p-3">
-                <p className="text-xs text-gray-500">Status</p>
-                <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">{activeAssignment.dispatchStatus.replace('_', ' ')}</span>
+              {/* ── Journey Status Progress ─────────────────────────────────── */}
+              <div className="bg-white rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">Update Your Status</p>
+
+                {/* Step bar */}
+                {(() => {
+                  const steps = [
+                    { key: 'VENDOR_ACCEPTED', label: 'Accepted',  icon: '✅' },
+                    { key: 'EN_ROUTE',        label: 'En Route',  icon: '🚗' },
+                    { key: 'NEARBY',          label: 'Nearby',    icon: '📍' },
+                    { key: 'ARRIVED',         label: 'Arrived',   icon: '🟢' },
+                    { key: 'RESOLVED',        label: 'Resolved',  icon: '🏁' },
+                  ];
+                  const currentIdx = steps.findIndex(s => s.key === caseStatus);
+                  return (
+                    <div className="flex items-center gap-1 mb-4">
+                      {steps.map((s, i) => (
+                        <div key={s.key} className="flex items-center flex-1">
+                          <div className={`flex flex-col items-center flex-1`}>
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs mb-1 transition-all ${
+                              i <= currentIdx ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-100 text-gray-400'
+                            }`}>
+                              {s.icon}
+                            </div>
+                            <span className={`text-[9px] font-semibold text-center leading-tight ${
+                              i <= currentIdx ? 'text-orange-700' : 'text-gray-400'
+                            }`}>{s.label}</span>
+                          </div>
+                          {i < steps.length - 1 && (
+                            <div className={`h-0.5 flex-1 mx-0.5 rounded ${
+                              i < currentIdx ? 'bg-orange-400' : 'bg-gray-200'
+                            }`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Action button — shows next logical step */}
+                <div className="grid grid-cols-2 gap-2">
+                  {caseStatus === 'VENDOR_ACCEPTED' && (
+                    <button
+                      onClick={() => updateJourneyStatus('EN_ROUTE')}
+                      disabled={statusLoading}
+                      className="col-span-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {statusLoading ? <Loader2 size={15} className="animate-spin" /> : '🚗'} I'm On The Way
+                    </button>
+                  )}
+                  {caseStatus === 'EN_ROUTE' && (
+                    <button
+                      onClick={() => updateJourneyStatus('NEARBY')}
+                      disabled={statusLoading}
+                      className="col-span-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {statusLoading ? <Loader2 size={15} className="animate-spin" /> : '📍'} I'm Nearby
+                    </button>
+                  )}
+                  {caseStatus === 'NEARBY' && (
+                    <button
+                      onClick={() => updateJourneyStatus('ARRIVED')}
+                      disabled={statusLoading}
+                      className="col-span-2 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {statusLoading ? <Loader2 size={15} className="animate-spin" /> : '🟢'} I've Arrived
+                    </button>
+                  )}
+                  {caseStatus === 'ARRIVED' && (
+                    <button
+                      onClick={() => updateJourneyStatus('RESOLVED')}
+                      disabled={statusLoading}
+                      className="col-span-2 py-3 rounded-xl bg-gray-700 hover:bg-gray-800 text-white font-bold text-sm transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {statusLoading ? <Loader2 size={15} className="animate-spin" /> : '🏁'} Mark Case Resolved
+                    </button>
+                  )}
+                  {caseStatus === 'RESOLVED' && (
+                    <div className="col-span-2 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 font-bold text-sm flex items-center justify-center gap-2">
+                      ✅ Case Resolved — Great work!
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
