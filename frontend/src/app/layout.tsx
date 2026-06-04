@@ -7,23 +7,23 @@ import SOSButton from "@/components/SOSButton";
 import QuickExit from "@/components/layout/QuickExit";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PageTransition } from "@/components/motion/animations";
 
 const newsreader = Newsreader({
   subsets: ["latin"],
   variable: "--font-newsreader",
   display: "swap",
-  weight: ["400", "500"],   // 600 was preloaded but unused → removed
-  preload: false,           // prevents "preloaded but not used" warning
+  weight: ["400", "500"],
+  preload: false,
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
   display: "swap",
-  weight: ["500", "600", "700"], // 400 weight unused in practice → removed
-  preload: false,                // prevents "preloaded but not used" warning
+  weight: ["500", "600", "700"],
+  preload: false,
 });
-
 
 export const metadata: Metadata = {
   title: "KleverKlues - You're Not Alone | Human Wellbeing & Emotional Support",
@@ -42,7 +42,9 @@ export default function RootLayout({
         <AuthProvider>
           <Header />
           <main className="min-h-screen">
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
           </main>
           <ConditionalFooter />
           <SOSButton />

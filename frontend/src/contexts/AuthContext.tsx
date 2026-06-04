@@ -37,12 +37,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('auth_token');
-      
+
       if (!token) {
         setLoading(false);
         return;
       }
 
+      // ── Step 1: Decode JWT locally (zero network, instant) ─────────────────
+      // The JWT payload contains userId, email, role — enough to show the page.
+      // We set loading=false immediately so the UI unblocks in ~1ms.
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+
+          if (!isExpired && payload.userId && payload.role) {
+            // Show the page right away with data from the token
+            setUser({
+              id: payload.userId,
+              email: payload.email || '',
+              role: payload.role,
+              status: 'ACTIVE',
+              firstName: payload.firstName,
+              lastName: payload.lastName,
+            });
+            setLoading(false); // ← page unblocks here instantly
+
+            // ── Step 2: Validate with server in background (non-blocking) ──
+            api.auth.me()
+              .then(userData => setUser(userData))   // upgrade with full profile
+              .catch((error: any) => {
+                if (error?.status === 401 || error?.status === 403) {
+                  localStorage.removeItem('auth_token');
+                  setUser(null);
+                }
+              });
+            return;
+          }
+        }
+      } catch {
+        // JWT malformed — fall through to server validation below
+      }
+
+      // ── Fallback: JWT decode failed, ask the server ─────────────────────────
       try {
         const userData = await api.auth.me();
         setUser(userData);

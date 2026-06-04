@@ -6,6 +6,7 @@ import { api } from "@/lib/api-client";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmergencyAlerts } from "@/hooks/useSocket";
+import { TabContent } from "@/components/motion/animations";
 import {
   LayoutDashboard, Users, Briefcase, Building2, Brain, BookOpen, Smile, Heart,
   AlertTriangle, Shield, Cpu, FileText, BarChart3, Compass, Wallet,
@@ -629,7 +630,9 @@ function AdminDashboardContent() {
         </header>
 
         {/* Tab content router */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 max-w-[1400px] w-full">
+        <main className="flex-1 overflow-y-auto">
+        <TabContent tabKey={activeTab}>
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 max-w-[1400px] w-full">
 
           
           {/* TAB 1: OVERVIEW */}
@@ -2149,6 +2152,8 @@ function AdminDashboardContent() {
             </div>
           )}
 
+        </div>
+        </TabContent>
         </main>
 
       </div>

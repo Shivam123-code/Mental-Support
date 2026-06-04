@@ -8,6 +8,7 @@ import {
   XCircle, Clock, AlertTriangle, Navigation, Phone, User,
   Loader2, RefreshCw, LogOut, ChevronRight, Shield, Map
 } from 'lucide-react';
+import { FadeIn, SlideUp } from '@/components/motion/animations';
 
 type DispatchStatus = 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'NEARBY' | 'ARRIVED' | 'RESOLVED' | 'PENDING';
 
@@ -297,6 +298,7 @@ function VendorDashboardContent() {
   }
 
   return (
+    <FadeIn>
     <div className="min-h-screen bg-[var(--surface)]">
       {/* ── INCOMING DISPATCH MODAL ──────────────────────────────────────── */}
       {incomingDispatch && (
@@ -672,5 +674,6 @@ function VendorDashboardContent() {
 
       </main>
     </div>
+    </FadeIn>
   );
 }

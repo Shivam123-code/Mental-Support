@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 import { useSOSStatus } from '@/hooks/useSocket';
+import { TabContent, StaggerList, StaggerItem } from '@/components/motion/animations';
 
 export default function UserDashboard() {
   return (
@@ -404,7 +405,9 @@ function DashboardContent() {
         </header>
 
         {/* Space Router */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-8 overflow-y-auto space-y-6 lg:space-y-8 max-w-[1200px] mx-auto w-full">
+        <main className="flex-1 overflow-y-auto">
+        <TabContent tabKey={activeTab}>
+        <div className="p-3 sm:p-5 lg:p-8 space-y-6 lg:space-y-8 max-w-[1200px] mx-auto w-full">
 
           {/* ── LIVE SOS STATUS CARD — visible on ALL tabs while alert is active ── */}
           {statusUpdate && statusUpdate.dispatchStatus !== 'RESOLVED' && (
@@ -1689,9 +1692,10 @@ function DashboardContent() {
             </div>
           )}
 
+        </div>
+        </TabContent>
         </main>
       </div>
-
     </div>
   );
 }
