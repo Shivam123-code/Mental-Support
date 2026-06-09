@@ -73,22 +73,28 @@ function initGoogleTranslate() {
 
 // Programmatically change language via Google Translate's hidden select
 function applyGoogleTranslate(langCode: string) {
-  if (langCode === "en") {
-    // Restore original — find the "show original" link Google injects
-    const showOriginal = document.querySelector<HTMLElement>(
-      ".goog-te-menu-value span:first-child"
-    );
-    showOriginal?.click();
+  const hostname = window.location.hostname;
+  const parts   = hostname.split('.');
+  const expire  = 'expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
 
-    // Cookie-based restore
-    const hostname = window.location.hostname;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname}`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname}`;
+  if (langCode === "en") {
+    // Clear the googtrans cookie for EVERY domain variant:
+    //   - no domain        (covers localhost)
+    //   - exact hostname   (app.yourdomain.com)
+    //   - .exact hostname  (.app.yourdomain.com)
+    //   - parent domain    (.yourdomain.com) ← this is what was missing on live
+    document.cookie = `googtrans=; ${expire}`;
+    document.cookie = `googtrans=; ${expire}; domain=${hostname}`;
+    document.cookie = `googtrans=; ${expire}; domain=.${hostname}`;
+    if (parts.length > 2) {
+      const parent = parts.slice(-2).join('.');
+      document.cookie = `googtrans=; ${expire}; domain=.${parent}`;
+    }
     window.location.reload();
     return;
   }
 
-  // Method 1: Direct select manipulation (most reliable)
+  // Method 1: Direct select manipulation (most reliable when widget is ready)
   const select = document.querySelector<HTMLSelectElement>(".goog-te-combo");
   if (select) {
     select.value = langCode;
@@ -96,10 +102,13 @@ function applyGoogleTranslate(langCode: string) {
     return;
   }
 
-  // Method 2: Cookie + reload fallback (works even before widget is ready)
-  const hostname = window.location.hostname;
+  // Method 2: Cookie + reload fallback (works before widget is ready)
   document.cookie = `googtrans=/en/${langCode}; path=/; domain=${hostname}`;
   document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${hostname}`;
+  if (parts.length > 2) {
+    const parent = parts.slice(-2).join('.');
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${parent}`;
+  }
   window.location.reload();
 }
 
