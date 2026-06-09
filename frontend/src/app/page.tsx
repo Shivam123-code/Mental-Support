@@ -61,7 +61,7 @@ export default function Home() {
               </div>
               <h1 className="text-display-xl text-[var(--on-surface)]">
                 Mental wellness support,{" "}
-                <span className="text-gradient">anytime. Anywhere.</span>
+                <span className="text-gradient">Anytime, Anywhere.</span>
               </h1>
               <p className="text-body-lg text-[var(--on-surface-variant)] max-w-lg">
                 Private, guided, emotionally intelligent support for stress, anxiety, burnout, relationships, emotional wellbeing, and personal growth.
