@@ -19,8 +19,8 @@ module.exports = {
     },
     {
       name: 'kleverklues-socket',
-      script: './socket-server/dist/index.js',
-      cwd: './',
+      script: './dist/index.js',
+      cwd: './socket-server',
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
