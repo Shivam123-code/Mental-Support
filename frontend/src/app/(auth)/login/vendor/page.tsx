@@ -92,6 +92,13 @@ export default function VendorLogin() {
               </div>
             </div>
 
+            {/* Forgot Password */}
+            <div className="text-right -mt-1">
+              <Link href="/forgot-password" className="text-xs text-orange-600 hover:underline font-medium">
+                Forgot password?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={loading}

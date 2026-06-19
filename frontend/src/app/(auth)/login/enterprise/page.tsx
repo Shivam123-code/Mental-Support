@@ -112,6 +112,13 @@ export default function EnterpriseLoginPage() {
               </div>
             </div>
 
+            {/* Forgot Password */}
+            <div className="text-right -mt-2">
+              <Link href="/forgot-password" className="text-xs text-[var(--primary)] hover:underline font-medium">
+                Forgot password?
+              </Link>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"

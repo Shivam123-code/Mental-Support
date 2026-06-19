@@ -137,6 +137,13 @@ export default function AdminLogin() {
               </div>
             </div>
 
+            {/* Forgot Password */}
+            <div className="text-right -mt-1">
+              <Link href="/forgot-password" className="text-xs text-indigo-500 hover:underline font-medium">
+                Forgot password?
+              </Link>
+            </div>
+
             <button 
               type="submit" 
               disabled={isLoading}

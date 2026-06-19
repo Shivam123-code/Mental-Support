@@ -110,6 +110,53 @@ export async function sendApprovalEmail(
   await send(to, subject, html);
 }
 
+export async function sendPasswordResetEmail(
+  toEmail: string,
+  resetToken: string,
+  userName?: string
+): Promise<void> {
+  const resetLink = `${BASE_URL}/reset-password?token=${resetToken}`;
+  const displayName = userName || 'there';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+      <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;border-radius:10px 10px 0 0;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">KleverKlues&#8482;</h1>
+        <p style="color:#c7d2fe;margin:4px 0 0;font-size:13px;">Mental Health &amp; Wellbeing Platform</p>
+      </div>
+      <div style="background:#fff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;border-top:none;">
+        <h2 style="color:#111827;font-size:20px;margin:0 0 12px;">Reset Your Password</h2>
+        <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 24px;">
+          Hi ${displayName},<br/><br/>
+          We received a request to reset the password for your KleverKlues account.
+          Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
+        </p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${resetLink}"
+             style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;">
+            Reset My Password
+          </a>
+        </div>
+        <p style="color:#6b7280;font-size:13px;margin:0 0 6px;">Or copy this link into your browser:</p>
+        <p style="background:#f1f5f9;padding:12px 16px;border-radius:8px;font-size:12px;word-break:break-all;color:#4f46e5;margin:0 0 24px;">
+          ${resetLink}
+        </p>
+        <div style="border-top:1px solid #e5e7eb;padding-top:20px;">
+          <p style="color:#9ca3af;font-size:12px;line-height:1.6;margin:0;">
+            If you didn't request a password reset, you can safely ignore this email — your password will remain unchanged.<br/>
+            For security, this link expires in <strong>1 hour</strong>.
+          </p>
+        </div>
+      </div>
+      <p style="text-align:center;color:#9ca3af;font-size:11px;margin:16px 0 0;">
+        &#169; ${new Date().getFullYear()} KleverKlues&#8482; &middot; This email was sent to ${toEmail}
+      </p>
+    </div>
+  `;
+
+  await send(toEmail, 'Reset your KleverKlues password', html);
+}
+
 export async function sendRejectionEmail(to: string, name: string, reason: string, appType: 'professional' | 'organization') {
   const subject = 'Application Update — KleverKlues';
   const html = `
