@@ -20,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, expectedRole?: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -98,9 +98,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, expectedRole?: string) => {
     try {
       const { user: userData, token } = await api.auth.login({ email, password });
+
+      // Role check — reject if user logged into the wrong panel
+      if (expectedRole && userData.role !== expectedRole) {
+        const roleLabel: Record<string, string> = {
+          USER: 'user',
+          PROFESSIONAL: 'professional',
+          ENTERPRISE: 'enterprise',
+          ADMIN: 'admin',
+          VENDOR: 'vendor',
+        };
+        const expected = roleLabel[expectedRole] || expectedRole.toLowerCase();
+        throw new Error(
+          `This is not a ${expected} account. Please use the correct login page for your role.`
+        );
+      }
       
       // Store token
       localStorage.setItem('auth_token', token);
@@ -124,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Login failed. Please try again.');
+      throw error; // re-throw role mismatch errors as-is
     }
   };
 

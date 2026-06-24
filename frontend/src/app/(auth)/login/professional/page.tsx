@@ -28,7 +28,7 @@ export default function ProfessionalLoginPage() {
 
     try {
       setJustLoggedIn(true);
-      await login(email, password);
+      await login(email, password, 'PROFESSIONAL');
     } catch (err: any) {
       setJustLoggedIn(false);
       setError(err.message || 'Login failed. Please verify your credentials and approval status.');

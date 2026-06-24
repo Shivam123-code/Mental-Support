@@ -28,7 +28,7 @@ export default function UserLoginPage() {
 
     try {
       setJustLoggedIn(true);
-      await login(email, password);
+      await login(email, password, 'USER');
     } catch (err: any) {
       setJustLoggedIn(false);
       setError(err.message || 'Login failed. Please check your credentials.');

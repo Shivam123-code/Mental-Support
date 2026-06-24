@@ -37,7 +37,7 @@ export default function AdminLogin() {
     setIsLoading(true);
     try {
       setJustLoggedIn(true);
-      await login(trimmedEmail, trimmedPass);
+      await login(trimmedEmail, trimmedPass, 'ADMIN');
     } catch (err: any) {
       setJustLoggedIn(false);
       setErrorMsg(err.message || "Invalid credentials.");
