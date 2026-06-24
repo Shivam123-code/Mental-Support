@@ -8,6 +8,7 @@ import {
   XCircle, Clock, AlertTriangle, Navigation, Phone, User,
   Loader2, RefreshCw, LogOut, ChevronRight, Shield, Map
 } from 'lucide-react';
+import ChangePasswordCard from '@/components/ChangePasswordCard';
 import { FadeIn, SlideUp } from '@/components/motion/animations';
 
 type DispatchStatus = 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'NEARBY' | 'ARRIVED' | 'RESOLVED' | 'PENDING';
@@ -670,6 +671,12 @@ function VendorDashboardContent() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* ── Settings ── */}
+        <div className="max-w-5xl mx-auto px-4 pb-8">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--on-surface-variant)] mb-3">Account Settings</h2>
+          <ChangePasswordCard />
         </div>
 
       </main>

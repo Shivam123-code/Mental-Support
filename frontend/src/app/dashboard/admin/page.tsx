@@ -14,6 +14,7 @@ import {
   CheckCircle, Cpu as CpuIcon, RefreshCw, Loader2, MapPin, Eye, Radio,
   Plus, Edit3, Trash2, Download, ExternalLink, TrendingUp, Menu, X, Truck, Navigation, Phone
 } from "lucide-react";
+import ChangePasswordCard from '@/components/ChangePasswordCard';
 
 // Types for Admin Dashboard
 interface SOSCase {
@@ -2150,6 +2151,10 @@ function AdminDashboardContent() {
                 </div>
               </div>
             </div>
+
+            {/* ── Change Password ── */}
+            <ChangePasswordCard />
+
           )}
 
         </div>

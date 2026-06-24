@@ -9,6 +9,7 @@ import {
   Heart, Globe, CheckCircle, Menu, X, Save, Plus, ArrowUpRight,
   MessageSquare, AlertCircle, FileText, ChevronRight, Check, Brain
 } from 'lucide-react';
+import ChangePasswordCard from '@/components/ChangePasswordCard';
 
 export default function ProfessionalDashboard() {
   return (
@@ -1624,7 +1625,12 @@ function ProfessionalDashboardContent() {
 
                   </div>
                 </div>
+
+                {/* ── Change Password ── */}
+                <ChangePasswordCard className="mt-2" />
+
               )}
+
             </>
           )}
 

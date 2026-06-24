@@ -16,6 +16,7 @@ import {
 import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 import { useSOSStatus } from '@/hooks/useSocket';
 import { TabContent, StaggerList, StaggerItem } from '@/components/motion/animations';
+import ChangePasswordCard from '@/components/ChangePasswordCard';
 
 export default function UserDashboard() {
   return (
@@ -1689,8 +1690,15 @@ function DashboardContent() {
                   </div>
                 </div>
               </div>
+
+              {/* ── Change Password ── */}
+              <div className="pt-3 border-t border-[var(--outline-variant)]/20">
+                <ChangePasswordCard />
+              </div>
+
             </div>
           )}
+
 
         </div>
         </TabContent>

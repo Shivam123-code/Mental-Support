@@ -9,6 +9,7 @@ import {
   Award, BarChart3, Download, RefreshCw, Calendar, ArrowLeft,
   Briefcase, Activity, CheckCircle, Menu, X
 } from "lucide-react";
+import ChangePasswordCard from '@/components/ChangePasswordCard';
 
 export default function EnterpriseDashboard() {
   return (
@@ -318,6 +319,13 @@ function EnterpriseDashboardContent() {
           )}
 
         </div>
+
+        {/* ── Account Settings ── */}
+        <div className="px-4 sm:px-6 pb-10 max-w-2xl">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--on-surface-variant)] mb-3">Account Settings</h2>
+          <ChangePasswordCard />
+        </div>
+
       </main>
     </div>
   );
