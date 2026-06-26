@@ -6,7 +6,7 @@ import { NextRequest } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
-import { STATIC_PROFESSIONALS } from '../route';
+import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
 
 // Region → states mapping for regional filtering
 const REGION_STATES: Record<string, string[]> = {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight, MapPin } from 'lucide-react';
 import SafetyDisclaimer from '@/components/ui/SafetyDisclaimer';
 import AutoMatchButton from '@/components/AutoMatchButton';
-import { STATIC_PROFESSIONALS } from '@/app/api/professionals/route';
+import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
 
 const categories = [
   { name: 'Counsellors', count: '120+' },
