@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the token
-    const resetToken = await (prisma as any).passwordResetToken.findUnique({
+    const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
       include: { user: true },
     });
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         where: { id: userId },
         data: { passwordHash },
       }),
-      (prisma as any).passwordResetToken.update({
+      prisma.passwordResetToken.update({
         where: { id: resetToken.id },
         data: { used: true },
       }),
