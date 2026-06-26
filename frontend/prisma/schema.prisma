@@ -172,6 +172,20 @@ model Professional {
   // Profile
   bio                   String?
   approach              String?
+  displayName           String?
+  profileImage          String?
+
+  // Location (for auto-match proximity filtering)
+  city                  String?
+  state                 String?
+  country               String              @default("India")
+  region                String?             // e.g. "South India", "North India"
+
+  // Demographics (for user preference matching)
+  gender                String?             // "Male", "Female", "Non-binary", "Prefer not to say"
+
+  // Session mode
+  sessionModes          String[]            // ["Online", "In-person", "Both"]
   
   // Ratings
   averageRating         Float               @default(0)
@@ -188,6 +202,9 @@ model Professional {
   
   @@index([verificationStatus])
   @@index([type])
+  @@index([city])
+  @@index([state])
+  @@index([region])
 }
 
 model ProfessionalAvailability {

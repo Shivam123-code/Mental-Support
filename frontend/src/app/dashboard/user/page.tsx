@@ -17,6 +17,7 @@ import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 import { useSOSStatus } from '@/hooks/useSocket';
 import { TabContent, StaggerList, StaggerItem } from '@/components/motion/animations';
 import ChangePasswordCard from '@/components/ChangePasswordCard';
+import AutoMatchButton from '@/components/AutoMatchButton';
 
 export default function UserDashboard() {
   return (
@@ -1458,6 +1459,16 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)]">Book secure, 100% private digital sessions with verified psychologists, coaches, and psychiatrists.</p>
               </div>
 
+              {/* Auto Match CTA */}
+              <div className="p-5 rounded-2xl border-2 border-dashed border-[var(--primary)]/30 bg-gradient-to-br from-[var(--primary)]/5 to-transparent flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-[var(--on-surface)] mb-1">✨ Not sure who to book?</h3>
+                  <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
+                    Let our smart matching system find the most compatible professional for you — based on your concern, location, language, and preferences.
+                  </p>
+                </div>
+                <AutoMatchButton size="md" className="flex-shrink-0" />
+              </div>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[
                   { name: "Dr. Kavita Rao", specialty: "Clinical Psychologist", exp: "12 yrs experience", rate: "$80/hr", rating: "4.9 ★", img: "prof-kavita.png" },
