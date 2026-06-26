@@ -393,7 +393,7 @@ function MatchResultCard({ prof, index }: { prof: MatchedProfessional; index: nu
           {/* Session mode + rate */}
           <div className="flex items-center justify-between mt-3">
             <div className="flex gap-1">
-              {prof.sessionModes.map((m) => (
+              {(prof.sessionModes ?? []).map((m) => (
                 <span key={m} className="text-[9px] px-2 py-0.5 border border-[var(--outline-variant)]/30 rounded-full text-[var(--on-surface-variant)]">
                   {m === 'Online' ? '💻' : '🏢'} {m}
                 </span>
