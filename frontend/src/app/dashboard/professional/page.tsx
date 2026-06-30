@@ -1539,8 +1539,8 @@ function ProfessionalDashboardContent() {
                   14. TAB: SETTINGS
                  ======================================================== */}
               {activeTab === 'Settings' && (
-                <>
                 <div className="space-y-6 animate-fade-in">
+                <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-bold">Practice Settings</h2>
                     <p className="text-xs text-[var(--on-surface-variant)]">Update Specializations, pricing structures, languages spoken, and notification channels.</p>
@@ -1630,7 +1630,7 @@ function ProfessionalDashboardContent() {
                 {/* ── Change Password ── */}
                 <ChangePasswordCard className="mt-2" />
 
-                </>
+                </div>
               )}
 
             </>

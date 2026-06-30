@@ -2418,10 +2418,10 @@ function AdminDashboardContent() {
 
           {/* TAB 17: SETTINGS */}
           {activeTab === "Settings" && (
-            <>
-            <div className="card p-6 space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="card p-6 space-y-6">
               <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                Platform Rules & Moderation Thresholds
+                Platform Rules &amp; Moderation Thresholds
               </h3>
 
               <div className="grid md:grid-cols-2 gap-6 text-xs">
@@ -2457,7 +2457,7 @@ function AdminDashboardContent() {
             {/* ── Change Password ── */}
             <ChangePasswordCard />
 
-            </>
+            </div>
           )}
 
         </div>
