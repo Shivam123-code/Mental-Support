@@ -127,6 +127,15 @@ function AdminDashboardContent() {
   }>({ totalCompletions: 0, typeStats: [], submissions: [] });
   const [assessmentAdminLoading, setAssessmentAdminLoading] = useState(false);
 
+  // ── Panel Analytics Hub state ──
+  const [analyticsPanel, setAnalyticsPanel] = useState<'USER' | 'PROFESSIONAL' | 'VENDOR' | 'ENTERPRISE'>('USER');
+  const [panelUsers, setPanelUsers] = useState<any[]>([]);
+  const [panelUsersLoading, setPanelUsersLoading] = useState(false);
+  const [panelSearch, setPanelSearch] = useState('');
+  const [selectedAnalyticsUser, setSelectedAnalyticsUser] = useState<string | null>(null);
+  const [userAnalytics, setUserAnalytics] = useState<any | null>(null);
+  const [userAnalyticsLoading, setUserAnalyticsLoading] = useState(false);
+
   // ── Real-time WebSocket SOS alerts ──
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded, socket: adminSocket } =
@@ -301,6 +310,40 @@ function AdminDashboardContent() {
     fetchApplications();
     fetchAdminAssessments();
   }, []);
+
+  const fetchPanelUsers = async (panel: string, search = '') => {
+    setPanelUsersLoading(true);
+    setSelectedAnalyticsUser(null);
+    setUserAnalytics(null);
+    try {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`/api/admin/panel-users?panel=${panel}&search=${encodeURIComponent(search)}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = await res.json();
+      if (data.success) setPanelUsers(data.data || []);
+    } catch { /* silently ignore */ } finally {
+      setPanelUsersLoading(false);
+    }
+  };
+
+  const fetchUserAnalytics = async (userId: string, panel: string) => {
+    setUserAnalyticsLoading(true);
+    try {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const res = await fetch(`/api/admin/user-analytics?userId=${userId}&panel=${panel}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = await res.json();
+      if (data.success) setUserAnalytics(data.data);
+    } catch { /* silently ignore */ } finally {
+      setUserAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'Reports & Analytics') fetchPanelUsers(analyticsPanel);
+  }, [activeTab, analyticsPanel]);
 
   // API-backed event handlers
   const handleAssignSOS = (id: string, responder: string) => {
@@ -488,11 +531,11 @@ function AdminDashboardContent() {
     { label: "SOS & Crisis", icon: AlertTriangle, alert: true, liveCount: liveAlerts.filter(a => a.status === 'ACTIVE').length },
     { label: "Vendors", icon: Truck },
     { label: "Trust & Safety", icon: Shield },
-    { label: "Professionals", icon: Briefcase },
+    { label: "Professionals", icon: Briefcase, alert: true, liveCount: professionalApps.filter(a => a.status === 'PENDING').length },
     { label: "Users", icon: Users },
     { label: "AI Governance", icon: CpuIcon },
     { label: "Community", icon: Smile },
-    { label: "Organizations", icon: Building2 },
+    { label: "Organizations", icon: Building2, alert: true, liveCount: orgApps.filter(a => a.status === 'PENDING').length },
     { label: "Assessments", icon: Brain },
     { label: "Programs", icon: BookOpen },
     { label: "Content & Resources", icon: FileText },
@@ -1984,28 +2027,286 @@ function AdminDashboardContent() {
             </div>
           )}
 
-          {/* TAB 12: REPORTS & ANALYTICS */}
+          {/* TAB 12: REPORTS & ANALYTICS — Panel Analytics Hub */}
           {activeTab === "Reports & Analytics" && (
-            <div className="card p-6 space-y-6 animate-in fade-in duration-300">
-              <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
-                Ecosystem Impact & Wellbeing Reports
-              </h3>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--on-surface)]">Panel Analytics Hub</h2>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Select a panel, search users, then click any row to expand their analytics inline.</p>
+              </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-5 bg-[var(--surface-container-low)] border-hairline rounded-xl space-y-4 text-xs">
-                  <h4 className="font-semibold text-sm">Download Compliance & Transparency Logs</h4>
-                  <p className="text-[var(--on-surface-variant)]">Generate and download compiled platform records for auditing purposes.</p>
-                  <button className="px-3 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700 flex items-center gap-1.5 cursor-pointer">
-                    <Download size={14} /> Export transparency_report_2026.pdf
+              {/* Panel selector */}
+              <div className="flex flex-wrap gap-2">
+                {(['USER', 'PROFESSIONAL', 'VENDOR', 'ENTERPRISE'] as const).map((p) => (
+                  <button key={p} onClick={() => { setAnalyticsPanel(p); setPanelSearch(''); }}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      analyticsPanel === p ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'border-[var(--outline-variant)] text-[var(--on-surface-variant)] hover:border-indigo-400 hover:text-indigo-600'
+                    }`}>
+                    {p === 'USER' ? '👤 User Panel' : p === 'PROFESSIONAL' ? '🩺 Professional Panel' : p === 'VENDOR' ? '🚐 Vendor Panel' : '🏢 Enterprise Panel'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search bar */}
+              <div className="flex gap-3">
+                <input type="text" value={panelSearch} onChange={e => setPanelSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && fetchPanelUsers(analyticsPanel, panelSearch)}
+                  placeholder={`Search ${analyticsPanel.toLowerCase()}s by name or email…`}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--outline-variant)] bg-[var(--surface-container)] text-xs text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <button onClick={() => fetchPanelUsers(analyticsPanel, panelSearch)} disabled={panelUsersLoading}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 cursor-pointer disabled:opacity-60 flex items-center gap-1.5">
+                  {panelUsersLoading && <Loader2 size={12} className="animate-spin" />} Search
+                </button>
+              </div>
+
+              {/* User list with inline analytics */}
+              <div className="card overflow-hidden">
+                <div className="px-5 py-3 border-b border-[var(--outline-variant)]/40 bg-[var(--surface-container-low)] flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+                    {analyticsPanel} — {panelUsers.length} record(s)
+                  </h3>
+                  <button onClick={() => fetchPanelUsers(analyticsPanel, panelSearch)}
+                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer">
+                    <RefreshCw size={11} /> Refresh
                   </button>
                 </div>
 
-                <div className="p-5 bg-[var(--surface-container-low)] border-hairline rounded-xl space-y-4 text-xs">
-                  <h4 className="font-semibold text-sm">Workforce Burnout Indices</h4>
-                  <p className="text-[var(--on-surface-variant)]">Generate aggregated report summarizing stress levels and burnout factors.</p>
-                  <button className="px-3 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700 flex items-center gap-1.5 cursor-pointer">
-                    <Download size={14} /> Export enterprise_wellbeing_data.xlsx
-                  </button>
+                {panelUsersLoading ? (
+                  <div className="flex items-center justify-center py-10"><Loader2 size={28} className="animate-spin text-indigo-600" /></div>
+                ) : panelUsers.length === 0 ? (
+                  <div className="text-center py-10 text-xs text-[var(--on-surface-variant)]">No {analyticsPanel.toLowerCase()} accounts found.</div>
+                ) : (
+                  <div className="divide-y divide-[var(--outline-variant)]/30">
+                    {panelUsers.map((u) => (
+                      <div key={u.id}>
+                        <div onClick={() => {
+                            if (selectedAnalyticsUser === u.id) { setSelectedAnalyticsUser(null); setUserAnalytics(null); }
+                            else { setSelectedAnalyticsUser(u.id); fetchUserAnalytics(u.id, analyticsPanel); }
+                          }}
+                          className={`flex items-center justify-between px-5 py-3.5 cursor-pointer transition-colors ${
+                            selectedAnalyticsUser === u.id ? 'bg-indigo-50 dark:bg-indigo-950/20' : 'hover:bg-[var(--surface-container-low)]'
+                          }`}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-indigo-600/10 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
+                              {u.name?.charAt(0) ?? '?'}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-[var(--on-surface)]">{u.name}</p>
+                              <p className="text-[10px] text-[var(--on-surface-variant)]">{u.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {analyticsPanel === 'USER' && (
+                              <div className="hidden sm:flex gap-2 text-[10px] text-[var(--on-surface-variant)]">
+                                <span>😊 {u.stats?.moodLogs ?? 0}</span>
+                                <span>📓 {u.stats?.journals ?? 0}</span>
+                                <span>📋 {u.stats?.assessments ?? 0}</span>
+                                <span>📅 {u.stats?.sessions ?? 0} sessions</span>
+                              </div>
+                            )}
+                            {analyticsPanel === 'PROFESSIONAL' && (
+                              <div className="hidden sm:flex gap-2 text-[10px] text-[var(--on-surface-variant)]">
+                                <span>⭐ {u.stats?.rating?.toFixed(1) ?? 'N/A'}</span>
+                                <span>📅 {u.stats?.sessions ?? 0} sessions</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  u.stats?.verificationStatus === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                }`}>{u.stats?.verificationStatus ?? 'PENDING'}</span>
+                              </div>
+                            )}
+                            {analyticsPanel === 'VENDOR' && (
+                              <div className="hidden sm:flex gap-2 text-[10px] text-[var(--on-surface-variant)]">
+                                <span>🚨 {u.stats?.totalAssignments ?? 0} cases</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  u.stats?.isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                                }`}>{u.stats?.isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+                              </div>
+                            )}
+                            {analyticsPanel === 'ENTERPRISE' && (
+                              <div className="hidden sm:flex gap-2 text-[10px] text-[var(--on-surface-variant)]">
+                                <span>👥 {u.stats?.employeeCount ?? 0} employees</span>
+                                <span>{u.stats?.industry}</span>
+                              </div>
+                            )}
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              u.status === 'ACTIVE' || u.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                            }`}>{u.status}</span>
+                            <span className={`text-indigo-500 text-xs transition-transform duration-200 ${ selectedAnalyticsUser === u.id ? 'rotate-180' : '' }`}>▾</span>
+                          </div>
+                        </div>
+
+                        {/* Inline analytics drawer */}
+                        {selectedAnalyticsUser === u.id && (
+                          <div className="px-5 py-5 border-t border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/40 dark:bg-indigo-950/10">
+                            {userAnalyticsLoading ? (
+                              <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-indigo-600" /></div>
+                            ) : !userAnalytics ? (
+                              <p className="text-xs text-center py-4 text-[var(--on-surface-variant)]">No analytics available.</p>
+                            ) : (
+                              <div className="space-y-4">
+
+                                {/* USER */}
+                                {userAnalytics.panel === 'USER' && (
+                                  <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                      {[{l:'Mood Logs',v:userAnalytics.summary?.totalMoodLogs??0,c:'text-rose-600'},{l:'Journals',v:userAnalytics.summary?.totalJournals??0,c:'text-amber-600'},{l:'Assessments',v:userAnalytics.summary?.totalAssessments??0,c:'text-blue-600'},{l:'Sessions',v:userAnalytics.summary?.totalBookings??0,c:'text-emerald-600'},{l:'SOS Alerts',v:userAnalytics.summary?.totalSosAlerts??0,c:'text-red-600'}].map(k=>(
+                                        <div key={k.l} className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-3 text-center shadow-sm">
+                                          <p className={`text-xl font-bold ${k.c}`}>{k.v}</p>
+                                          <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{k.l}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {userAnalytics.moodTrend?.length > 0 && (
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--on-surface-variant)] mb-2">Recent Mood Logs</p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {userAnalytics.moodTrend.slice(0,10).map((m:any,i:number)=>(
+                                            <span key={i} className="px-2 py-1 bg-white dark:bg-[var(--surface-container)] rounded-lg text-[10px] shadow-sm">
+                                              <span className="font-bold capitalize">{m.mood}</span> <span className="text-[var(--on-surface-variant)]">({m.intensity}/10)</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {userAnalytics.recentAssessments?.length > 0 && (
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--on-surface-variant)] mb-2">Assessments</p>
+                                        <div className="space-y-1.5">
+                                          {userAnalytics.recentAssessments.map((a:any,i:number)=>(
+                                            <div key={i} className="flex items-center justify-between bg-white dark:bg-[var(--surface-container)] rounded-lg px-3 py-2 text-[11px] shadow-sm">
+                                              <span className="font-semibold">{a.assessmentType.replace(/_/g,' ')}</span>
+                                              <div className="flex gap-2 items-center">
+                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                  a.level==='Low'?'bg-emerald-100 text-emerald-700':a.level==='Moderate'?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-600'
+                                                }`}>{a.level}</span>
+                                                <span className="text-[var(--on-surface-variant)]">{a.percentage?.toFixed(0)}%</span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* PROFESSIONAL */}
+                                {userAnalytics.panel === 'PROFESSIONAL' && (
+                                  <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                      {[{l:'Total Sessions',v:userAnalytics.summary?.totalSessions??0,c:'text-indigo-600'},{l:'Completed',v:userAnalytics.summary?.completedSessions??0,c:'text-emerald-600'},{l:'Avg Rating',v:`${userAnalytics.summary?.averageRating?.toFixed(1)??'N/A'}★`,c:'text-amber-600'},{l:'Reviews',v:userAnalytics.summary?.totalReviews??0,c:'text-blue-600'}].map(k=>(
+                                        <div key={k.l} className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-3 text-center shadow-sm">
+                                          <p className={`text-xl font-bold ${k.c}`}>{k.v}</p>
+                                          <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{k.l}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {userAnalytics.professional && (
+                                      <div className="grid sm:grid-cols-2 gap-3 text-[11px]">
+                                        <div className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-4 shadow-sm space-y-1">
+                                          <p className="font-bold text-[10px] uppercase tracking-wide mb-1">Profile</p>
+                                          <p><span className="text-[var(--on-surface-variant)]">Type:</span> {userAnalytics.professional.type}</p>
+                                          <p><span className="text-[var(--on-surface-variant)]">Specializations:</span> {(userAnalytics.professional.specializations??[]).join(', ')}</p>
+                                          <p><span className="text-[var(--on-surface-variant)]">Languages:</span> {(userAnalytics.professional.languages??[]).join(', ')}</p>
+                                          <p><span className="text-[var(--on-surface-variant)]">Location:</span> {[userAnalytics.professional.city,userAnalytics.professional.state].filter(Boolean).join(', ')||'N/A'}</p>
+                                        </div>
+                                        <div className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-4 shadow-sm space-y-1">
+                                          <p className="font-bold text-[10px] uppercase tracking-wide mb-1">Verification</p>
+                                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                            userAnalytics.summary?.verificationStatus==='VERIFIED'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'
+                                          }`}>{userAnalytics.summary?.verificationStatus}</span>
+                                          <p className="mt-1"><span className="text-[var(--on-surface-variant)]">Accepting Clients:</span> {userAnalytics.summary?.isAcceptingClients?'✅':'❌'}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* VENDOR */}
+                                {userAnalytics.panel === 'VENDOR' && (
+                                  <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                      {[{l:'Total Cases',v:userAnalytics.summary?.totalAssignments??0,c:'text-indigo-600'},{l:'Resolved',v:userAnalytics.summary?.resolvedCases??0,c:'text-emerald-600'},{l:'Avg Response',v:userAnalytics.summary?.avgResponseMin!=null?`${userAnalytics.summary.avgResponseMin}m`:'N/A',c:'text-amber-600'},{l:'Status',v:userAnalytics.summary?.isCurrentlyOnline?'Online':'Offline',c:userAnalytics.summary?.isCurrentlyOnline?'text-emerald-600':'text-gray-500'}].map(k=>(
+                                        <div key={k.l} className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-3 text-center shadow-sm">
+                                          <p className={`text-xl font-bold ${k.c}`}>{k.v}</p>
+                                          <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{k.l}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {userAnalytics.vendorProfile && (
+                                      <div className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-4 shadow-sm text-[11px] space-y-1">
+                                        <p className="font-bold text-[10px] uppercase tracking-wide mb-1">Vendor Info</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Business:</span> {userAnalytics.vendorProfile.businessName}</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Service Type:</span> {userAnalytics.vendorProfile.serviceType}</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Phone:</span> {userAnalytics.vendorProfile.phone}</p>
+                                      </div>
+                                    )}
+                                    {Object.keys(userAnalytics.severityDistribution??{}).length > 0 && (
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--on-surface-variant)] mb-2">Cases by Severity</p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {Object.entries(userAnalytics.severityDistribution).map(([k,v]:any)=>(
+                                            <span key={k} className={`px-3 py-1.5 rounded-lg text-[10px] shadow-sm font-semibold ${
+                                              k==='CRITICAL'?'bg-rose-100 text-rose-700':k==='HIGH'?'bg-orange-100 text-orange-700':'bg-amber-100 text-amber-700'
+                                            }`}>{v} {k}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* ENTERPRISE */}
+                                {userAnalytics.panel === 'ENTERPRISE' && (
+                                  <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      {[{l:'Employees',v:userAnalytics.summary?.employeeCount??0,c:'text-indigo-600'},{l:'Industry',v:userAnalytics.summary?.industry??'N/A',c:'text-amber-600'},{l:'Contact',v:userAnalytics.summary?.contactPerson??'N/A',c:'text-emerald-600'}].map(k=>(
+                                        <div key={k.l} className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-3 text-center shadow-sm">
+                                          <p className={`text-sm font-bold ${k.c} truncate`}>{k.v}</p>
+                                          <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{k.l}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {userAnalytics.organization && (
+                                      <div className="bg-white dark:bg-[var(--surface-container)] rounded-xl p-4 shadow-sm text-[11px] space-y-1">
+                                        <p className="font-bold text-[10px] uppercase tracking-wide mb-1">Organization Details</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Name:</span> {userAnalytics.organization.organizationName}</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Email:</span> {userAnalytics.organization.email}</p>
+                                        <p><span className="text-[var(--on-surface-variant)]">Phone:</span> {userAnalytics.organization.phone}</p>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                <div className="text-[10px] text-[var(--on-surface-variant)]/60 flex gap-4 pt-1 border-t border-[var(--outline-variant)]/30">
+                                  <span>Joined: {userAnalytics.user?.createdAt ? new Date(userAnalytics.user.createdAt).toLocaleDateString('en-IN') : 'N/A'}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Compliance Exports */}
+              <div className="card p-6 space-y-4">
+                <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">Compliance Exports</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-[var(--surface-container-low)] border-hairline rounded-xl space-y-3 text-xs">
+                    <h4 className="font-semibold text-sm">Download Compliance & Transparency Logs</h4>
+                    <p className="text-[var(--on-surface-variant)]">Generate and download compiled platform records for auditing purposes.</p>
+                    <button className="px-3 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700 flex items-center gap-1.5 cursor-pointer">
+                      <Download size={14} /> Export transparency_report_2026.pdf
+                    </button>
+                  </div>
+                  <div className="p-4 bg-[var(--surface-container-low)] border-hairline rounded-xl space-y-3 text-xs">
+                    <h4 className="font-semibold text-sm">Workforce Burnout Indices</h4>
+                    <p className="text-[var(--on-surface-variant)]">Generate aggregated report summarizing stress levels and burnout factors.</p>
+                    <button className="px-3 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700 flex items-center gap-1.5 cursor-pointer">
+                      <Download size={14} /> Export enterprise_wellbeing_data.xlsx
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2117,6 +2418,7 @@ function AdminDashboardContent() {
 
           {/* TAB 17: SETTINGS */}
           {activeTab === "Settings" && (
+            <>
             <div className="card p-6 space-y-6 animate-in fade-in duration-300">
               <h3 className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
                 Platform Rules & Moderation Thresholds
@@ -2155,6 +2457,7 @@ function AdminDashboardContent() {
             {/* ── Change Password ── */}
             <ChangePasswordCard />
 
+            </>
           )}
 
         </div>
