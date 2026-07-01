@@ -31,7 +31,7 @@ function ImageCard({ p, delay = 0 }: { p: typeof programs[0]; delay?: number }) 
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.45, delay, ease: "easeOut" }}
+      transition={{ duration: 0.45, delay, ease: "easeOut" as const }}
       whileHover={{ scale: 1.02 }}
       className="relative rounded-2xl overflow-hidden group h-full"
     >
