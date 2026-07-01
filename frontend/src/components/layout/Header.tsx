@@ -7,6 +7,7 @@ import { Menu, X, Search, Phone, ChevronDown, Heart, Brain, Users, Building2, Gr
 import SearchModal from "@/components/ui/SearchModal";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DropdownItem {
   name: string;
@@ -56,9 +57,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const topLevelLinks = [
-  { name: "Home", href: "/" },
-];
+const topLevelLinks = [{ name: "Home", href: "/" }];
 
 function DropdownMenu({ group, isOpen, onToggle }: { group: NavGroup; isOpen: boolean; onToggle: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -77,38 +76,46 @@ function DropdownMenu({ group, isOpen, onToggle }: { group: NavGroup; isOpen: bo
     <div ref={ref} className="relative">
       <button
         onClick={onToggle}
-        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+        className={`flex items-center gap-1 px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
           isOpen
-            ? "text-[var(--primary)] bg-[var(--surface-container)]"
-            : "text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)]"
+            ? "text-[var(--primary)] bg-white shadow-sm"
+            : "text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-white/50"
         }`}
       >
         {group.label}
         <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-[280px] bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)] rounded-xl shadow-ambient-hover p-2 z-50">
-          {group.items.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={onToggle}
-              className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-[var(--surface-container)] transition-all duration-200 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <item.icon size={14} className="text-[var(--primary)]" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--on-surface)] group-hover:text-[var(--primary)] transition-colors">
-                  {item.name}
-                </p>
-                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{item.desc}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full left-0 mt-2 w-[280px] bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)] rounded-xl shadow-ambient-hover p-2 z-50 origin-top-left"
+          >
+            {group.items.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={onToggle}
+                className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-[var(--surface-container)] transition-all duration-200 group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <item.icon size={14} className="text-[var(--primary)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[var(--on-surface)] group-hover:text-[var(--primary)] transition-colors">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{item.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -120,6 +127,13 @@ export default function Header() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleToggle = (label: string) => {
     setOpenDropdown(openDropdown === label ? null : label);
@@ -136,36 +150,40 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-hairline">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? "glass-nav border-b border-hairline" : "bg-transparent border-b border-transparent"
+      }`}>
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 sm:h-[72px]">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 sm:h-[72px]">
+
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 relative">
-                <img
-                  src="/logo.jpg"
-                  alt="KleverKlues"
-                  width={40}
-                  height={40}
-                  className="object-contain w-full h-full"
-                />
+                <img src="/logo.jpg" alt="KleverKlues" width={40} height={40} className="object-contain w-full h-full" />
               </div>
               <span className="text-lg sm:text-xl font-display font-medium text-[var(--on-surface)]">
                 KleverKlues&trade;
               </span>
             </Link>
 
-            {/* Desktop Navigation with Dropdowns */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {topLevelLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="px-3 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
-                >
-                  {link.name}
-                </Link>
-              ))}
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center justify-center gap-1 bg-white/40 backdrop-blur-md border border-white/60 rounded-full px-1.5 py-1 shadow-sm mx-auto translate-x-6">
+              {topLevelLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
+                      isActive
+                        ? "text-[var(--primary)] bg-white shadow-sm"
+                        : "text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-white/50"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
               {navGroups.map((group) => (
                 <DropdownMenu
                   key={group.label}
@@ -180,49 +198,38 @@ export default function Header() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/sos"
-                className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[var(--error)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all duration-200"
+                className="hidden sm:flex items-center gap-1.5 px-4 py-2 border border-red-200 text-[var(--error)] bg-white text-xs font-semibold rounded-full hover:bg-red-50 transition-all duration-200 shadow-sm"
               >
-                <Phone size={14} />
+                <Phone size={12} />
                 SOS
               </Link>
 
-              {/* User Menu or Sign In */}
               {isAuthenticated && user ? (
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-[var(--surface-container)] rounded-lg transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--surface-container)] rounded-full border border-[var(--outline-variant)]/40 transition-all"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center">
-                      <UserIcon size={16} className="text-[var(--primary)]" />
+                    <div className="w-6 h-6 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center">
+                      <UserIcon size={12} className="text-[var(--primary)]" />
                     </div>
-                    <span className="hidden md:block text-sm font-medium text-[var(--on-surface)]">
+                    <span className="hidden md:block text-xs font-semibold text-[var(--on-surface)]">
                       {user.firstName || user.email}
                     </span>
-                    <ChevronDown size={14} className={`hidden md:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={12} className={`hidden md:block transition-transform ${showUserMenu ? "rotate-180" : ""}`} />
                   </button>
-
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-56 bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)] rounded-xl shadow-ambient-hover p-2 z-50">
                       <div className="px-3 py-2 border-b border-[var(--outline-variant)] mb-2">
-                        <p className="text-sm font-semibold text-[var(--on-surface)]">
-                          {user.firstName} {user.lastName}
-                        </p>
+                        <p className="text-sm font-semibold text-[var(--on-surface)]">{user.firstName} {user.lastName}</p>
                         <p className="text-xs text-[var(--on-surface-variant)]">{user.email}</p>
                         <p className="text-xs text-[var(--primary)] mt-1">{user.role}</p>
                       </div>
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--surface-container)] transition-all"
-                      >
+                      <Link href="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--surface-container)] transition-all">
                         <UserIcon size={16} className="text-[var(--on-surface-variant)]" />
                         <span className="text-sm text-[var(--on-surface)]">Dashboard</span>
                       </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--error-container)] text-[var(--error)] transition-all"
-                      >
+                      <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--error-container)] text-[var(--error)] transition-all">
                         <LogOut size={16} />
                         <span className="text-sm">Logout</span>
                       </button>
@@ -232,7 +239,7 @@ export default function Header() {
               ) : (
                 <Link
                   href="/role-selection"
-                  className="hidden sm:flex items-center px-4 py-2 text-sm font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+                  className="hidden sm:flex items-center px-4 py-2 text-xs font-semibold text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-full transition-all duration-200"
                 >
                   Sign In
                 </Link>
@@ -240,16 +247,18 @@ export default function Header() {
 
               <Link
                 href="/assessments"
-                className="!hidden md:!inline-block btn-primary !py-2.5 !px-5 !text-sm"
+                className="!hidden md:!inline-block bg-[#E07846] text-white text-xs font-semibold py-2.5 px-5 rounded-full hover:bg-[#c96c3e] transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 Start Assessment
               </Link>
+
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all duration-200"
+                className="hidden lg:flex items-center justify-center w-9 h-9 text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-full transition-all duration-200"
               >
-                <Search size={18} />
+                <Search size={16} />
               </button>
+
               <div className="hidden md:block">
                 <LanguageSelector />
               </div>
@@ -265,80 +274,95 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      </header>
+
+      <div className="h-16 sm:h-[72px]" />
+
+      {/* Mobile Navigation — OUTSIDE header so backdrop-blur doesn't break fixed positioning */}
+      <AnimatePresence>
         {isMenuOpen && (
-          <div className="lg:hidden bg-[var(--surface-container-lowest)] border-t border-[var(--outline-variant)] shadow-ambient max-h-[calc(100vh-64px)] overflow-y-auto">
-            <nav className="px-4 sm:px-6 py-6">
-              {/* Home link */}
-              <Link
-                href="/"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
-              >
-                Home
-              </Link>
+          <>
+            {/* Tap outside to close */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-[60] lg:hidden"
+              onClick={() => setIsMenuOpen(false)}
+            />
 
-              {/* Grouped sections */}
-              {navGroups.map((group) => (
-                <div key={group.label} className="mt-4">
-                  <p className="px-4 text-label-bold text-[var(--outline)] uppercase tracking-wider mb-2">
-                    {group.label}
-                  </p>
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
-                    >
-                      <div className="w-7 h-7 rounded-md bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0">
-                        <item.icon size={13} className="text-[var(--primary)]" />
-                      </div>
-                      <div>
-                        <span className="block text-sm">{item.name}</span>
-                        <span className="block text-xs text-[var(--on-surface-variant)]/70">{item.desc}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ))}
+            {/* Top-right corner dropdown card */}
+            <motion.div
+              key="mobile-menu"
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ type: "spring", damping: 22, stiffness: 300 }}
+              style={{ transformOrigin: "top right" }}
+              className="fixed top-[68px] right-3 w-[92vw] max-w-[320px] bg-white border border-[var(--outline-variant)]/30 rounded-2xl shadow-2xl z-[70] lg:hidden overflow-hidden"
+            >
+              {/* Scrollable nav area */}
+              <nav className="max-h-[70vh] overflow-y-auto px-4 pt-4 pb-2">
+                <Link
+                  href="/"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-2 py-2 text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] rounded-lg transition-all"
+                >
+                  Home
+                </Link>
 
-              {/* CTA Buttons */}
-              <div className="pt-6 mt-6 border-t border-[var(--outline-variant)] flex flex-col gap-3">
+                {navGroups.map((group) => (
+                  <div key={group.label} className="mt-4">
+                    <p className="px-2 text-xs font-bold text-[var(--outline)] uppercase tracking-wider mb-2">
+                      {group.label}
+                    </p>
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3 px-2 py-2.5 rounded-lg text-base font-medium text-[var(--on-surface-variant)] hover:text-[var(--primary)] hover:bg-[var(--surface-container)] transition-all"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0">
+                          <item.icon size={15} className="text-[var(--primary)]" />
+                        </div>
+                        <div>
+                          <span className="block text-sm font-medium">{item.name}</span>
+                          <span className="block text-xs text-[var(--on-surface-variant)]/70">{item.desc}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Footer CTAs */}
+              <div className="px-4 py-4 border-t border-[var(--outline-variant)] flex flex-col gap-3">
                 <Link
                   href="/sos"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--error)] text-white font-semibold rounded-lg"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-red-50 text-[var(--error)] border border-red-200 text-sm font-semibold rounded-xl hover:bg-red-100 transition-all"
                 >
-                  <Phone size={16} />
+                  <Phone size={14} />
                   SOS — Get Help Now
                 </Link>
                 <Link
                   href="/assessments"
                   onClick={() => setIsMenuOpen(false)}
-                  className="btn-primary text-center"
+                  className="flex items-center justify-center w-full px-4 py-3 bg-[var(--primary)] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all shadow-md"
                 >
                   Start Free Assessment
                 </Link>
                 {isAuthenticated && user ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="btn-primary text-center"
-                    >
-                      Go to Dashboard
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="btn-secondary text-center text-[var(--error)] border-[var(--error)] hover:bg-red-50"
-                    >
-                      Log Out
-                    </button>
-                  </>
+                  <button
+                    onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                    className="btn-secondary text-center text-[var(--error)] border-[var(--error)] hover:bg-red-50"
+                  >
+                    Log Out
+                  </button>
                 ) : (
                   <Link
                     href="/role-selection"
@@ -349,13 +373,10 @@ export default function Header() {
                   </Link>
                 )}
               </div>
-            </nav>
-          </div>
+            </motion.div>
+          </>
         )}
-        {/* Search Modal */}
-        <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      </header>
-      <div className="h-16 sm:h-[72px]" />
+      </AnimatePresence>
     </>
   );
 }

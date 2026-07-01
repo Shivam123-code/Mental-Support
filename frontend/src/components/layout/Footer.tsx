@@ -1,119 +1,175 @@
 import Link from "next/link";
-import { Heart, Mail, Phone, MapPin } from "lucide-react";
+import { Heart, Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+
+const support = [
+  { label: "Get Support",       href: "/get-support" },
+  { label: "Assessments",       href: "/assessments" },
+  { label: "Programs",          href: "/programs" },
+  { label: "Find Professional", href: "/professionals" },
+  { label: "Crisis Support",    href: "/sos" },
+  { label: "Book Session",      href: "/book-session" },
+  { label: "AI Companion",      href: "/ai-companion" },
+  { label: "Journal",           href: "/journal" },
+];
+
+const platform = [
+  { label: "Community",         href: "/community" },
+  { label: "Enterprise",        href: "/enterprise" },
+  { label: "Academy",           href: "/academy" },
+  { label: "Resources",         href: "/resources" },
+  { label: "About Us",          href: "/about" },
+  { label: "Trust Center",      href: "/trust" },
+  { label: "Join as Pro",       href: "/careers" },
+  { label: "Pricing",           href: "/pricing" },
+];
+
+const legal = [
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Terms",          href: "/terms" },
+  { label: "Trust Center",   href: "/trust" },
+  { label: "Contact",        href: "/contact" },
+];
 
 export default function Footer() {
   return (
     <footer className="bg-[var(--inverse-surface)] text-[var(--inverse-on-surface)]">
-      {/* CTA Banner */}
-      <div className="relative overflow-hidden bg-[var(--primary)] py-16">
-        {/* Orbit decoration */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/10 rounded-full pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/5 rounded-full pointer-events-none" />
-        
-        <div className="max-w-[1280px] mx-auto px-6 text-center relative z-10">
-          <h2 className="text-headline-lg text-white mb-4">
-            You&apos;re Not Alone.
-          </h2>
-          <p className="text-body-lg text-white/70 mb-10 max-w-2xl mx-auto">
-            Take the first step towards emotional wellbeing. We&apos;re here for you.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/assessments" className="px-6 py-3.5 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all">
-              Start Assessment
-            </Link>
-            <Link href="/community" className="px-6 py-3.5 bg-white/15 text-white font-semibold rounded-lg hover:bg-white/25 transition-all border border-white/20">
-              Join Community
-            </Link>
-            <Link href="/book-session" className="px-6 py-3.5 border border-white/40 text-white font-semibold rounded-lg hover:bg-white/10 transition-all">
-              Book Session
-            </Link>
-            <Link href="/sos" className="px-6 py-3.5 bg-[var(--error)] text-white font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all">
-              SOS
-            </Link>
+
+      {/* ── CTA Banner — compact horizontal strip ── */}
+      <div
+        className="relative overflow-hidden py-10"
+        style={{ background: "linear-gradient(135deg, var(--primary) 0%, #0d5c55 100%)" }}
+      >
+        <div className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                You&apos;re Not Alone.
+              </h2>
+              <p className="text-white/70 text-sm">
+                Take the first step towards emotional wellbeing. We&apos;re here for you.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 flex-shrink-0">
+              <Link href="/assessments"
+                className="px-5 py-2.5 bg-white text-[var(--primary)] font-semibold rounded-full text-sm hover:bg-white/90 transition-all inline-flex items-center gap-1.5">
+                Start Assessment <ArrowRight size={14} />
+              </Link>
+              <Link href="/book-session"
+                className="px-5 py-2.5 bg-white/15 border border-white/25 text-white font-semibold rounded-full text-sm hover:bg-white/25 transition-all">
+                Book Session
+              </Link>
+              <Link href="/sos"
+                className="px-5 py-2.5 bg-red-500/80 text-white font-semibold rounded-full text-sm hover:bg-red-500 transition-all">
+                SOS 🆘
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Footer */}
-      <div className="max-w-[1280px] mx-auto px-6 py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
-            <h3 className="font-display text-2xl font-medium text-white mb-4">KleverKlues&trade;</h3>
-            <p className="text-[var(--inverse-on-surface)]/60 mb-4 max-w-sm text-sm leading-relaxed">
-              The World&apos;s Most Trusted Human Wellbeing & Emotional Support Ecosystem. Built for humanity.
+      {/* ── Main Footer Body ── */}
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.6fr_1fr_1fr_1fr] gap-8 lg:gap-10">
+
+          {/* Brand — col 1 */}
+          <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+            <h3 className="font-display text-xl font-bold text-white mb-2">KleverKlues&trade;</h3>
+            <p className="text-white/50 text-xs leading-relaxed mb-4 max-w-[240px]">
+              The World&apos;s Most Trusted Human Wellbeing &amp; Emotional Support Ecosystem. Built for humanity.
             </p>
-            <p className="text-sm text-[var(--inverse-on-surface)]/40 italic font-display">
-              &ldquo;Humanity, Connected.&rdquo;
+            <p className="text-xs text-white/30 italic font-display mb-5">&ldquo;Humanity, Connected.&rdquo;</p>
+
+            {/* Contact */}
+            <div className="space-y-2">
+              {[
+                { icon: Mail,   text: "support@kleverklues.com" },
+                { icon: Phone,  text: "+91-XXXX-XXXX" },
+                { icon: MapPin, text: "India (Global)" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-2 text-xs text-white/45">
+                  <Icon size={12} className="text-[var(--primary-fixed-dim)] flex-shrink-0" />
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Support links */}
+          <div>
+            <h4 className="text-[10px] font-bold text-[var(--primary-fixed-dim)] uppercase tracking-widest mb-4">
+              Support
+            </h4>
+            <ul className="space-y-2">
+              {support.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href}
+                    className="text-xs text-white/55 hover:text-[var(--primary-fixed-dim)] transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Platform links */}
+          <div>
+            <h4 className="text-[10px] font-bold text-[var(--primary-fixed-dim)] uppercase tracking-widest mb-4">
+              Platform
+            </h4>
+            <ul className="space-y-2">
+              {platform.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href}
+                    className="text-xs text-white/55 hover:text-[var(--primary-fixed-dim)] transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Newsletter/Legal */}
+          <div>
+            <h4 className="text-[10px] font-bold text-[var(--primary-fixed-dim)] uppercase tracking-widest mb-4">
+              Newsletter
+            </h4>
+            <p className="text-xs text-white/45 mb-3 leading-relaxed">
+              Get wellbeing tips &amp; updates weekly.
             </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-label-bold text-[var(--primary-fixed-dim)] uppercase tracking-wider mb-5">Support</h4>
-            <ul className="space-y-3 text-sm">
-              <li><Link href="/get-support" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Get Support</Link></li>
-              <li><Link href="/assessments" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Assessments</Link></li>
-              <li><Link href="/programs" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Programs</Link></li>
-              <li><Link href="/professionals" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Find Professional</Link></li>
-              <li><Link href="/sos" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Crisis Support</Link></li>
-              <li><Link href="/book-session" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Book Session</Link></li>
-              <li><Link href="/ai-companion" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">AI Companion</Link></li>
-              <li><Link href="/journal" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Journal</Link></li>
-            </ul>
-          </div>
-
-          {/* Platform */}
-          <div>
-            <h4 className="text-label-bold text-[var(--primary-fixed-dim)] uppercase tracking-wider mb-5">Platform</h4>
-            <ul className="space-y-3 text-sm">
-              <li><Link href="/community" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Community</Link></li>
-              <li><Link href="/enterprise" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Enterprise</Link></li>
-              <li><Link href="/academy" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Academy</Link></li>
-              <li><Link href="/resources" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Resources</Link></li>
-              <li><Link href="/about" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">About Us</Link></li>
-              <li><Link href="/trust" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Trust Center</Link></li>
-              <li><Link href="/careers" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Join as Professional</Link></li>
-              <li><Link href="/pricing" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Pricing</Link></li>
-              <li><Link href="/faq" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">FAQ</Link></li>
-              <li><Link href="/impact" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Impact</Link></li>
-              <li><Link href="/research" className="text-[var(--inverse-on-surface)]/70 hover:text-[var(--primary-fixed-dim)] transition-colors">Research</Link></li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="text-label-bold text-[var(--primary-fixed-dim)] uppercase tracking-wider mb-5">Contact</h4>
-            <ul className="space-y-4 text-sm">
-              <li className="flex items-center gap-3">
-                <Mail size={14} className="text-[var(--primary-fixed-dim)]" />
-                <span className="text-[var(--inverse-on-surface)]/70">support@kleverklues.com</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone size={14} className="text-[var(--primary-fixed-dim)]" />
-                <span className="text-[var(--inverse-on-surface)]/70">+91-XXXX-XXXX</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <MapPin size={14} className="text-[var(--primary-fixed-dim)]" />
-                <span className="text-[var(--inverse-on-surface)]/70">India (Global)</span>
-              </li>
-            </ul>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="you@email.com"
+                className="flex-1 min-w-0 bg-white/8 border border-white/15 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[var(--primary-fixed-dim)] transition-colors"
+              />
+              <button className="bg-[var(--primary)] hover:bg-[var(--primary-bright)] text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex-shrink-0">
+                Go
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[var(--inverse-on-surface)]/40">
+        {/* ── Bottom bar ── */}
+        <div className="mt-10 pt-6 border-t border-white/8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-[11px] text-white/30">
             &copy; 2025 KleverKlues&trade;. All rights reserved. Better Humans. Better World.
           </p>
-          <div className="flex items-center gap-6 text-xs text-[var(--inverse-on-surface)]/40">
-            <Link href="/privacy-policy" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Terms</Link>
-            <Link href="/trust" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Trust Center</Link>
-            <Link href="/contact" className="hover:text-[var(--primary-fixed-dim)] cursor-pointer transition-colors">Contact</Link>
+          <div className="flex items-center gap-5">
+            {legal.map((l) => (
+              <Link key={l.href} href={l.href}
+                className="text-[11px] text-white/35 hover:text-[var(--primary-fixed-dim)] transition-colors">
+                {l.label}
+              </Link>
+            ))}
           </div>
-          <p className="text-xs text-[var(--inverse-on-surface)]/30 flex items-center gap-1.5">
-            Made with <Heart size={11} className="text-[var(--tertiary-bright)]" /> for Humanity
+          <p className="text-[11px] text-white/25 flex items-center gap-1">
+            Made with <Heart size={10} className="text-[var(--tertiary-bright)]" /> for Humanity
           </p>
         </div>
       </div>

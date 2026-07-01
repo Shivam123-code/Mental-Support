@@ -1,8 +1,18 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import ServicesCarousel from "@/components/sections/ServicesCarousel";
+import HowItWorksSection from "@/components/sections/HowItWorksSection";
+import ProgramsSection from "@/components/sections/ProgramsSection";
+import HumanConnectionSection from "@/components/sections/HumanConnectionSection";
+import TrustSafetySection from "@/components/sections/TrustSafetySection";
+import TestimonialsSection from "@/components/sections/TestimonialsSection";
+import EnterpriseSection from "@/components/sections/EnterpriseSection";
 import {
   Shield, Lock, Users, Brain, Heart, Sparkles,
-  ArrowRight, CheckCircle, Star, Clock, Globe, Phone
+  ArrowRight, ArrowUpRight, CheckCircle, Star, Clock, Globe, Phone
 } from "lucide-react";
 
 const categories = [
@@ -46,331 +56,179 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[var(--surface)]">
-        {/* Orbit decorations */}
-        <div className="absolute top-20 right-[10%] w-[400px] h-[400px] border border-[var(--primary-bright)]/10 rounded-full pointer-events-none" />
-        <div className="absolute top-40 right-[15%] w-[250px] h-[250px] border border-[var(--tertiary-bright)]/10 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] border border-[var(--primary-bright)]/8 rounded-full pointer-events-none" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-container-low)] via-[var(--surface)] to-[var(--surface-container-lowest)] pt-10 pb-8 sm:py-16 lg:py-20 min-h-[580px] sm:min-h-[620px] lg:min-h-[645px] flex flex-col justify-between">
+        {/* Full-bleed background image on the right, fading into the solid background on the left */}
+        <div className="absolute right-0 top-0 bottom-0 w-full lg:w-1/2 h-full z-0 pointer-events-none select-none">
+          <Image
+            src="/images/hero-woman.png"
+            alt="Mental wellness support background"
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-cover object-right-top lg:object-center opacity-30 lg:opacity-100"
+            priority
+          />
+          {/* Seamless blend gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-[var(--surface)]/60 to-[var(--surface)] lg:bg-gradient-to-r lg:from-[var(--surface)] lg:via-[var(--surface)]/30 lg:to-transparent" />
+        </div>
 
-        <div className="max-w-[1280px] mx-auto px-6 py-10 md:py-16 lg:py-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-10">
-              <div className="chip">
-                <Sparkles size={14} />
+        {/* Soft decorative background glow */}
+        <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-[var(--primary-bright)]/5 rounded-full blur-[90px] pointer-events-none" />
+
+        <div className="max-w-[1280px] mx-auto px-6 w-full relative z-10 my-auto">
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+            {/* Left Column: Content */}
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                }
+              }}
+              className="lg:col-span-7 space-y-6 lg:space-y-10 text-center lg:text-left"
+            >
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 15 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--outline-variant)] rounded-full text-xs font-semibold text-[var(--primary)] bg-[var(--surface-container-low)]/50 mx-auto lg:mx-0"
+              >
+                <Sparkles size={12} className="text-[var(--primary-bright)]" />
                 Human Wellbeing Ecosystem
-              </div>
-              <h1 className="text-display-xl text-[var(--on-surface)]">
-                Mental wellness support,{" "}
-                <span className="text-gradient">Anytime, Anywhere.</span>
-              </h1>
-              <p className="text-body-lg text-[var(--on-surface-variant)] max-w-lg">
+              </motion.div>
+              
+              <motion.h1 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="text-display-xl text-[var(--on-surface)] leading-[1.1] tracking-tight"
+              >
+                Mental wellness support, <br />
+                <span className="font-serif italic font-normal text-[var(--primary-bright)]">Anytime, Anywhere.</span>
+              </motion.h1>
+              
+              <motion.p 
+                variants={{
+                  hidden: { opacity: 0, y: 15 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="text-body-lg text-[var(--on-surface-variant)] leading-relaxed max-w-lg mx-auto lg:mx-0"
+              >
                 Private, guided, emotionally intelligent support for stress, anxiety, burnout, relationships, emotional wellbeing, and personal growth.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/assessments" className="btn-primary">
+              </motion.p>
+              
+              {/* CTAs */}
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 15 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3"
+              >
+                <Link href="/assessments" className="w-full sm:w-auto px-6 py-3 sm:py-3.5 bg-[var(--primary)] text-white text-sm font-semibold rounded-full hover:bg-[var(--primary-container)] shadow-sm hover:shadow transition-all duration-200 text-center">
                   Start Free Assessment
                 </Link>
-                <Link href="/book-session" className="btn-secondary">
+                <Link href="/book-session" className="w-full sm:w-auto px-6 py-3 sm:py-3.5 border border-[var(--outline-variant)] text-[var(--on-surface)] text-sm font-semibold rounded-full hover:bg-[var(--surface-container-low)] transition-all duration-200 text-center">
                   Book a Session
                 </Link>
-                <Link href="/sos" className="flex items-center gap-2 px-6 py-3.5 bg-[var(--error)] text-white font-semibold rounded-lg hover:bg-[var(--on-error-container)] transition-all">
-                  <Phone size={16} />
+                <Link href="/sos" className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 sm:py-3.5 bg-red-50 text-[var(--error)] border border-red-200 text-sm font-semibold rounded-full hover:bg-red-100 transition-all duration-200">
+                  <Phone size={14} />
                   SOS — Get Help Now
                 </Link>
-              </div>
-              {/* Trust Strip */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                {[
-                  { icon: Lock, label: "Anonymous Mode", color: "text-[var(--primary)]" },
-                  { icon: CheckCircle, label: "Verified Professionals", color: "text-[var(--primary-bright)]" },
-                  { icon: Clock, label: "24×7 Crisis Support", color: "text-[var(--secondary)]" },
-                  { icon: Shield, label: "Privacy & DPDP Ready", color: "text-[var(--primary)]" },
-                  { icon: Globe, label: "Multilingual Support", color: "text-[var(--secondary-muted)]" },
-                  { icon: Brain, label: "AI-Assisted Guidance", color: "text-[var(--tertiary)]" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-2.5 text-sm text-[var(--on-surface-variant)]">
-                    <item.icon size={16} className={item.color} />
-                    <span>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative hidden lg:block">
-              <Image
-                src="/images/hero-woman.png"
-                alt="Person feeling peaceful and supported"
-                width={600}
-                height={700}
-                className="rounded-xl shadow-ambient object-cover"
-                priority
-              />
-              {/* Floating card - bottom left */}
-              <div className="absolute -bottom-6 -left-6 bg-[var(--surface-container-lowest)] rounded-lg shadow-ambient p-4 flex items-center gap-3 border-hairline">
-                <div className="w-11 h-11 bg-[var(--primary-fixed)] rounded-full flex items-center justify-center">
-                  <CheckCircle className="text-[var(--primary)]" size={22} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-[var(--on-surface)]">10,000+</p>
-                  <p className="text-xs text-[var(--on-surface-variant)]">People Supported</p>
-                </div>
-              </div>
-              {/* Floating card - top right */}
-              <div className="absolute -top-4 -right-4 bg-[var(--surface-container-lowest)] rounded-lg shadow-ambient p-4 flex items-center gap-3 border-hairline">
-                <div className="w-11 h-11 bg-[var(--tertiary-fixed)] rounded-full flex items-center justify-center">
-                  <Star className="text-[var(--tertiary)]" size={22} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-[var(--on-surface)]">4.9/5 Rating</p>
-                  <p className="text-xs text-[var(--on-surface-variant)]">User Satisfaction</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              </motion.div>
+            </motion.div>
 
-      {/* Emotional Categories */}
-      <section className="section-gap bg-[var(--surface-container-lowest)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              Support for Every Challenge
-            </h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Whatever you&apos;re going through, we have the support you need. Explore categories designed around real human experiences.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categories.map((cat) => (
-              <Link
-                key={cat.name}
-                href="/get-support"
-                className="card !p-6 text-center hover:-translate-y-1 transition-all duration-300"
+            {/* Right Column: Hidden on mobile, visible on desktop */}
+            <div className="hidden lg:block lg:col-span-5 relative min-h-[460px] flex items-center justify-start">
+              {/* Floating Counselor Card overlaying the background image - Left aligned over the shoulder, compact size */}
+              <motion.div 
+                initial={{ opacity: 0, x: -30, scale: 0.96 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ duration: 0.7, delay: 0.45, ease: "easeOut" }}
+                className="absolute top-[25%] lg:top-[30%] left-0 lg:-left-20 bg-white/95 backdrop-blur-md border border-white/40 shadow-lg rounded-xl p-2.5 flex items-center gap-2.5 w-full max-w-[245px] z-10"
               >
-                <span className="text-3xl mb-3 block">{cat.icon}</span>
-                <span className="font-semibold text-[var(--on-surface)] text-sm block mb-1">{cat.name}</span>
-                <span className="text-xs text-[var(--on-surface-variant)]">{cat.desc}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="section-gap bg-[var(--surface)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              How KleverKlues&trade; Works
-            </h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Your journey to emotional wellbeing starts with just one simple step.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step) => (
-              <div key={step.step} className="relative card group hover:-translate-y-1 transition-all duration-300">
-                <span className="text-5xl font-display font-medium text-[var(--primary-fixed)]/30 group-hover:text-[var(--primary-fixed)]/50 transition-colors">
-                  {step.step}
-                </span>
-                <div className="mt-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center mb-4">
-                    <step.icon className="text-[var(--primary)]" size={20} />
-                  </div>
-                  <h3 className="text-lg font-semibold text-[var(--on-surface)] mb-2">{step.title}</h3>
-                  <p className="text-sm text-[var(--on-surface-variant)] leading-relaxed">{step.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Programs Section */}
-      <section className="section-gap bg-[var(--surface-container-lowest)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              Personalized Programs
-            </h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Guided wellbeing journeys designed by experts to help you heal, grow, and thrive.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {programs.map((program) => (
-              <Link key={program.name} href="/programs" className="group bg-[var(--surface-container-lowest)] rounded-xl overflow-hidden border-hairline hover:shadow-ambient-hover transition-all duration-300">
-                <div className="relative h-48 overflow-hidden">
+                <div className="w-9 h-9 rounded-full overflow-hidden relative flex-shrink-0 border border-white shadow-sm">
                   <Image
-                    src={program.image}
-                    alt={program.name}
+                    src="/images/prof-dr-ananya.png"
+                    alt="Dr. Ananya Rao"
                     fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    sizes="36px"
+                    className="object-cover"
                   />
                 </div>
-                <div className="p-5">
-                  <h3 className="font-semibold text-[var(--on-surface)] text-sm mb-1">{program.name}</h3>
-                  <p className="text-xs text-[var(--primary-bright)]">{program.duration} program</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[10px] text-[var(--on-surface)] truncate">Dr. Ananya Rao</p>
+                  <p className="text-[8px] text-[var(--on-surface-variant)] leading-snug">
+                    Your Dedicated Wellness Partner & Verified Specialist
+                  </p>
                 </div>
-              </Link>
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link href="/programs" className="inline-flex items-center gap-2 text-[var(--primary)] font-semibold hover:gap-3 transition-all btn-tertiary">
-              View All Programs <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Human Connection Section */}
-      <section className="section-gap bg-[var(--surface-container-low)] relative overflow-hidden">
-        {/* Orbit decoration */}
-        <div className="absolute top-10 right-10 w-[200px] h-[200px] border border-[var(--primary-bright)]/10 rounded-full pointer-events-none" />
-
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="relative">
-              <Image
-                src="/images/community-support.png"
-                alt="People supporting each other"
-                width={600}
-                height={500}
-                className="rounded-xl shadow-ambient"
-              />
-            </div>
-            <div className="space-y-8">
-              <h2 className="text-headline-lg text-[var(--on-surface)]">
-                Help Someone Today
-              </h2>
-              <p className="text-body-lg text-[var(--on-surface-variant)]">
-                Make a meaningful impact. Support someone emotionally, mentor others, or contribute to community wellbeing.
-              </p>
-              <ul className="space-y-5">
-                {[
-                  { icon: Heart, text: "Support someone emotionally through peer circles" },
-                  { icon: Users, text: "Become a mentor or support buddy" },
-                  { icon: Sparkles, text: "Sponsor sessions for those in need" },
-                  { icon: Star, text: "Join support circles and community missions" },
-                  { icon: Heart, text: "Contribute to community wellbeing missions" },
-                ].map((item) => (
-                  <li key={item.text} className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <item.icon className="text-[var(--primary)]" size={16} />
-                    </div>
-                    <span className="text-[var(--on-surface-variant)]">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/community" className="btn-primary inline-flex items-center gap-2">
-                Join the Movement <ArrowRight size={16} />
-              </Link>
+                <Link href="/professionals" className="w-6 h-6 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:bg-[var(--primary-bright)] transition-colors flex-shrink-0">
+                  <ArrowUpRight size={10} />
+                </Link>
+              </motion.div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Trust & Safety */}
-      <section className="section-gap bg-[var(--surface-container-lowest)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              Built on Trust & Safety
-            </h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Your emotional safety is our top priority. Every aspect of KleverKlues&trade; is designed with trust at its core.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Bottom Capsule Tag Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.65, ease: "easeOut" }}
+          className="max-w-[1280px] mx-auto px-6 w-full mt-auto pt-8"
+        >
+          <div className="flex flex-wrap justify-center lg:justify-between items-center gap-3 pt-6 border-t border-[var(--outline-variant)]/30 w-full">
             {[
-              { icon: Shield, title: "Clinical Governance", desc: "All services overseen by qualified clinical professionals" },
-              { icon: Lock, title: "Privacy First", desc: "End-to-end encryption, anonymous mode, DPDP compliant" },
-              { icon: CheckCircle, title: "Verified Professionals", desc: "Every professional is verified, trained, and regularly supervised" },
-              { icon: Brain, title: "Ethical AI Framework", desc: "AI assists but never replaces human judgment and empathy" },
-              { icon: Users, title: "Human Moderation", desc: "Community spaces are moderated by trained humans" },
-              { icon: Phone, title: "Crisis Response", desc: "24/7 crisis support systems with immediate human escalation" },
-            ].map((item) => (
-              <div key={item.title} className="card group hover:-translate-y-1 transition-all duration-300">
-                <div className="w-10 h-10 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center mb-5">
-                  <item.icon className="text-[var(--primary)]" size={20} />
-                </div>
-                <h3 className="font-semibold text-[var(--on-surface)] mb-2">{item.title}</h3>
-                <p className="text-sm text-[var(--on-surface-variant)] leading-relaxed">{item.desc}</p>
-              </div>
+              { icon: "🕶️",  label: "Anonymous Mode" },
+              { icon: "✅",  label: "Verified Professionals" },
+              { icon: "🆘",  label: "24×7 Crisis Support" },
+              { icon: "🔒",  label: "Privacy & DPDP Ready" },
+              { icon: "🌐",  label: "Multilingual Support" },
+              { icon: "🤖",  label: "AI-Assisted Guidance" },
+            ].map((tag) => (
+              <span
+                key={tag.label}
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-[var(--outline-variant)]/60 rounded-full text-xs font-semibold text-[var(--on-surface-variant)] bg-white/40 backdrop-blur-sm hover:bg-white/70 hover:text-[var(--primary)] hover:border-[var(--primary-bright)]/40 transition-all cursor-default"
+              >
+                <span>{tag.icon}</span>
+                {tag.label}
+              </span>
             ))}
           </div>
-        </div>
+        </motion.div>
+
       </section>
 
-      {/* Enterprise Preview */}
-      <section className="section-gap bg-[var(--surface)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <div className="chip !bg-[var(--tertiary-fixed)] !text-[var(--tertiary)]">
-                For Organizations
-              </div>
-              <h2 className="text-headline-lg text-[var(--on-surface)]">
-                Enterprise Wellbeing
-              </h2>
-              <p className="text-body-lg text-[var(--on-surface-variant)]">
-                Build emotionally resilient teams. Reduce burnout. Improve workplace wellbeing with our enterprise solutions.
-              </p>
-              <ul className="space-y-4">
-                {["Corporate wellness programs", "Workforce emotional resilience", "Burnout prevention systems", "Educational institution support", "Leadership wellbeing coaching"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-[var(--on-surface-variant)]">
-                    <CheckCircle size={16} className="text-[var(--primary-bright)]" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/enterprise" className="btn-primary inline-flex items-center gap-2">
-                Enterprise Solutions <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="relative">
-              <Image
-                src="/images/enterprise-team.png"
-                alt="Team collaboration and wellbeing"
-                width={600}
-                height={450}
-                className="rounded-xl shadow-ambient"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Core Services / Categories — Carousel Layout */}
+      <ServicesCarousel />
 
-      {/* Testimonials */}
-      <section className="section-gap bg-[var(--surface-container-low)]">
-        <div className="max-w-[1280px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">
-              Stories of Transformation
-            </h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">
-              Real stories from real people whose lives were changed through emotional support and community care.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((t) => (
-              <div key={t.name} className="card">
-                <div className="flex gap-1 mb-5">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star key={i} size={16} className="text-[var(--tertiary-bright)] fill-[var(--tertiary-bright)]" />
-                  ))}
-                </div>
-                <p className="text-[var(--on-surface-variant)] mb-6 italic leading-relaxed">&ldquo;{t.text}&rdquo;</p>
-                <div>
-                  <p className="font-semibold text-[var(--on-surface)] text-sm">{t.name}</p>
-                  <p className="text-xs text-[var(--on-surface-variant)]">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
+      {/* How It Works — Glassmorphism redesign */}
+      <HowItWorksSection />
+
+      {/* Programs — Bento Grid redesign */}
+      <ProgramsSection />
+
+      {/* Human Connection — Premium redesign */}
+      <HumanConnectionSection />
+
+      {/* Trust & Safety — Full redesign */}
+      <TrustSafetySection />
+
+      {/* Enterprise — Full redesign */}
+      <EnterpriseSection />
+
+      {/* Testimonials — Full redesign */}
+      <TestimonialsSection />
 
       {/* Impact Stats */}
       <section className="py-20 bg-[var(--inverse-surface)] text-white relative overflow-hidden">
