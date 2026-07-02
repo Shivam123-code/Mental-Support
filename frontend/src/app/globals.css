@@ -234,7 +234,7 @@ body {
   font-weight: 600;
   font-size: 14px;
   padding: 12px 24px;
-  border-radius: 0.5rem;
+  border-radius: 9999px;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
@@ -255,6 +255,12 @@ body {
   transform: translateY(-1px);
 }
 
+/* Hide arrow/icon SVGs inside primary & secondary buttons globally */
+.btn-primary svg,
+.btn-secondary svg {
+  display: none;
+}
+
 .btn-secondary {
   background: transparent;
   color: var(--secondary-muted);
@@ -262,7 +268,7 @@ body {
   font-weight: 600;
   font-size: 14px;
   padding: 12px 24px;
-  border-radius: 0.5rem;
+  border-radius: 9999px;
   border: 1px solid var(--secondary-muted);
   transition: all 0.3s ease;
   cursor: pointer;

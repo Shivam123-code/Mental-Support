@@ -1,219 +1,616 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Globe, Shield, Brain, Users, Sparkles, ArrowRight, Target, Eye, Lightbulb, Zap, Award, TrendingUp } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import {
+  Heart, Globe, Shield, Brain, Users, Sparkles,
+  ArrowRight, Target, Eye, Lightbulb,
+} from "lucide-react";
+
+/* ─── Marquee ticker data ─── */
+const tickerItems = [
+  "10K+ People Supported",
+  "★  500+ Verified Professionals",
+  "★  50+ Guided Programs",
+  "★  24/7 Crisis Support",
+  "★  100% Confidential",
+  "★  6 Languages",
+  "★  16K+ Community Members",
+  "★  AI-Powered Insights",
+];
+
+/* ─── Values ─── */
+const values = [
+  { icon: Heart,    title: "Human First",            desc: "Every decision starts with human wellbeing.", color: "#fce7f3", iconColor: "#be185d" },
+  { icon: Shield,   title: "Trust & Safety",         desc: "Privacy, ethics, and trust are non-negotiable.", color: "#dbeafe", iconColor: "#1d4ed8" },
+  { icon: Brain,    title: "Emotional Intelligence", desc: "We design for emotional safety, always.", color: "#ede9fe", iconColor: "#7c3aed" },
+  { icon: Users,    title: "Community Care",         desc: "Collective wellbeing through connection.", color: "#d1fae5", iconColor: "#065f46" },
+  { icon: Globe,    title: "Global Accessibility",   desc: "Support accessible to everyone, everywhere.", color: "#fef3c7", iconColor: "#b45309" },
+  { icon: Sparkles, title: "Continuous Growth",      desc: "Lifelong emotional growth, not just crisis care.", color: "#ccfbf1", iconColor: "#0f766e" },
+];
+
+/* ─── Pillars ─── */
+const pillars = [
+  { num: "01", emoji: "🛡️", title: "Trust & Safety",     desc: "Privacy-first, verified, clinically governed — safety is our infrastructure." },
+  { num: "02", emoji: "🧭", title: "Guided Wellbeing",    desc: "Assessments, programs, sessions, and personalised care plans at every step." },
+  { num: "03", emoji: "🤝", title: "Human Connection",    desc: "Communities, mentorship, peer circles — healing together is faster." },
+  { num: "04", emoji: "💡", title: "Emotional Economy",   desc: "Learn, earn, mentor, contribute — an economy built on emotional value." },
+  { num: "05", emoji: "🧠", title: "AI Intelligence",     desc: "Smart insights, early-warning predictions, and hyper-personalised guidance." },
+];
+
+/* ─── Roadmap ─── */
+const roadmap = [
+  { phase: "01", title: "Trust Foundation",        desc: "Website · Assessments · Professionals · Sessions · SOS", status: "current" },
+  { phase: "02", title: "Engagement & Retention",  desc: "Programs · Communities · AI · Academy · Enterprise",      status: "upcoming" },
+  { phase: "03", title: "Ecosystem Expansion",     desc: "AI Companion · Creator Economy · Research Institute",     status: "future" },
+  { phase: "04", title: "Global Leadership",       desc: "Global Partnerships · Government Alliances · TrustOS",    status: "future" },
+];
+
+/* ─── Animated counter ─── */
+function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [inView, target]);
+  return <span ref={ref}>{count}{suffix}</span>;
+}
 
 export default function About() {
+  /* Parallax for hero image */
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+
   return (
-    <div>
-      {/* Hero - Full Width Statement */}
-      <section className="relative bg-[var(--primary)] text-white overflow-hidden py-20 sm:py-28 md:py-36">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-white/20 rounded-full" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/15 rounded-full" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border border-white/10 rounded-full" />
-        </div>
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-10 text-center">
-          <p className="text-sm sm:text-base uppercase tracking-[0.2em] text-white/50 mb-6 font-medium">The Bigger Vision</p>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-medium leading-[1.05] mb-8">
-            We&apos;re building the<br/>
-            <span className="text-[var(--primary-fixed)]">Human Wellbeing Layer</span><br/>
-            for the Digital World.
-          </h1>
-          <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto mb-10">
-            Not a therapy app. Not a meditation tool. A category-defining ecosystem for healing, growing, connecting, and thriving — at scale.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/community" className="px-6 sm:px-8 py-3.5 bg-white text-[var(--primary)] font-semibold rounded-lg hover:bg-white/90 transition-all text-sm sm:text-base">
-              Join the Movement
-            </Link>
-            <Link href="/get-support" className="px-6 sm:px-8 py-3.5 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-all text-sm sm:text-base">
-              Get Support
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div className="overflow-x-hidden">
 
-      {/* Tagline Banner */}
-      <section className="py-12 sm:py-16 bg-[var(--surface-container-lowest)] text-center border-b border-[var(--outline-variant)]">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <p className="text-2xl sm:text-3xl md:text-4xl font-display font-medium text-[var(--on-surface)]">
-            &ldquo;You&apos;re Not Alone.&rdquo;
-          </p>
-          <p className="text-sm sm:text-base text-[var(--on-surface-variant)] mt-3 italic">Our promise to every human who finds us.</p>
-        </div>
-      </section>
+      {/* ══════════════════════════════════════════
+          HERO — full viewport, parallax image,
+          diagonal clip at bottom, big statement
+      ══════════════════════════════════════════ */}
+      <section
+        ref={heroRef}
+        className="relative min-h-screen flex flex-col justify-center overflow-hidden"
+        style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 0 100%)" }}
+      >
+        {/* Parallax bg */}
+        <motion.div style={{ y: heroY }} className="absolute inset-0 scale-110">
+          <Image src="/images/enterprise-team.png" alt="About KleverKlues" fill
+            className="object-cover object-center" priority />
+        </motion.div>
+        {/* Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/60 to-[#0a2e2b]/80" />
+        <div className="absolute inset-0 opacity-[0.05]"
+          style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
 
-      {/* Brand Story */}
-      <section className="section-gap bg-[var(--surface)]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="chip mx-auto w-fit mb-4"><Heart size={14} /> Our Story</div>
-            <h2 className="text-headline-lg text-[var(--on-surface)]">Why We Exist</h2>
-          </div>
-          <div className="space-y-8 text-[var(--on-surface-variant)] leading-relaxed">
-            <p className="text-lg sm:text-xl">
-              Humanity is becoming <strong className="text-[var(--on-surface)]">digitally connected</strong> but <strong className="text-[var(--on-surface)]">emotionally disconnected</strong>.
-            </p>
-            <p className="text-base sm:text-lg">
-              Stress, loneliness, burnout, anxiety, emotional suppression, relationship struggles, and mental fatigue are increasing globally. Many people do not know where to seek help. They fear judgment. They feel emotionally isolated.
-            </p>
-            <div className="bg-[var(--primary-fixed)] rounded-2xl p-6 sm:p-10 text-center my-8 sm:my-12">
-              <p className="text-xl sm:text-2xl md:text-3xl font-display font-medium text-[var(--primary)]">
-                KleverKlues&trade; exists to change this.
-              </p>
+        {/* Content */}
+        <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 pt-24 pb-32 w-full">
+          <div className="grid lg:grid-cols-12 gap-8 items-end">
+
+            {/* Left — big label */}
+            <div className="lg:col-span-4 hidden lg:flex flex-col justify-end pb-2">
+              <motion.p
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-[160px] font-display font-bold leading-none select-none"
+                style={{ color: "rgba(147,210,204,0.12)", lineHeight: 1 }}
+              >
+                KK
+              </motion.p>
             </div>
-            <p className="text-base sm:text-lg">
-              We believe: <em className="font-display text-[var(--primary)] not-italic font-medium">Better Humans Create Better Families, Better Workplaces, Better Societies, and a Better World.</em>
-            </p>
+
+            {/* Right — headline */}
+            <div className="lg:col-span-8">
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-xs font-bold uppercase tracking-[0.25em] text-white/40 mb-6"
+              >
+                — The Bigger Vision
+              </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.1 }}
+                className="font-display font-medium leading-[1.02] text-white mb-8"
+                style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}
+              >
+                We&apos;re building the<br />
+                <span style={{ background: "linear-gradient(90deg,#93d2cc,#b8e8e4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  Human Wellbeing Layer
+                </span><br />
+                for the Digital World.
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+                className="text-white/55 text-lg max-w-2xl mb-10 leading-relaxed"
+              >
+                Not a therapy app. Not a meditation tool. A category-defining ecosystem for healing,
+                growing, connecting, and thriving — at scale.
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.38 }}
+                className="flex flex-wrap gap-4"
+              >
+                <Link href="/community"
+                  className="inline-flex items-center gap-2 bg-white text-[var(--primary)] font-bold px-7 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all text-sm">
+                  Join the Movement
+                </Link>
+                <Link href="/get-support"
+                  className="inline-flex items-center gap-2 border border-white/25 text-white font-semibold px-7 py-3.5 rounded-full hover:bg-white/10 transition-all text-sm">
+                  Get Support <ArrowRight size={14} />
+                </Link>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Mission / Vision / Purpose */}
-      <section className="section-gap bg-[var(--surface-container-lowest)]">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              { icon: Target, title: "Mission", text: "To help create a world where no human feels emotionally alone.", color: "bg-[var(--primary-fixed)]" },
-              { icon: Eye, title: "Vision", text: "To become the world's most trusted Human Wellbeing & Emotional Support Ecosystem.", color: "bg-[var(--tertiary-fixed)]" },
-              { icon: Lightbulb, title: "Purpose", text: "To improve human wellbeing at scale — safely, privately, meaningfully, globally.", color: "bg-[var(--secondary-fixed)]" },
-            ].map((item) => (
-              <div key={item.title} className="card text-center sm:text-left">
-                <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center mb-5 mx-auto sm:mx-0`}>
-                  <item.icon size={24} className="text-[var(--primary)]" />
-                </div>
-                <h3 className="text-xl font-semibold text-[var(--on-surface)] mb-3">{item.title}</h3>
-                <p className="text-[var(--on-surface-variant)] leading-relaxed">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ══════════════════════════════════════════
+          MARQUEE TICKER — infinite scroll strip
+      ══════════════════════════════════════════ */}
+      <div className="py-5 bg-[var(--primary-bright)] overflow-hidden -mt-1">
+        <motion.div
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "linear" as const }}
+          className="flex gap-10 whitespace-nowrap"
+        >
+          {[...tickerItems, ...tickerItems].map((item, i) => (
+            <span key={i} className="text-white font-bold text-sm tracking-wide flex-shrink-0">{item}</span>
+          ))}
+        </motion.div>
+      </div>
 
-      {/* Platform Pillars */}
+      {/* ══════════════════════════════════════════
+          BRAND STORY — typographic editorial
+      ══════════════════════════════════════════ */}
       <section className="section-gap bg-[var(--surface)]">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">What We&apos;re Building</h2>
-            <p className="text-body-lg text-[var(--on-surface-variant)] max-w-2xl mx-auto">Five pillars that make KleverKlues&trade; a category-defining platform.</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6">
-            {[
-              { emoji: "🛡️", title: "Trust & Safety", desc: "Privacy-first, verified, clinically governed" },
-              { emoji: "🧭", title: "Guided Wellbeing", desc: "Assessments, programs, sessions, care plans" },
-              { emoji: "🤝", title: "Human Connection", desc: "Communities, mentorship, peer circles" },
-              { emoji: "💡", title: "Emotional Economy", desc: "Learn, earn, mentor, contribute" },
-              { emoji: "🧠", title: "AI Intelligence", desc: "Smart insights, predictions, recommendations" },
-            ].map((pillar) => (
-              <div key={pillar.title} className="card text-center hover:-translate-y-1 transition-all duration-300 !p-4 sm:!p-6">
-                <span className="text-3xl sm:text-4xl block mb-3">{pillar.emoji}</span>
-                <h3 className="font-semibold text-[var(--on-surface)] text-xs sm:text-sm mb-1">{pillar.title}</h3>
-                <p className="text-[10px] sm:text-xs text-[var(--on-surface-variant)] leading-relaxed">{pillar.desc}</p>
-              </div>
-            ))}
+          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
+
+            {/* Left — sticky label */}
+            <div className="lg:sticky lg:top-28 self-start">
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <p className="text-xs font-bold text-[var(--primary-bright)] uppercase tracking-widest mb-4">\\ Our Story</p>
+                <h2 className="text-5xl lg:text-6xl font-display font-medium text-[var(--on-surface)] leading-tight mb-8">
+                  Why We<br />Exist
+                </h2>
+                {/* Pull quote box */}
+                <div className="rounded-3xl p-8 relative overflow-hidden"
+                  style={{ background: "linear-gradient(135deg,#0a2e2b,#0d3d38)" }}>
+                  <div className="absolute top-4 left-6 text-[80px] font-serif leading-none text-white/10 select-none">&ldquo;</div>
+                  <p className="relative z-10 text-xl font-display font-medium leading-relaxed"
+                    style={{ background: "linear-gradient(90deg,#93d2cc,#b8e8e4)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    KleverKlues™ exists to change this.
+                  </p>
+                  <p className="text-white/50 text-sm mt-3 relative z-10">Our core promise</p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right — body text */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="space-y-8 pt-2"
+            >
+              <p className="text-2xl font-display font-medium text-[var(--on-surface)] leading-snug">
+                Humanity is becoming{" "}
+                <span className="underline decoration-[var(--primary-bright)] decoration-4 underline-offset-4">digitally connected</span>{" "}
+                but{" "}
+                <span className="underline decoration-rose-400 decoration-4 underline-offset-4">emotionally disconnected</span>.
+              </p>
+              <p className="text-lg text-[var(--on-surface-variant)] leading-relaxed">
+                Stress, loneliness, burnout, anxiety, emotional suppression, relationship struggles,
+                and mental fatigue are increasing globally. Many people do not know where to seek help.
+                They fear judgment. They feel emotionally isolated.
+              </p>
+              <div className="h-px w-full bg-[var(--outline-variant)]" />
+              <p className="text-lg text-[var(--on-surface-variant)] leading-relaxed">
+                We believe:{" "}
+                <em className="font-display text-[var(--primary)] not-italic font-semibold text-xl">
+                  Better Humans Create Better Families, Better Workplaces, Better Societies, and a Better World.
+                </em>
+              </p>
+              <div className="h-px w-full bg-[var(--outline-variant)]" />
+              <p className="text-xs text-[var(--on-surface-variant)] uppercase tracking-widest">— The KleverKlues Team</p>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Impact Numbers */}
-      <section className="py-16 sm:py-20 bg-[var(--primary)] text-white relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/5 rounded-full pointer-events-none" />
+      {/* ══════════════════════════════════════════
+          MISSION / VISION / PURPOSE
+          — angled floating cards on gradient bg
+      ══════════════════════════════════════════ */}
+      <section className="section-gap overflow-hidden relative"
+        style={{ background: "linear-gradient(135deg,#f0faf8 0%,#e8f5f2 55%,#f5faf8 100%)" }}>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[var(--primary-fixed)]/30 blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[350px] h-[350px] rounded-full bg-violet-200/40 blur-[100px] pointer-events-none" />
+
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-10">
-          <div className="text-center mb-10 sm:mb-12">
-            <h2 className="text-headline-lg text-white mb-2">Our Impact So Far</h2>
-            <p className="text-white/50 text-sm">And we&apos;re just getting started.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest mb-3">\\ Our Foundation</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-medium text-[var(--on-surface)]">What Drives Us</h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             {[
-              { value: "10K+", label: "People Supported" },
-              { value: "500+", label: "Verified Professionals" },
-              { value: "50+", label: "Programs" },
-              { value: "24/7", label: "Crisis Support" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-3xl sm:text-4xl md:text-5xl font-display font-medium">{stat.value}</p>
-                <p className="text-white/50 mt-2 text-xs sm:text-sm">{stat.label}</p>
-              </div>
+              { icon: Target,    title: "Mission", text: "To help create a world where no human feels emotionally alone.", rotate: "-2deg",  delay: 0    },
+              { icon: Eye,       title: "Vision",  text: "To become the world's most trusted Human Wellbeing & Emotional Support Ecosystem.", rotate: "1deg",   delay: 0.1  },
+              { icon: Lightbulb, title: "Purpose", text: "To improve human wellbeing at scale — safely, privately, meaningfully, globally.", rotate: "-1.5deg", delay: 0.2  },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 40, rotate: 0 }}
+                  whileInView={{ opacity: 1, y: 0, rotate: item.rotate }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.65, delay: item.delay, ease: "easeOut" as const }}
+                  whileHover={{ rotate: "0deg", y: -8, transition: { duration: 0.25 } }}
+                  className="bg-white rounded-3xl p-8 shadow-xl border border-[var(--outline-variant)]/20 cursor-default"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-[var(--primary-fixed)] flex items-center justify-center mb-6 shadow-sm">
+                    <Icon size={26} className="text-[var(--primary)]" />
+                  </div>
+                  <p className="text-xs font-bold text-[var(--primary-bright)] uppercase tracking-widest mb-2">{item.title}</p>
+                  <p className="text-lg font-medium text-[var(--on-surface)] leading-relaxed">{item.text}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          IMPACT NUMBERS — cinematic dark section
+          with giant animated counters
+      ══════════════════════════════════════════ */}
+      <section className="relative overflow-hidden py-14"
+        style={{ background: "linear-gradient(135deg,#0a2e2b 0%,#0d3d38 60%,#0a2e2b 100%)" }}>
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "28px 28px" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[var(--primary)]/15 blur-[140px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55 }}
+            className="text-center mb-10"
+          >
+            <p className="text-xs font-bold text-[var(--primary-fixed)] uppercase tracking-widest mb-2">\\ Impact</p>
+            <h2 className="text-2xl lg:text-3xl font-display font-medium text-white">Our Impact So Far</h2>
+            <p className="text-white/40 mt-2 text-sm">And we&apos;re just getting started.</p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
+            {[
+              { target: 10, suffix: "K+", label: "People Supported" },
+              { target: 500, suffix: "+", label: "Verified Professionals" },
+              { target: 50, suffix: "+", label: "Programs" },
+              { target: 24, suffix: "/7", label: "Crisis Support" },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="flex flex-col items-center text-center p-5 border-r border-white/8 last:border-r-0"
+              >
+                <span className="text-4xl lg:text-6xl font-display font-bold text-white leading-none">
+                  <Counter target={s.target} suffix={s.suffix} />
+                </span>
+                <span className="text-white/40 text-xs mt-2 tracking-wide">{s.label}</span>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Values */}
+      {/* ══════════════════════════════════════════
+          PILLARS — large numbered editorial rows
+      ══════════════════════════════════════════ */}
+      <section className="section-gap bg-[var(--surface)]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-14"
+          >
+            <p className="text-xs font-bold text-[var(--primary-bright)] uppercase tracking-widest mb-3">\\ Platform</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-medium text-[var(--on-surface)]">What We&apos;re Building</h2>
+            <p className="text-[var(--on-surface-variant)] mt-3 max-w-lg">Five pillars that make KleverKlues™ a category-defining platform.</p>
+          </motion.div>
+
+          <div className="space-y-0 divide-y divide-[var(--outline-variant)]/40">
+            {pillars.map((p, i) => (
+              <motion.div
+                key={p.num}
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.07 }}
+              >
+                <motion.div
+                  whileHover={{ x: 12, backgroundColor: "rgba(147,210,204,0.06)", transition: { duration: 0.2 } }}
+                  className="flex items-center gap-6 lg:gap-10 py-7 px-4 rounded-2xl cursor-default transition-colors group"
+                >
+                  <span className="text-5xl lg:text-7xl font-display font-bold text-[var(--outline-variant)] group-hover:text-[var(--primary-bright)] transition-colors leading-none w-20 flex-shrink-0">
+                    {p.num}
+                  </span>
+                  <span className="text-3xl flex-shrink-0">{p.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-bold text-[var(--on-surface)] group-hover:text-[var(--primary)] transition-colors">{p.title}</h3>
+                    <p className="text-[var(--on-surface-variant)] text-sm mt-1 leading-relaxed">{p.desc}</p>
+                  </div>
+                  <ArrowRight size={20} className="text-[var(--outline-variant)] group-hover:text-[var(--primary)] group-hover:translate-x-2 transition-all flex-shrink-0 hidden sm:block" />
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          VALUES — masonry-inspired asymmetric grid
+      ══════════════════════════════════════════ */}
       <section className="section-gap bg-[var(--surface-container-lowest)]">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Our Values</h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { icon: Heart, title: "Human First", desc: "Every decision starts with human wellbeing." },
-              { icon: Shield, title: "Trust & Safety", desc: "Privacy, ethics, and trust are non-negotiable." },
-              { icon: Brain, title: "Emotional Intelligence", desc: "We design for emotional safety, always." },
-              { icon: Users, title: "Community Care", desc: "Collective wellbeing through connection." },
-              { icon: Globe, title: "Global Accessibility", desc: "Support accessible to everyone, everywhere." },
-              { icon: Sparkles, title: "Continuous Growth", desc: "Lifelong emotional growth, not just crisis care." },
-            ].map((v) => (
-              <div key={v.title} className="card group hover:-translate-y-1 transition-all duration-300">
-                <div className="w-10 h-10 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center mb-4">
-                  <v.icon className="text-[var(--primary)]" size={20} />
-                </div>
-                <h3 className="font-semibold text-[var(--on-surface)] mb-2">{v.title}</h3>
-                <p className="text-sm text-[var(--on-surface-variant)]">{v.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12"
+          >
+            <div>
+              <p className="text-xs font-bold text-[var(--primary-bright)] uppercase tracking-widest mb-3">\\ Values</p>
+              <h2 className="text-4xl lg:text-5xl font-display font-medium text-[var(--on-surface)]">Our Values</h2>
+            </div>
+            <p className="text-[var(--on-surface-variant)] max-w-sm leading-relaxed">
+              Six core principles that guide every product decision we make.
+            </p>
+          </motion.div>
 
-      {/* Roadmap */}
-      <section className="section-gap bg-[var(--surface)]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-headline-lg text-[var(--on-surface)] mb-4">Our Roadmap</h2>
+          {/* Row 1 — 1 large + 2 small */}
+          <div className="grid lg:grid-cols-3 gap-5 mb-5">
+            {/* Large card */}
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.55 }}
+              className="lg:col-span-2 rounded-3xl p-8 flex flex-col justify-between min-h-[220px]"
+              style={{ backgroundColor: values[0].color }}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm mb-6">
+                <Heart size={26} style={{ color: values[0].iconColor }} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold mb-2" style={{ color: values[0].iconColor }}>{values[0].title}</h3>
+                <p className="text-base leading-relaxed" style={{ color: values[0].iconColor + "cc" }}>{values[0].desc}</p>
+              </div>
+            </motion.div>
+
+            {/* Small card */}
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.55, delay: 0.08 }}
+              className="rounded-3xl p-8 flex flex-col justify-between"
+              style={{ backgroundColor: values[1].color }}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-white/50 flex items-center justify-center mb-5">
+                <Shield size={22} style={{ color: values[1].iconColor }} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-1" style={{ color: values[1].iconColor }}>{values[1].title}</h3>
+                <p className="text-sm" style={{ color: values[1].iconColor + "bb" }}>{values[1].desc}</p>
+              </div>
+            </motion.div>
           </div>
-          <div className="space-y-4 sm:space-y-6">
-            {[
-              { phase: "1", title: "Trust Foundation", desc: "Website, Assessments, Professionals, Sessions, SOS", status: "current" },
-              { phase: "2", title: "Engagement & Retention", desc: "Programs, Communities, AI, Academy, Enterprise", status: "upcoming" },
-              { phase: "3", title: "Ecosystem Expansion", desc: "AI Companion, Creator Economy, Research Institute", status: "future" },
-              { phase: "4", title: "Global Leadership", desc: "Global Partnerships, Government Alliances, TrustOS", status: "future" },
-            ].map((t) => (
-              <div key={t.phase} className={`flex gap-4 sm:gap-5 p-4 sm:p-6 rounded-xl border transition-all ${t.status === 'current' ? 'bg-[var(--primary-fixed)]/20 border-[var(--primary-fixed-dim)]' : 'bg-[var(--surface-container-lowest)] border-[var(--outline-variant)]'}`}>
-                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${t.status === 'current' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]'}`}>
-                  {t.phase}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-[var(--on-surface)] text-sm sm:text-base">{t.title}</h3>
-                    {t.status === 'current' && <span className="text-[10px] sm:text-xs bg-[var(--primary)] text-white px-2 py-0.5 rounded-full">Current</span>}
+
+          {/* Row 2 — 3 equal */}
+          <div className="grid sm:grid-cols-3 gap-5">
+            {values.slice(2).map((v, i) => {
+              const Icon = v.icon;
+              return (
+                <motion.div
+                  key={v.title}
+                  initial={{ opacity: 0, y: 28 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.09 }}
+                  className="rounded-3xl p-7"
+                  style={{ backgroundColor: v.color }}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white/50 flex items-center justify-center mb-5">
+                    <Icon size={22} style={{ color: v.iconColor }} />
                   </div>
-                  <p className="text-xs sm:text-sm text-[var(--on-surface-variant)] mt-1">{t.desc}</p>
+                  <h3 className="text-lg font-bold mb-1" style={{ color: v.iconColor }}>{v.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: v.iconColor + "bb" }}>{v.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          ROADMAP — horizontal stepper
+      ══════════════════════════════════════════ */}
+      <section className="section-gap bg-[var(--surface)] overflow-hidden">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <p className="text-xs font-bold text-[var(--primary-bright)] uppercase tracking-widest mb-3">\\ Journey</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-medium text-[var(--on-surface)]">Our Roadmap</h2>
+          </motion.div>
+
+          {/* Desktop horizontal stepper */}
+          <div className="hidden lg:grid grid-cols-4 gap-0 relative">
+            {/* Connecting line */}
+            <div className="absolute top-[28px] left-[12.5%] right-[12.5%] h-px bg-[var(--outline-variant)] z-0" />
+
+            {roadmap.map((item, i) => (
+              <motion.div
+                key={item.phase}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.12 }}
+                className="flex flex-col items-center text-center px-4 relative z-10"
+              >
+                {/* Circle */}
+                <div className={`w-14 h-14 rounded-full border-4 flex items-center justify-center text-sm font-bold mb-6 shadow-lg ${
+                  item.status === "current"
+                    ? "bg-[var(--primary-bright)] border-[var(--primary-bright)] text-white"
+                    : item.status === "upcoming"
+                    ? "bg-white border-[var(--primary)] text-[var(--primary)]"
+                    : "bg-white border-[var(--outline-variant)] text-[var(--on-surface-variant)]"
+                }`}>
+                  {item.phase}
                 </div>
-              </div>
+
+                {item.status === "current" && (
+                  <span className="text-[10px] font-bold bg-[var(--primary-bright)] text-white px-3 py-0.5 rounded-full mb-3 -mt-3">
+                    Live Now
+                  </span>
+                )}
+
+                <h3 className={`font-bold text-base mb-2 ${item.status === "current" ? "text-[var(--primary)]" : "text-[var(--on-surface)]"}`}>
+                  {item.title}
+                </h3>
+                <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Mobile vertical */}
+          <div className="lg:hidden space-y-4">
+            {roadmap.map((item, i) => (
+              <motion.div
+                key={item.phase}
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: i * 0.08 }}
+                className={`flex gap-5 p-5 rounded-2xl border ${
+                  item.status === "current"
+                    ? "bg-[var(--primary-fixed)]/20 border-[var(--primary-fixed-dim)]"
+                    : "bg-[var(--surface-container-lowest)] border-[var(--outline-variant)]"
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                  item.status === "current" ? "bg-[var(--primary-bright)] text-white" : "bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]"
+                }`}>{item.phase}</div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-bold text-[var(--on-surface)] text-sm">{item.title}</h3>
+                    {item.status === "current" && <span className="text-[10px] bg-[var(--primary-bright)] text-white px-2 py-0.5 rounded-full">Live Now</span>}
+                  </div>
+                  <p className="text-xs text-[var(--on-surface-variant)]">{item.desc}</p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Movement CTA */}
-      <section className="py-16 sm:py-24 bg-[var(--surface-container)] text-center">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <p className="text-lg sm:text-xl font-display italic text-[var(--primary)] mb-4">&ldquo;Humanity, Connected.&rdquo;</p>
-          <h2 className="text-headline-lg text-[var(--on-surface)] mb-6">Join the Movement</h2>
-          <p className="text-[var(--on-surface-variant)] mb-8 sm:mb-10 max-w-xl mx-auto">
-            KleverKlues&trade; is more than a platform — it&apos;s a movement to ensure no human feels emotionally alone. Join us.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/community" className="btn-primary inline-flex items-center justify-center gap-2">
-              Join Community <ArrowRight size={16} />
-            </Link>
-            <Link href="/get-support" className="btn-secondary inline-flex items-center justify-center gap-2">
-              Get Support
-            </Link>
-          </div>
+      {/* ══════════════════════════════════════════
+          CTA — split, image left, text right
+      ══════════════════════════════════════════ */}
+      <section className="section-gap overflow-hidden">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.65 }}
+            className="grid lg:grid-cols-2 rounded-3xl overflow-hidden shadow-2xl min-h-[400px]"
+          >
+            {/* Left — image */}
+            <div className="relative hidden lg:block">
+              <Image src="/images/community-support.png" alt="Join Movement" fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/40" />
+            </div>
+
+            {/* Right — content */}
+            <div className="flex flex-col justify-center p-10 lg:p-16"
+              style={{ background: "linear-gradient(135deg,#0a2e2b 0%,#0d3d38 100%)" }}>
+              <div className="absolute inset-0 opacity-[0.04]"
+                style={{ backgroundImage: "radial-gradient(circle,white 1px,transparent 1px)", backgroundSize: "24px 24px" }} />
+              <div className="relative z-10">
+                <p className="text-xs font-bold text-[var(--primary-fixed)] uppercase tracking-widest mb-4">\\ Be Part of It</p>
+                <p className="text-2xl lg:text-3xl font-display italic mb-2"
+                  style={{ color: "#93d2cc" }}>
+                  &ldquo;Humanity, Connected.&rdquo;
+                </p>
+                <h2 className="text-3xl lg:text-4xl font-display font-medium text-white mb-5 leading-snug">
+                  Join the Movement
+                </h2>
+                <p className="text-white/55 mb-8 leading-relaxed">
+                  KleverKlues™ is more than a platform — it&apos;s a movement to ensure no human feels emotionally alone. Join us.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/community"
+                    className="inline-flex items-center gap-2 bg-white text-[var(--primary)] font-bold px-7 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all text-sm">
+                    Join Community
+                  </Link>
+                  <Link href="/get-support"
+                    className="inline-flex items-center gap-2 border border-white/25 text-white font-semibold px-7 py-3.5 rounded-full hover:bg-white/10 transition-all text-sm">
+                    Get Support
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
+
     </div>
   );
 }
