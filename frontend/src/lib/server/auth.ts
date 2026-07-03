@@ -3,7 +3,19 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from './db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+// V-02 FIX: Removed hardcoded fallback secret.
+// IIFE ensures TypeScript infers the type as `string` (not `string | undefined`),
+// while still throwing at startup if the env var is missing.
+const JWT_SECRET: string = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'FATAL: JWT_SECRET environment variable is not set. ' +
+      'Add it to .env.local before starting the server.'
+    );
+  }
+  return secret;
+})();
 const JWT_EXPIRES_IN = '7d';
 
 export interface TokenPayload {

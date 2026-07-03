@@ -21,8 +21,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    // V-09 FIX: Clamp limit and offset to prevent unbounded DB queries
+    const rawLimit  = parseInt(searchParams.get('limit')  || '20');
+    const rawOffset = parseInt(searchParams.get('offset') || '0');
+    const limit  = Math.min(Math.max(isNaN(rawLimit)  ? 20 : rawLimit,  1), 100);
+    const offset = Math.max(isNaN(rawOffset) ? 0 : rawOffset, 0);
 
     const entries = await prisma.journalEntry.findMany({
       where: { userId: user.id },

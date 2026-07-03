@@ -5,8 +5,22 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // V-06 FIX: Rate limit SOS — max 3 alerts per 10 minutes per IP
+  // Prevents fake-alert flooding while allowing genuine emergencies (need only 1).
+  const ip = getClientIp(request);
+  const { allowed } = rateLimit(`sos:${ip}`, 3, 10 * 60 * 1000);
+  if (!allowed) {
+    // Still log the attempt for admin awareness
+    console.warn(`SOS rate limit exceeded from IP: ${ip}`);
+    return errorResponse(
+      'Too many SOS requests. If this is a real emergency, please call 112 directly.',
+      429
+    );
+  }
+
   try {
     const body = await request.json();
 

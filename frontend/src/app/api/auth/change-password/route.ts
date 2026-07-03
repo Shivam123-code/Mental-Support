@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
       return errorResponse('Both current password and new password are required.', 400);
     }
 
-    if (newPassword.length < 8) {
-      return errorResponse('New password must be at least 8 characters.', 400);
+    // V-08 FIX: Enforce strong password policy
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+      return errorResponse(
+        'New password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.',
+        400
+      );
     }
 
     if (currentPassword === newPassword) {

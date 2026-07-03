@@ -7,8 +7,20 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { successResponse, errorResponse } from '@/lib/api-response';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // V-04 FIX: Rate limit — 3 reset requests per 15 minutes per IP
+  const ip = getClientIp(request);
+  const { allowed, retryAfterSeconds } = rateLimit(`forgot-pw:${ip}`, 3, 15 * 60 * 1000);
+  if (!allowed) {
+    // Still return 200 to not reveal anything, but don't process
+    return successResponse(
+      null,
+      'If this email is registered, a password reset link has been sent. Check your inbox (and spam folder).'
+    );
+  }
+
   try {
     const body = await request.json();
     const email = (body.email || '').trim().toLowerCase();

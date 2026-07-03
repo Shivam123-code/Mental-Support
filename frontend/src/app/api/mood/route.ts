@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
+    // V-09 FIX: Clamp days to prevent unbounded DB queries (max 365 days)
+    const rawDays = parseInt(searchParams.get('days') || '30');
+    const days = Math.min(Math.max(isNaN(rawDays) ? 30 : rawDays, 1), 365);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);

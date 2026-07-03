@@ -4,8 +4,19 @@ import { prisma } from '@/lib/db';
 import { verifyPassword, createSession } from '@/lib/auth';
 import { validate, loginSchema } from '@/lib/validation';
 import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // V-04 FIX: Rate limit — 5 attempts per 15 minutes per IP
+  const ip = getClientIp(request);
+  const { allowed, retryAfterSeconds } = rateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+  if (!allowed) {
+    return errorResponse(
+      `Too many login attempts. Please try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
+      429
+    );
+  }
+
   try {
     const body = await request.json();
     

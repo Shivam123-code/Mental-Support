@@ -5,9 +5,18 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ??
-  'postgresql://postgres:kleverklues2024@localhost:5432/kleverklues?schema=public';
+// V-03 FIX: Removed hardcoded database credentials.
+// IIFE ensures TypeScript infers the type as `string` (not `string | undefined`).
+const DATABASE_URL: string = (() => {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      'FATAL: DATABASE_URL environment variable is not set. ' +
+      'Add it to .env.local before starting the server.'
+    );
+  }
+  return url;
+})();
 
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: DATABASE_URL });

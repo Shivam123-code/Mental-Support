@@ -1,11 +1,45 @@
 import { NextResponse } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/server/rate-limit";
 
 export async function POST(req: Request) {
+  // V-05 + V-04 FIX: Rate limit chat — 30 requests per minute per IP
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`chat:${ip}`, 30, 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
+  }
+
   try {
     const { messages } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid messages array" }, { status: 400 });
+    }
+
+    // V-05 FIX: Cap message history to prevent cost abuse
+    const MAX_MESSAGES = 20;
+    if (messages.length > MAX_MESSAGES) {
+      return NextResponse.json(
+        { error: `Too many messages. Maximum allowed is ${MAX_MESSAGES}.` },
+        { status: 400 }
+      );
+    }
+
+    // V-05 FIX: Validate each message — must be string, max 2000 chars
+    const MAX_MSG_LENGTH = 2000;
+    const allValid = messages.every(
+      (m: unknown) =>
+        m !== null &&
+        typeof m === "object" &&
+        typeof (m as Record<string, unknown>).content === "string" &&
+        typeof (m as Record<string, unknown>).role === "string" &&
+        ((m as Record<string, unknown>).content as string).length <= MAX_MSG_LENGTH
+    );
+    if (!allValid) {
+      return NextResponse.json(
+        { error: `Each message must be a string under ${MAX_MSG_LENGTH} characters.` },
+        { status: 400 }
+      );
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -43,7 +77,8 @@ Example response format:
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "http://localhost:3000",
+        // V-07 FIX: Use env variable instead of hardcoded localhost
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://kleverklues.com",
         "X-Title": "KleverKlues",
       },
       body: JSON.stringify({
