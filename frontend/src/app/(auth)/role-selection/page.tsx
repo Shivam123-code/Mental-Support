@@ -3,118 +3,201 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, type Variants } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, Briefcase, Building2, ArrowRight, Shield, Heart, Loader2, Truck } from "lucide-react";
+import {
+  User, Briefcase, Building2, ArrowRight, Shield, Heart,
+  Loader2, Truck, Sparkles, Lock, CheckCircle, Globe, Star,
+} from "lucide-react";
 
-// Top row — 3 primary user-facing roles
-const primaryRoles = [
+// ─── Role data ───────────────────────────────────────────────
+const roles = [
   {
     id: "individual",
     icon: User,
+    emoji: "🧠",
     title: "I Need Support",
-    subtitle: "Individual / User",
-    description: "Get emotional support, take assessments, join programs, and connect with verified professionals.",
-    features: ["Free assessments", "Book sessions", "Join community", "Track progress"],
+    subtitle: "Individual · User",
+    description: "Get emotional support, take free assessments, join programs, and connect with verified professionals — privately.",
+    features: ["Free mental health assessments", "Book 1-on-1 sessions", "Join support community", "Track your progress"],
     href: "/login/user",
-    color: "bg-[var(--primary-fixed)]",
-    iconColor: "text-[var(--primary)]",
-    borderHover: "hover:border-[var(--primary-bright)]",
+    accentClass: "bg-[var(--primary-fixed)]",
+    iconClass: "text-[var(--primary)]",
+    glowClass: "shadow-[0_0_40px_-8px_var(--primary-bright)]",
+    badgeClass: "bg-[var(--primary-fixed)] text-[var(--primary)]",
+    hoverBorder: "hover:border-[var(--primary-bright)]",
+    ctaClass: "text-[var(--primary)]",
+    tag: "Most Popular",
   },
   {
     id: "professional",
     icon: Briefcase,
+    emoji: "🩺",
     title: "I'm a Professional",
-    subtitle: "Counsellor / Psychologist / Coach",
-    description: "Join our network of verified professionals. Help others while growing your practice.",
-    features: ["Get verified", "Manage sessions", "Grow your practice", "Earn respectfully"],
+    subtitle: "Counsellor · Psychologist · Coach",
+    description: "Join our verified network. Grow your practice, manage sessions, and earn while making a meaningful difference.",
+    features: ["Get clinically verified", "Manage your calendar", "Grow your client base", "DPDP-compliant tools"],
     href: "/apply-professional",
-    color: "bg-[var(--tertiary-fixed)]",
-    iconColor: "text-[var(--tertiary)]",
-    borderHover: "hover:border-[var(--tertiary-bright)]",
+    accentClass: "bg-[var(--tertiary-fixed)]",
+    iconClass: "text-[var(--tertiary)]",
+    glowClass: "shadow-[0_0_40px_-8px_var(--tertiary-bright)]",
+    badgeClass: "bg-[var(--tertiary-fixed)] text-[var(--tertiary)]",
+    hoverBorder: "hover:border-[var(--tertiary-bright)]",
+    ctaClass: "text-[var(--tertiary)]",
+    tag: "Apply Now",
   },
-  {
-    id: "admin",
-    icon: Shield,
-    title: "Platform Admin",
-    subtitle: "Administrator / Safety Team",
-    description: "Monitor platform health, verify professionals, oversee clinical governance, and audit safety logs.",
-    features: ["System analytics", "Safety escalations", "Consultant verification", "Manage resources"],
-    href: "/login/admin",
-    color: "bg-indigo-50 dark:bg-indigo-950/30",
-    iconColor: "text-indigo-600 dark:text-indigo-400",
-    borderHover: "hover:border-indigo-500",
-  },
-];
-
-// Bottom row — 2 organisational roles, centred
-const orgRoles = [
   {
     id: "enterprise",
     icon: Building2,
+    emoji: "🏢",
     title: "For My Organization",
-    subtitle: "Enterprise / Institution",
-    description: "Workforce wellbeing solutions. Reduce burnout, improve engagement, build resilient teams.",
-    features: ["Employee Assistance", "Burnout analytics", "Wellbeing dashboards", "Custom programs"],
+    subtitle: "Enterprise · Institution",
+    description: "Workforce wellbeing at scale. Reduce burnout, track engagement, and build resilient teams with custom programs.",
+    features: ["Employee Assistance Program", "Burnout risk analytics", "Wellbeing dashboards", "Dedicated account manager"],
     href: "/apply-organization",
-    color: "bg-[var(--secondary-fixed)]",
-    iconColor: "text-[var(--secondary)]",
-    borderHover: "hover:border-[var(--secondary-muted)]",
+    accentClass: "bg-[var(--secondary-fixed)]",
+    iconClass: "text-[var(--secondary)]",
+    glowClass: "shadow-[0_0_40px_-8px_#567F77]",
+    badgeClass: "bg-[var(--secondary-fixed)] text-[var(--secondary)]",
+    hoverBorder: "hover:border-[var(--secondary-muted)]",
+    ctaClass: "text-[var(--secondary)]",
+    tag: "Enterprise",
   },
   {
     id: "vendor",
     icon: Truck,
+    emoji: "🚐",
     title: "I'm a Vendor",
-    subtitle: "Field Responder / Support Unit",
-    description: "Join our emergency dispatch network. Get alerted when someone nearby needs urgent on-ground support.",
-    features: ["Real-time SOS alerts", "GPS dispatch", "Case tracking", "Direct coordination"],
+    subtitle: "Field Responder · Support Unit",
+    description: "Join our emergency dispatch network. Get real-time SOS alerts and coordinate on-ground support when it matters most.",
+    features: ["Real-time SOS dispatch", "GPS coordination", "Live case tracking", "Direct admin coordination"],
     href: "/login/vendor",
-    color: "bg-orange-50 dark:bg-orange-950/30",
-    iconColor: "text-orange-600 dark:text-orange-400",
-    borderHover: "hover:border-orange-500",
+    accentClass: "bg-orange-50",
+    iconClass: "text-orange-600",
+    glowClass: "shadow-[0_0_40px_-8px_#f97316]",
+    badgeClass: "bg-orange-50 text-orange-700",
+    hoverBorder: "hover:border-orange-400",
+    ctaClass: "text-orange-600",
+    tag: "Responder",
+  },
+  {
+    id: "admin",
+    icon: Shield,
+    emoji: "🛡️",
+    title: "Platform Admin",
+    subtitle: "Administrator · Safety Team",
+    description: "Monitor platform health, verify professionals, oversee clinical governance, and manage safety escalations.",
+    features: ["System analytics", "Safety escalations", "Verification center", "Audit & compliance"],
+    href: "/login/admin",
+    accentClass: "bg-indigo-50",
+    iconClass: "text-indigo-600",
+    glowClass: "shadow-[0_0_40px_-8px_#6366f1]",
+    badgeClass: "bg-indigo-50 text-indigo-700",
+    hoverBorder: "hover:border-indigo-400",
+    ctaClass: "text-indigo-600",
+    tag: "Secure Access",
   },
 ];
 
-function RoleCard({ role }: { role: (typeof primaryRoles)[0] }) {
+const signInLinks = [
+  { label: "User", href: "/login/user", color: "text-[var(--primary)]" },
+  { label: "Professional", href: "/login/professional", color: "text-[var(--tertiary)]" },
+  { label: "Enterprise", href: "/login/enterprise", color: "text-[var(--secondary)]" },
+  { label: "Vendor", href: "/login/vendor", color: "text-orange-600" },
+  { label: "Admin", href: "/login/admin", color: "text-indigo-600" },
+];
+
+const trustTags = [
+  { icon: "🕶️", label: "Anonymous Mode" },
+  { icon: "✅", label: "Verified Professionals" },
+  { icon: "🆘", label: "24×7 Crisis Support" },
+  { icon: "🔒", label: "DPDP & Privacy Ready" },
+  { icon: "🌐", label: "Multilingual" },
+  { icon: "🤖", label: "AI-Assisted Guidance" },
+];
+
+// ─── Framer variants ──────────────────────────────────────────
+const containerVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } as any,
+};
+
+// custom-prop variant — Variants type doesn't support function values, cast accordingly
+const cardVariants = {
+  hidden: { opacity: 0, y: 32, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0, scale: 1,
+    transition: { duration: 0.5, delay: i * 0.08, ease: "easeOut" },
+  }),
+} as Variants;
+
+// ─── Role Card ───────────────────────────────────────────────
+function RoleCard({ role, index }: { role: typeof roles[0]; index: number }) {
   return (
-    <Link
-      href={role.href}
-      className={`card group ${role.borderHover} hover:-translate-y-1 transition-all duration-300 flex flex-col`}
+    <motion.div
+      custom={index}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover={{ y: -6, transition: { duration: 0.2 } }}
     >
-      <div className={`w-14 h-14 ${role.color} rounded-2xl flex items-center justify-center mb-5`}>
-        <role.icon size={26} className={role.iconColor} />
-      </div>
-      <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-1 group-hover:text-[var(--primary)] transition-colors">
-        {role.title}
-      </h2>
-      <p className="text-xs text-[var(--on-surface-variant)] mb-3 font-medium uppercase tracking-wide">
-        {role.subtitle}
-      </p>
-      <p className="text-sm text-[var(--on-surface-variant)] leading-relaxed mb-5 flex-1">
-        {role.description}
-      </p>
-      <ul className="space-y-2 mb-6">
-        {role.features.map((feature) => (
-          <li key={feature} className="flex items-center gap-2 text-xs text-[var(--on-surface-variant)]">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary-bright)]" />
-            {feature}
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center gap-2 text-[var(--primary)] font-semibold text-sm mt-auto group-hover:gap-3 transition-all">
-        Continue <ArrowRight size={14} />
-      </div>
-    </Link>
+      <Link
+        href={role.href}
+        className={`group relative flex flex-col h-full bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)]/60 rounded-3xl p-6 transition-all duration-300 hover:shadow-xl ${role.hoverBorder} ${role.glowClass} hover:border-opacity-100`}
+      >
+        {/* Tag badge */}
+        <span className={`absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${role.badgeClass}`}>
+          {role.tag}
+        </span>
+
+        {/* Icon */}
+        <div className={`w-14 h-14 ${role.accentClass} rounded-2xl flex items-center justify-center mb-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+          <role.icon size={26} className={role.iconClass} />
+        </div>
+
+        {/* Text */}
+        <h2 className="text-lg font-bold text-[var(--on-surface)] mb-1 leading-snug">
+          {role.title}
+        </h2>
+        <p className="text-[11px] text-[var(--on-surface-variant)] font-semibold uppercase tracking-widest mb-3">
+          {role.subtitle}
+        </p>
+        <p className="text-sm text-[var(--on-surface-variant)] leading-relaxed mb-5 flex-1">
+          {role.description}
+        </p>
+
+        {/* Features */}
+        <ul className="space-y-1.5 mb-6">
+          {role.features.map((f) => (
+            <li key={f} className="flex items-center gap-2 text-xs text-[var(--on-surface-variant)]">
+              <CheckCircle size={12} className={`${role.iconClass} flex-shrink-0`} />
+              {f}
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA */}
+        <div className={`flex items-center gap-2 text-sm font-bold mt-auto ${role.ctaClass} group-hover:gap-3 transition-all duration-300`}>
+          Get Started
+          <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
+        </div>
+      </Link>
+    </motion.div>
   );
 }
 
+// ─── Page ────────────────────────────────────────────────────
 export default function RoleSelection() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.replace('/');
-    }
+    if (!authLoading && isAuthenticated) router.replace("/");
   }, [isAuthenticated, authLoading, router]);
 
   if (authLoading || isAuthenticated) {
@@ -126,74 +209,117 @@ export default function RoleSelection() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-72px)] bg-[var(--surface)] flex flex-col">
-      {/* Header */}
-      <div className="pt-12 sm:pt-16 pb-8 sm:pb-12 text-center px-4 sm:px-6">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <img src="/logo.jpg" alt="KleverKlues" width={36} height={36} className="object-contain" />
-          <span className="text-lg font-display font-medium text-[var(--on-surface)]">KleverKlues&trade;</span>
+    <div className="min-h-screen bg-gradient-to-br from-[var(--surface-container-low)] via-[var(--surface)] to-[var(--surface-container-lowest)] flex flex-col">
+
+      {/* ── Decorative background glows (same as homepage hero) ── */}
+      <div className="fixed top-1/4 left-1/4 w-[500px] h-[500px] bg-[var(--primary-bright)]/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[var(--tertiary-bright)]/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* ── Hero header ── */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 pt-14 sm:pt-20 pb-10 text-center px-6"
+      >
+        {/* Pill badge */}
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut", delay: 0 }} className="flex justify-center mb-6">
+          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 border border-[var(--outline-variant)] rounded-full text-xs font-semibold text-[var(--primary)] bg-[var(--surface-container-low)]/70 backdrop-blur-sm">
+            <Sparkles size={12} className="text-[var(--primary-bright)]" />
+            Human Wellbeing Ecosystem
+          </span>
+        </motion.div>
+
+        {/* Logo + wordmark */}
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }} className="flex items-center justify-center gap-2.5 mb-6">
+          <img src="/logo.jpg" alt="KleverKlues" width={40} height={40} className="rounded-xl object-contain shadow-sm" />
+          <span className="text-xl font-display font-semibold text-[var(--on-surface)]">KleverKlues&trade;</span>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+          className="text-4xl sm:text-5xl lg:text-6xl font-display font-semibold text-[var(--on-surface)] leading-[1.1] tracking-tight max-w-3xl mx-auto mb-4"
+        >
+          Who are you here{" "}
+          <span className="font-serif italic font-normal text-[var(--primary-bright)]">today?</span>
+        </motion.h1>
+
+        {/* Sub */}
+        <motion.p
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
+          className="text-base sm:text-lg text-[var(--on-surface-variant)] max-w-xl mx-auto leading-relaxed"
+        >
+          Choose the option that best describes you. Private, secure, and judgment-free from the very first step.
+        </motion.p>
+      </motion.div>
+
+      {/* ── Role cards grid ── */}
+      <div className="relative z-10 flex-1 px-5 sm:px-8 pb-10 max-w-[1280px] w-full mx-auto">
+
+        {/* Top 3 */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-5">
+          {roles.slice(0, 3).map((role, i) => (
+            <RoleCard key={role.id} role={role} index={i} />
+          ))}
         </div>
-        <h1 className="text-headline-lg text-[var(--on-surface)] mb-3">
-          How would you like to use KleverKlues&trade;?
-        </h1>
-        <p className="text-body-lg text-[var(--on-surface-variant)] max-w-xl mx-auto">
-          Choose the option that best describes you. You can always change this later.
-        </p>
+
+        {/* Bottom 2 — centred */}
+        <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-5">
+          {roles.slice(3).map((role, i) => (
+            <div key={role.id} className="w-full sm:max-w-[400px]">
+              <RoleCard role={role} index={i + 3} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Role Cards — 2-row layout */}
-      <div className="flex-1 flex items-start justify-center px-4 sm:px-6 pb-12 sm:pb-20">
-        <div className="w-full max-w-6xl space-y-6">
-
-          {/* Row 1: 3 primary roles */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {primaryRoles.map((role) => (
-              <RoleCard key={role.id} role={role} />
+      {/* ── Trust tag strip (same capsule row as homepage) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, delay: 0.7, ease: "easeOut" }}
+        className="relative z-10 px-6 pt-4 pb-6"
+      >
+        <div className="max-w-[1280px] mx-auto border-t border-[var(--outline-variant)]/30 pt-6">
+          <div className="flex flex-wrap justify-center gap-3">
+            {trustTags.map((tag) => (
+              <span
+                key={tag.label}
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-[var(--outline-variant)]/60 rounded-full text-xs font-semibold text-[var(--on-surface-variant)] bg-white/40 backdrop-blur-sm hover:bg-white/70 hover:text-[var(--primary)] hover:border-[var(--primary-bright)]/40 transition-all cursor-default"
+              >
+                <span>{tag.icon}</span>
+                {tag.label}
+              </span>
             ))}
           </div>
-
-          {/* Row 2: 2 organisational roles, centred */}
-          <div className="flex justify-center gap-4 sm:gap-6">
-            {orgRoles.map((role) => (
-              <div key={role.id} className="w-full max-w-sm">
-                <RoleCard role={role} />
-              </div>
-            ))}
-          </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Trust indicators */}
-      <div className="pb-6 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--on-surface-variant)]">
-        <span className="flex items-center gap-1.5">
-          <Shield size={13} className="text-[var(--primary)]" />
-          100% Private & Secure
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Heart size={13} className="text-[var(--primary)]" />
-          No Judgment, Ever
-        </span>
-        <span className="flex items-center gap-1.5">
-          <User size={13} className="text-[var(--primary)]" />
-          Anonymous Mode Available
-        </span>
-      </div>
-
-      {/* Sign-in links */}
-      <div className="text-center pb-10 text-sm text-[var(--on-surface-variant)] space-y-3 px-4">
-        <p>Already have an account? Choose your sign in portal:</p>
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
-          <Link href="/login/user" className="text-[var(--primary)] hover:underline">User Sign In</Link>
-          <span>&bull;</span>
-          <Link href="/login/professional" className="text-[var(--tertiary)] hover:underline">Professional Sign In</Link>
-          <span>&bull;</span>
-          <Link href="/login/enterprise" className="text-[var(--secondary)] hover:underline">Enterprise Sign In</Link>
-          <span>&bull;</span>
-          <Link href="/login/vendor" className="text-orange-600 hover:underline">Vendor Sign In</Link>
-          <span>&bull;</span>
-          <Link href="/login/admin" className="text-indigo-600 hover:underline">Admin Sign In</Link>
+      {/* ── Sign-in links ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+        className="relative z-10 text-center pb-10 px-5"
+      >
+        <p className="text-sm text-[var(--on-surface-variant)] mb-3">Already have an account?</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-bold">
+          {signInLinks.map((link, i) => (
+            <span key={link.href} className="flex items-center gap-5">
+              <Link href={link.href} className={`${link.color} hover:underline underline-offset-2`}>
+                {link.label} Sign In
+              </Link>
+              {i < signInLinks.length - 1 && <span className="text-[var(--outline-variant)]">·</span>}
+            </span>
+          ))}
         </div>
-      </div>
+      </motion.div>
+
     </div>
   );
 }

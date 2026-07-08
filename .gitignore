@@ -24,3 +24,7 @@ frontend/.env*
 
 # debug logs
 *.log*
+
+# tools
+.gemini/
+graphify-out/

@@ -1,8 +1,12 @@
 "use client";
 
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function QuickExit() {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/dashboard/admin")) return null;
+
   const handleQuickExit = () => {
     window.location.replace("https://www.google.com");
   };

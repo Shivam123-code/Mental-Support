@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.next/
+.git/
+graphify-out/
+vendor/
+*.generated.py
+*.generated.ts
+*.generated.js
+prisma/migrations/
+public/
+tsconfig.tsbuildinfo
+package-lock.json
+*.lock
+*.md
+*.pdf

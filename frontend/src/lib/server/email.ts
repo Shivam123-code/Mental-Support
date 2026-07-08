@@ -182,3 +182,74 @@ export async function sendRejectionEmail(to: string, name: string, reason: strin
   `;
   await send(to, subject, html);
 }
+
+export async function sendAdminCreatedAccountEmail(
+  to: string,
+  name: string,
+  tempPassword: string,
+  role: string,
+  resetLink: string
+): Promise<void> {
+  const roleLabel =
+    role === 'PROFESSIONAL' ? 'Professional'
+    : role === 'ENTERPRISE' ? 'Enterprise Organization'
+    : role === 'VENDOR' ? 'Vendor / Field Responder'
+    : 'Member';
+
+  const subject = 'Your KleverKlues Account Has Been Created';
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+      <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;border-radius:10px 10px 0 0;text-align:center;">
+        <h1 style="color:#fff;margin:0;font-size:24px;">KleverKlues&#8482;</h1>
+        <p style="color:#c7d2fe;margin:4px 0 0;font-size:13px;">Human Wellbeing Ecosystem</p>
+      </div>
+      <div style="background:#fff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;border-top:none;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="display:inline-block;background:#ede9fe;border-radius:50%;padding:16px;margin-bottom:12px;">
+            <span style="font-size:36px;">🎉</span>
+          </div>
+          <h2 style="color:#111827;font-size:22px;margin:0;">Welcome, ${name}!</h2>
+          <p style="color:#4b5563;margin:8px 0 0;font-size:14px;">
+            Your KleverKlues account has been created by an administrator.<br/>
+            You have been added as a <strong style="color:#4f46e5;">${roleLabel}</strong>.
+          </p>
+        </div>
+
+        <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:20px;margin:20px 0;">
+          <p style="color:#6b21a8;font-weight:700;font-size:14px;margin:0 0 10px;">&#128231; Your Login Email</p>
+          <p style="color:#1e1b4b;font-family:monospace;font-size:15px;margin:0 0 16px;background:#ede9fe;padding:10px 14px;border-radius:6px;">${to}</p>
+          <p style="color:#6b21a8;font-weight:700;font-size:14px;margin:0 0 10px;">&#128273; Temporary Password</p>
+          <p style="color:#1e1b4b;font-family:monospace;font-size:18px;font-weight:900;letter-spacing:2px;margin:0;background:#fef3c7;border:2px dashed #f59e0b;padding:12px 18px;border-radius:8px;text-align:center;">${tempPassword}</p>
+        </div>
+
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${resetLink}"
+             style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px;">
+            Set Your Own Password &rarr;
+          </a>
+        </div>
+
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px;margin-top:20px;">
+          <p style="color:#c2410c;font-size:13px;margin:0;font-weight:600;">&#9888;&#65039; Security Notice</p>
+          <p style="color:#9a3412;font-size:13px;margin:6px 0 0;">
+            This temporary password expires in <strong>24 hours</strong>. Please change it on first login.
+          </p>
+        </div>
+
+        <p style="color:#6b7280;font-size:13px;margin-top:20px;">
+          Or copy this password reset link into your browser:<br/>
+          <span style="background:#f1f5f9;padding:6px 10px;border-radius:6px;font-size:11px;word-break:break-all;color:#4f46e5;display:inline-block;margin-top:4px;">${resetLink}</span>
+        </p>
+
+        <p style="color:#6b7280;font-size:13px;margin-top:16px;">
+          If you did not expect this email, please contact <a href="mailto:support@kleverklues.com" style="color:#4f46e5;">support@kleverklues.com</a>.
+        </p>
+      </div>
+      <p style="text-align:center;color:#9ca3af;font-size:11px;margin:16px 0 0;">
+        &#169; ${new Date().getFullYear()} KleverKlues&#8482; &middot; This email was sent to ${to}
+      </p>
+    </div>
+  `;
+
+  await send(to, subject, html);
+}
