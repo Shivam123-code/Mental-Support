@@ -21,12 +21,17 @@ const adapter = new PrismaPg(connectionString);
 const prisma = new PrismaClient({ adapter });
 
 const PORT = process.env.PORT || 3001;
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+const isDev = (process.env.NODE_ENV || 'development') === 'development';
 
+// In dev: allow all origins so any localhost port works.
+// In prod: read ALLOWED_ORIGINS from env — add your live frontend URL there.
+const corsOrigin = isDev
+  ? true  // socket.io accepts boolean true as "reflect any origin"
+  : (process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['http://localhost:3000']);
 
 // Configure CORS
 app.use(cors({
-  origin: ALLOWED_ORIGINS,
+  origin: corsOrigin as any,
   credentials: true,
 }));
 
@@ -35,7 +40,7 @@ app.use(express.json());
 // Socket.io server with CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin: corsOrigin as any,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -157,7 +162,7 @@ httpServer.listen(PORT, () => {
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
   console.log(`📊 Stats: http://localhost:${PORT}/stats`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔐 CORS Origins: ${ALLOWED_ORIGINS.join(', ')}`);
+  console.log(`🔐 CORS: ${isDev ? 'all origins (dev mode)' : JSON.stringify(corsOrigin)}`);
   console.log(`💾 DB: ${connectionString.split('@')[1] || 'configured'}`);
   console.log('🚀 ========================================');
   console.log('');

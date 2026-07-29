@@ -150,9 +150,13 @@ export default function SOSButton() {
     }).catch(() => setGeoPermission('unknown'));
   }, []);
 
-  // Read token safely on client only — avoids SSR crash
-  const [token, setToken] = useState<string | null>(null);
+  // Read token synchronously so the socket hook gets it on first render —
+  // a deferred useEffect would leave token=null and the socket would never connect.
+  const [token, setToken] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  );
   useEffect(() => {
+    // Re-sync if auth state changes (login/logout)
     setToken(localStorage.getItem('auth_token'));
   }, [isAuthenticated]);
 
@@ -586,13 +590,17 @@ export default function SOSButton() {
                   )}
 
                   {/* ── Emergency Server status ── */}
-                  <div className={`p-3 rounded-xl flex items-center justify-between text-sm ${
-                    isConnected && socketAuth ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
+                  <div className={`p-3 rounded-xl flex items-center justify-between text-sm border ${
+                    isConnected && socketAuth ? 'bg-green-50 border-green-200' : isConnected ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'
                   }`}>
                     <span className="text-gray-600 font-medium text-xs">Emergency Server</span>
-                    <span className={`flex items-center gap-1.5 font-semibold text-xs ${isConnected && socketAuth ? 'text-green-700' : 'text-amber-700'}`}>
-                      <span className={`w-2 h-2 rounded-full ${isConnected && socketAuth ? 'bg-green-500 animate-pulse' : 'bg-amber-400'}`} />
-                      {isConnected && socketAuth ? 'Connected' : isConnected ? 'Authenticating…' : 'Connecting…'}
+                    <span className={`flex items-center gap-1.5 font-semibold text-xs ${
+                      isConnected && socketAuth ? 'text-green-700' : isConnected ? 'text-amber-700' : 'text-blue-700'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full animate-pulse ${
+                        isConnected && socketAuth ? 'bg-green-500' : isConnected ? 'bg-amber-400' : 'bg-blue-400'
+                      }`} />
+                      {isConnected && socketAuth ? 'Connected' : isConnected ? 'Authenticating…' : 'Connecting… (SOS still works)'}
                     </span>
                   </div>
 

@@ -20,7 +20,8 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 10000, // exponential backoff capped at 10s
+      // ponytail: no reconnectionAttempts cap — server may just be slow to start
     });
 
     socketRef.current = socket;

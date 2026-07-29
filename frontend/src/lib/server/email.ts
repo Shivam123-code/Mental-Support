@@ -2,14 +2,21 @@ import nodemailer from 'nodemailer';
 
 // ── Transporter ───────────────────────────────────────────────────────────────
 function getTransporter() {
-  // Gmail App Passwords are shown as "xxxx xxxx xxxx xxxx" — spaces stripped automatically
+  // Gmail App Passwords are shown as "xxxx xxxx xxxx xxxx" — spaces stripped
   const pass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+  const user = process.env.EMAIL_USER;
+
+  if (!user || !pass) {
+    throw new Error(
+      'Email not configured: EMAIL_USER or EMAIL_PASS missing from .env.local'
+    );
+  }
+
   return nodemailer.createTransport({
     service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass,
-    },
+    auth: { user, pass },
+    // ponytail: connection pool off — Next.js serverless functions are short-lived
+    pool: false,
   });
 }
 
@@ -19,7 +26,22 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 // ── Helper ────────────────────────────────────────────────────────────────────
 async function send(to: string, subject: string, html: string) {
   const transporter = getTransporter();
-  await transporter.sendMail({ from: FROM, to, subject, html });
+
+  try {
+    await transporter.sendMail({ from: FROM, to, subject, html });
+    console.log(`[email] ✅ Sent "${subject}" → ${to}`);
+  } catch (err: any) {
+    // Surface the exact SMTP error — common causes:
+    // - Invalid credentials       → err.code === 'EAUTH'
+    // - Network / firewall block  → err.code === 'ECONNECTION'
+    // - Gmail quota exceeded      → responseCode 550/421
+    console.error(
+      `[email] ❌ Failed to send "${subject}" → ${to}\n` +
+      `  code: ${err.code}  responseCode: ${err.responseCode}\n` +
+      `  message: ${err.message}`
+    );
+    throw err; // re-throw so callers can handle
+  }
 }
 
 // ── Email Templates ───────────────────────────────────────────────────────────

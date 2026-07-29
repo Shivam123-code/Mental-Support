@@ -11,7 +11,7 @@ import {
   Cloud, Wind, Smile, Meh, Frown, AlertCircle, CheckCircle, Clock,
   Settings, LogOut, Shield, Compass, BookCheck, ShieldAlert, Star,
   Menu, X, Send, Eye, ShieldCheck, HeartHandshake, EyeOff, Lock,
-  ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw
+  ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw, Bell, Video
 } from 'lucide-react';
 import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 import { useSOSStatus } from '@/hooks/useSocket';
@@ -290,12 +290,14 @@ function DashboardContent() {
     { label: 'Overview', icon: LayoutDashboardIcon },
     { label: 'My Care Journey', icon: Compass },
     { label: 'Assessments', icon: Brain },
+    { label: 'My Sessions', icon: Video },
     { label: 'Programs', icon: BookCheck },
+    { label: 'Progress Tracker', icon: TrendingUp },
     { label: 'Journal', icon: BookOpen },
     { label: 'Mood Tracker', icon: Activity },
     { label: 'AI Companion', icon: Sparkles },
+    { label: 'Wellbeing Reminders', icon: Bell },
     { label: 'Community', icon: Users },
-    { label: 'Book Session', icon: Calendar },
     { label: 'Resources', icon: HeartHandshake },
     { label: 'Impact & Gratitude', icon: Award },
     { label: 'SOS Support', icon: AlertCircle, error: true },
@@ -1710,6 +1712,278 @@ function DashboardContent() {
             </div>
           )}
 
+
+          {/* ── MY SESSIONS ── */}
+          {activeTab === 'My Sessions' && (
+            <div className="space-y-6 animate-in fade-in duration-300 p-4 sm:p-6 lg:p-8">
+              <div>
+                <h2 className="text-xl font-bold font-display text-[var(--on-surface)]">My Sessions</h2>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Your therapy, coaching & support session history and upcoming bookings.</p>
+              </div>
+
+              {/* Quick Book CTA */}
+              <div className="rounded-2xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-bright)] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-white">
+                  <p className="font-bold text-sm">Book a New Session</p>
+                  <p className="text-white/70 text-xs mt-0.5">Connect with a verified counsellor, therapist, or life coach</p>
+                </div>
+                <Link href="/book-session" className="px-5 py-2.5 bg-white text-[var(--primary)] font-bold text-xs rounded-xl hover:bg-white/90 transition-all whitespace-nowrap">
+                  Browse Professionals →
+                </Link>
+              </div>
+
+              {/* Upcoming sessions */}
+              <div className="card p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Upcoming Sessions</h3>
+                {[
+                  { name: 'Dr. Ananya Rao', type: 'Cognitive Behavioural Therapy', date: 'Tomorrow, 4:00 PM', mode: 'Video', status: 'confirmed' },
+                  { name: 'Priya Sharma', type: 'Mindfulness Coaching', date: 'Aug 2, 11:00 AM', mode: 'Video', status: 'confirmed' },
+                ].map((s, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--primary)]">{s.name[0]}</div>
+                      <div>
+                        <p className="text-xs font-bold text-[var(--on-surface)]">{s.name}</p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)]">{s.type}</p>
+                        <p className="text-[10px] text-[var(--primary)] font-semibold mt-0.5">{s.date} · {s.mode}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{s.status}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Past sessions */}
+              <div className="card p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Past Sessions (Last 30 Days)</h3>
+                {[
+                  { name: 'Dr. Ananya Rao', type: 'CBT Session 3', date: 'Jul 22', rating: 5, notes: 'Worked on negative thought patterns' },
+                  { name: 'Priya Sharma', type: 'Mindfulness Intro', date: 'Jul 15', rating: 4, notes: 'Body scan & breathing exercises' },
+                  { name: 'Dr. Rahul Mehta', type: 'Stress Assessment', date: 'Jul 8', rating: 5, notes: 'GAD-7 & PHQ-9 completed' },
+                ].map((s, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row justify-between gap-3 p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[var(--secondary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--secondary)] flex-shrink-0">{s.name[0]}</div>
+                      <div>
+                        <p className="text-xs font-bold text-[var(--on-surface)]">{s.name} <span className="font-normal text-[var(--on-surface-variant)]">&mdash; {s.type}</span></p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{s.notes}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                      <span className="text-[var(--on-surface-variant)] text-[10px]">{s.date}</span>
+                      <span className="text-amber-500">{Array.from({length: s.rating}).map((_, j) => <Star key={j} size={10} fill="currentColor" />)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Session stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total Sessions', value: '12', sub: 'since joining', color: 'text-[var(--primary)]' },
+                  { label: 'Avg Rating', value: '4.8★', sub: 'across all sessions', color: 'text-amber-500' },
+                  { label: 'Hours of Care', value: '9h 40m', sub: 'invested in you', color: 'text-emerald-600' },
+                  { label: 'Therapists Met', value: '3', sub: 'unique professionals', color: 'text-indigo-600' },
+                ].map((s, i) => (
+                  <div key={i} className="card p-4 text-center">
+                    <p className={`text-xl font-bold font-display ${s.color}`}>{s.value}</p>
+                    <p className="text-[10px] font-bold text-[var(--on-surface)] mt-0.5">{s.label}</p>
+                    <p className="text-[9px] text-[var(--on-surface-variant)]">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── PROGRESS TRACKER ── */}
+          {activeTab === 'Progress Tracker' && (
+            <div className="space-y-6 animate-in fade-in duration-300 p-4 sm:p-6 lg:p-8">
+              <div>
+                <h2 className="text-xl font-bold font-display text-[var(--on-surface)]">Progress Tracker</h2>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Your wellbeing growth journey, streaks, and milestone insights.</p>
+              </div>
+
+              {/* Streak banner */}
+              <div className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-white">
+                  <div className="flex items-center gap-2 mb-1"><Zap size={18} /><span className="font-bold text-lg">14-Day Growth Streak! 🔥</span></div>
+                  <p className="text-white/80 text-xs">You've checked in every day this fortnight. Keep it going!</p>
+                </div>
+                <div className="text-right text-white">
+                  <p className="font-bold text-3xl font-display">14</p>
+                  <p className="text-[10px] text-white/70 uppercase tracking-wide">Days active</p>
+                </div>
+              </div>
+
+              {/* 4-week streak calendar */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">28-Day Check-in Calendar</h3>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {['M','T','W','T','F','S','S'].map((d, i) => <p key={i} className="text-[9px] text-center text-[var(--on-surface-variant)]/60 font-bold">{d}</p>)}
+                  {[true,true,true,true,true,false,false, true,true,true,true,true,false,false, true,true,true,true,true,true,false, true,true,true,true,true,true,true].map((done, i) => (
+                    <div key={i} className={`aspect-square rounded-md flex items-center justify-center text-[8px] font-bold ${ done ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-container)] text-[var(--on-surface-variant)]/40' }`}>
+                      {done ? '✓' : ''}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--on-surface-variant)]">20 of 28 days completed · Longest streak: 14 days</p>
+              </div>
+
+              {/* Assessment score trends */}
+              <div className="card p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Assessment Score Trends</h3>
+                {[
+                  { label: 'PHQ-9 (Depression)', trend: [14, 12, 10, 9, 7, 6], color: 'bg-[var(--primary)]', current: 6, max: 27, status: 'Improving' },
+                  { label: 'GAD-7 (Anxiety)', trend: [16, 14, 13, 11, 9, 8], color: 'bg-amber-400', current: 8, max: 21, status: 'Improving' },
+                  { label: 'PSS (Stress)', trend: [24, 22, 20, 18, 16, 15], color: 'bg-indigo-400', current: 15, max: 40, status: 'Improving' },
+                ].map((a, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-semibold text-[var(--on-surface)]">{a.label}</span>
+                      <span className="text-emerald-600 font-bold text-[10px]">↓ {a.status}</span>
+                    </div>
+                    <div className="flex items-end gap-1 h-8">
+                      {a.trend.map((v, j) => (
+                        <div key={j} className="flex-1 rounded-sm" style={{ height: `${(v / a.max) * 100}%`, background: j === a.trend.length - 1 ? 'var(--primary)' : 'var(--surface-container-high)' }} />
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[9px] text-[var(--on-surface-variant)]">
+                      <span>6 sessions ago</span><span className="font-bold text-[var(--primary)]">Now: {a.current}/{a.max}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Growth milestones */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Growth Milestones</h3>
+                {[
+                  { icon: '🏆', label: 'First Assessment Completed', date: 'Jun 10', done: true },
+                  { icon: '💬', label: '5 Sessions with a Professional', date: 'Jul 3', done: true },
+                  { icon: '📓', label: '10 Journal Entries Written', date: 'Jul 18', done: true },
+                  { icon: '🔥', label: '14-Day Check-in Streak', date: 'Jul 29', done: true },
+                  { icon: '🌟', label: 'Complete a Full Wellness Program', date: '—', done: false },
+                  { icon: '🧘', label: '30-Day Mindfulness Challenge', date: '—', done: false },
+                ].map((m, i) => (
+                  <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${m.done ? 'bg-emerald-50/60 border border-emerald-200/50' : 'bg-[var(--surface-container)] border border-[var(--outline-variant)]/20'}`}>
+                    <span className="text-lg">{m.icon}</span>
+                    <div className="flex-1">
+                      <p className={`text-xs font-semibold ${m.done ? 'text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'}`}>{m.label}</p>
+                      <p className="text-[9px] text-[var(--on-surface-variant)]">{m.done ? `Achieved ${m.date}` : 'In progress'}</p>
+                    </div>
+                    {m.done ? <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--outline-variant)] flex-shrink-0" />}
+                  </div>
+                ))}
+              </div>
+
+              {/* Wellbeing score over time */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Overall Wellbeing Score</h3>
+                <div className="flex items-end gap-2 h-16">
+                  {[42, 48, 52, 55, 61, 67, 72, 78].map((v, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full rounded-md" style={{ height: `${(v/100)*100}%`, background: i === 7 ? 'var(--primary)' : 'var(--surface-container-high)' }} />
+                      <span className="text-[8px] text-[var(--on-surface-variant)]">{['W1','W2','W3','W4','W5','W6','W7','W8'][i]}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs font-bold text-emerald-600">+36 points improvement over 8 weeks 🎉</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── WELLBEING REMINDERS ── */}
+          {activeTab === 'Wellbeing Reminders' && (
+            <div className="space-y-6 animate-in fade-in duration-300 p-4 sm:p-6 lg:p-8">
+              <div>
+                <h2 className="text-xl font-bold font-display text-[var(--on-surface)]">Wellbeing Reminders</h2>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Stay consistent with gentle daily nudges for check-ins, gratitude, and mindfulness.</p>
+              </div>
+
+              {/* Today's nudges */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Today's Reminders</h3>
+                {[
+                  { icon: '🌅', label: 'Morning Check-in', time: '8:00 AM', done: true, color: 'bg-amber-50 border-amber-200' },
+                  { icon: '🙏', label: 'Gratitude Moment', time: '12:00 PM', done: true, color: 'bg-emerald-50 border-emerald-200' },
+                  { icon: '🧘', label: 'Breathing Break', time: '3:00 PM', done: false, color: 'bg-blue-50 border-blue-200' },
+                  { icon: '📓', label: 'Evening Journal Entry', time: '9:00 PM', done: false, color: 'bg-purple-50 border-purple-200' },
+                  { icon: '😴', label: 'Sleep Wind-down Reminder', time: '10:30 PM', done: false, color: 'bg-indigo-50 border-indigo-200' },
+                ].map((r, i) => (
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${r.color}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{r.icon}</span>
+                      <div>
+                        <p className={`text-xs font-semibold ${r.done ? 'line-through text-[var(--on-surface-variant)]' : 'text-[var(--on-surface)]'}`}>{r.label}</p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)]">{r.time}</p>
+                      </div>
+                    </div>
+                    {r.done ? <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" /> : <Clock size={16} className="text-[var(--on-surface-variant)]/40 flex-shrink-0" />}
+                  </div>
+                ))}
+              </div>
+
+              {/* Reminder settings */}
+              <div className="card p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Reminder Schedule</h3>
+                {[
+                  { label: 'Daily Emotional Check-in', desc: 'A gentle morning nudge to log how you feel', enabled: true, time: '8:00 AM' },
+                  { label: 'Gratitude Prompt', desc: 'Pause and name one thing you appreciate today', enabled: true, time: '12:00 PM' },
+                  { label: 'Mindfulness Break', desc: '5-minute breathing or body scan reminder', enabled: false, time: '3:00 PM' },
+                  { label: 'Journal Reminder', desc: 'Evening reflection & private journal entry', enabled: true, time: '9:00 PM' },
+                  { label: 'Sleep Hygiene Nudge', desc: 'Wind-down reminder for better sleep quality', enabled: true, time: '10:30 PM' },
+                  { label: 'Weekly Assessment', desc: 'Quick PHQ-2 mood check every Monday', enabled: false, time: 'Mon 9:00 AM' },
+                ].map((r, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/20">
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-[var(--on-surface)]">{r.label}</p>
+                      <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{r.desc}</p>
+                      <p className="text-[10px] text-[var(--primary)] font-semibold mt-1">⏰ {r.time}</p>
+                    </div>
+                    <div className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 cursor-pointer ${ r.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--outline-variant)]' }`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${ r.enabled ? 'left-5' : 'left-0.5' }`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gratitude log */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Recent Gratitude Entries</h3>
+                {[
+                  { date: 'Today', entry: 'Grateful for a quiet morning and fresh coffee ☕' },
+                  { date: 'Yesterday', entry: 'Thankful for the support from my team today 🙏' },
+                  { date: 'Jul 27', entry: 'Grateful that my anxiety was lower this week 💚' },
+                  { date: 'Jul 26', entry: 'Appreciated the 10-minute walk I took outside 🌿' },
+                ].map((g, i) => (
+                  <div key={i} className="flex gap-3 p-3 bg-amber-50/40 rounded-xl border border-amber-100">
+                    <span className="text-base flex-shrink-0">🌟</span>
+                    <div>
+                      <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wide">{g.date}</p>
+                      <p className="text-xs text-[var(--on-surface)] mt-0.5">{g.entry}</p>
+                    </div>
+                  </div>
+                ))}
+                <button className="w-full py-2.5 border-2 border-dashed border-amber-200 text-amber-600 text-xs font-bold rounded-xl hover:bg-amber-50 transition-all">
+                  + Add Today's Gratitude
+                </button>
+              </div>
+
+              {/* Mood streak mini widget */}
+              <div className="card p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">7-Day Mood Insights</h3>
+                <div className="grid grid-cols-7 gap-2">
+                  {[{d:'M',m:'😊'},{d:'T',m:'😌'},{d:'W',m:'😰'},{d:'T',m:'😊'},{d:'F',m:'😊'},{d:'S',m:'😌'},{d:'S',m:'😊'}].map((day, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <span className="text-base">{day.m}</span>
+                      <span className="text-[9px] text-[var(--on-surface-variant)] font-bold">{day.d}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-emerald-600 font-semibold">Positive mood on 6 of 7 days this week 🎉</p>
+              </div>
+            </div>
+          )}
 
         </div>
         </TabContent>
