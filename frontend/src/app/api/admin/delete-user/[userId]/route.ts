@@ -1,18 +1,16 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUserFromToken } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return unauthorizedResponse();
-
-  const admin = await getUserFromToken(token);
-  if (!admin || admin.role !== 'ADMIN') return unauthorizedResponse();
+  // Was the loosest of the copies: `replace('Bearer ', '')` is a no-op when the
+  // prefix is absent, so it forwarded a raw header value as the token.
+  const admin = await requireAdmin(req);
+  if (!admin) return unauthorizedResponse();
 
   const { userId } = await params;
   if (!userId) return errorResponse('User ID is required', 400);

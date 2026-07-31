@@ -649,23 +649,40 @@ model EmergencyAlert {
   latitude       Float
   longitude      Float
   location       Unsupported("geometry(Point, 4326)")?
+  // GPS accuracy in metres. A 1500m fix indoors means "search the block",
+  // not "knock on this door" — responders need to see the difference.
+  locationAccuracy  Float?
+  // Bumped every time the caller streams a new position. A person fleeing or in
+  // a vehicle is not where they were when they pressed the button.
+  locationUpdatedAt DateTime?
 
   // Alert details
   severity       String    // "CRITICAL", "HIGH", "MEDIUM"
   message        String?
-  status         String    @default("ACTIVE") // "ACTIVE", "ACKNOWLEDGED", "RESOLVED"
+  status         String    @default("ACTIVE") // "ACTIVE", "ACKNOWLEDGED", "RESOLVED", "CANCELLED"
 
   // Response
   acknowledgedBy String?
   acknowledgedAt DateTime?
   resolvedAt     DateTime?
+  // Set when the dispatch chain found nobody and a human was paged. An alert
+  // that runs out of vendors must never simply stop.
+  escalatedAt    DateTime?
+  cancelledAt    DateTime?
+  // A vendor marking RESOLVED is a claim, not proof. Until the caller confirms,
+  // the case stays reviewable.
+  resolutionConfirmedAt DateTime?
 
   // Vendor Dispatch
   assignedVendorId  String?                                      // which vendor was assigned
   assignedVendor    User?     @relation("VendorAssignments", fields: [assignedVendorId], references: [id])
   vendorAssignedAt  DateTime?                                    // when vendor was first alerted
   vendorAcceptedAt  DateTime?                                    // when vendor tapped Accept
-  dispatchStatus    String    @default("PENDING")                // PENDING | SEARCHING | VENDOR_ALERTED | VENDOR_ACCEPTED | EN_ROUTE | RESOLVED
+  // PENDING | SEARCHING | VENDOR_ALERTED | VENDOR_ACCEPTED | EN_ROUTE | NEARBY
+  // | ARRIVED | RESOLVED | ESCALATED | CANCELLED
+  dispatchStatus    String    @default("PENDING")
+
+  dispatchLogs   SosDispatchLog[]
 
   createdAt      DateTime  @default(now())
 
@@ -674,6 +691,33 @@ model EmergencyAlert {
   @@index([userId])
   @@index([assignedVendorId])
   @@index([dispatchStatus])
+  // Supports the bounding-box prefilter when finding nearby vendors, and the
+  // "does this caller already have an open alert?" dedupe check.
+  @@index([userId, status])
+}
+
+/// Append-only record of every dispatch decision for one alert.
+///
+/// Without this there is no answer to "why did help take twenty minutes" —
+/// the alert row only shows the final state, not who was paged and ignored it.
+/// Also the source of truth for vendor reliability stats.
+model SosDispatchLog {
+  id        String   @id @default(cuid())
+  alertId   String
+  alert     EmergencyAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  vendorId  String?  // null for alert-level events (created, escalated, cancelled)
+  // PINGED | ACCEPTED | DECLINED | TIMEOUT | ARRIVED | RESOLVED | ESCALATED
+  // | NO_VENDORS | CANCELLED | CREATED | LOCATION_UPDATE | CALLER_OFFLINE
+  event     String
+  detail    String?
+  distanceKm Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+  @@index([vendorId])
+  @@index([event])
 }
 
 // ============================================
@@ -766,11 +810,26 @@ model VendorProfile {
   isOnline            Boolean   @default(false)  // vendor toggled ON in dashboard
   isAvailable         Boolean   @default(true)   // false when actively handling a case
 
+  // Reliability counters, denormalised from SosDispatchLog for fast ranking.
+  // Distance alone is the wrong sort key: a vendor who ignores every ping stays
+  // permanently first in line just for being closest.
+  pingCount           Int       @default(0)
+  acceptCount         Int       @default(0)
+  lastPingedAt        DateTime?
+
+  // Contact channels for out-of-band dispatch. A socket emit only lands if a
+  // browser tab is open, which for a responder on the move it usually is not.
+  pushSubscription    String?   // Web Push subscription JSON
+  smsOptOut           Boolean   @default(false)
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   @@index([isOnline])
   @@index([isAvailable])
+  // Bounding-box prefilter: without this, finding nearby vendors scans every
+  // online vendor and computes Haversine in JS for each one.
+  @@index([isOnline, isAvailable, latitude, longitude])
 }
 model OrganizationApplication {
   id                  String            @id @default(cuid())

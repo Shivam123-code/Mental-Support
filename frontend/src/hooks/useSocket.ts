@@ -29,7 +29,8 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
     socket.on('connect', () => {
       console.log('✅ Socket connected');
       setIsConnected(true);
-      socket.emit('authenticate', { userId, role, token });
+      // Only the token is sent — the server derives userId and role from it.
+      socket.emit('authenticate', { token });
     });
 
     socket.on('authenticated', (data: { success: boolean }) => {
@@ -73,6 +74,8 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string, 
   const sendSOS = async (data: {
     latitude: number;
     longitude: number;
+    /** GPS radius in metres, so responders know how precise the pin is. */
+    accuracy?: number;
     message?: string;
     severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   }) => {
@@ -84,7 +87,6 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string, 
 
     return new Promise((resolve, reject) => {
       socket.emit('emergency:sos', {
-        userId,
         ...data,
         severity: data.severity || 'CRITICAL',
       });
@@ -210,12 +212,12 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
 
   const acknowledgeAlert = (alertId: string) => {
     if (!socket) return;
-    socket.emit('emergency:acknowledge', { alertId, adminId });
+    socket.emit('emergency:acknowledge', { alertId });
   };
 
   const resolveAlert = (alertId: string) => {
     if (!socket) return;
-    socket.emit('emergency:resolve', { alertId, adminId });
+    socket.emit('emergency:resolve', { alertId });
   };
 
   return {

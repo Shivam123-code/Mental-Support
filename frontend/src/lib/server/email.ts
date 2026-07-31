@@ -12,16 +12,44 @@ function getTransporter() {
     );
   }
 
-  return nodemailer.createTransport({
-    service: 'gmail',
+  // Explicit host/port rather than the `service: 'gmail'` shorthand — these are
+  // exactly the values nodemailer's own well-known table resolves Gmail to.
+  const options = {
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: { user, pass },
     // ponytail: connection pool off — Next.js serverless functions are short-lived
     pool: false,
-  });
+  };
+
+  // ponytail: cast needed because nodemailer was upgraded to 9.0.3 for the fix to
+  // GHSA-p6gq-j5cr-w38f, but DefinitelyTyped has not published
+  // @types/nodemailer@9 and v9 ships no types of its own, so the v8 typings no
+  // longer match createTransport's signature. Ceiling — this one call is
+  // unchecked. Upgrade path: drop the cast when @types/nodemailer@9 lands.
+  return nodemailer.createTransport(options as never);
 }
 
 const FROM = `"KleverKlues" <${process.env.EMAIL_USER || 'noreply@kleverklues.com'}>`;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+/**
+ * Escape a value before interpolating it into email HTML.
+ *
+ * Names and rejection reasons reach these templates from unauthenticated forms,
+ * so raw interpolation let an applicant inject markup (e.g. a phishing link) into
+ * mail we then send, SPF/DKIM-signed, from our own domain. Entities render as the
+ * original characters, so escaped text still reads and copies correctly.
+ */
+function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 async function send(to: string, subject: string, html: string) {
@@ -55,7 +83,7 @@ export async function sendApplicationReceivedEmail(to: string, name: string, app
         <p style="color:#c7d2fe;margin:4px 0 0;font-size:13px;">Human Wellbeing Ecosystem</p>
       </div>
       <div style="background:#fff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;border-top:none;">
-        <h2 style="color:#111827;font-size:20px;">Thank you, ${name}!</h2>
+        <h2 style="color:#111827;font-size:20px;">Thank you, ${esc(name)}!</h2>
         <p style="color:#4b5563;font-size:15px;line-height:1.6;">
           We have received your ${appType === 'professional' ? 'professional therapist' : 'enterprise organization'} verification application.
           Our team will review your documents and credentials within <strong>2–3 business days</strong>.
@@ -98,7 +126,7 @@ export async function sendApprovalEmail(
           <div style="display:inline-block;background:#dcfce7;border-radius:50%;padding:16px;margin-bottom:12px;">
             <span style="font-size:36px;">✅</span>
           </div>
-          <h2 style="color:#166534;font-size:22px;margin:0;">Congratulations, ${name}!</h2>
+          <h2 style="color:#166534;font-size:22px;margin:0;">Congratulations, ${esc(name)}!</h2>
           <p style="color:#4b5563;margin:8px 0 0;">Your ${dashboardName} application has been <strong style="color:#16a34a;">APPROVED</strong>.</p>
         </div>
         <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:20px;margin:20px 0;">
@@ -106,11 +134,11 @@ export async function sendApprovalEmail(
           <table style="width:100%;font-size:14px;">
             <tr>
               <td style="color:#64748b;padding:4px 0;width:120px;">Email:</td>
-              <td style="color:#0f172a;font-weight:600;font-family:monospace;">${loginEmail}</td>
+              <td style="color:#0f172a;font-weight:600;font-family:monospace;">${esc(loginEmail)}</td>
             </tr>
             <tr>
               <td style="color:#64748b;padding:4px 0;">Password:</td>
-              <td style="color:#0f172a;font-weight:600;font-family:monospace;background:#fef3c7;padding:4px 8px;border-radius:4px;">${tempPassword}</td>
+              <td style="color:#0f172a;font-weight:600;font-family:monospace;background:#fef3c7;padding:4px 8px;border-radius:4px;">${esc(tempPassword)}</td>
             </tr>
           </table>
         </div>
@@ -187,14 +215,14 @@ export async function sendRejectionEmail(to: string, name: string, reason: strin
         <h1 style="color:#fff;margin:0;font-size:24px;">KleverKlues™</h1>
       </div>
       <div style="background:#fff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;border-top:none;">
-        <h2 style="color:#111827;">Dear ${name},</h2>
+        <h2 style="color:#111827;">Dear ${esc(name)},</h2>
         <p style="color:#4b5563;line-height:1.6;">
           After careful review, we are unable to approve your ${appType === 'professional' ? 'professional' : 'organization'} application at this time.
         </p>
         ${reason ? `
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0;">
           <p style="color:#991b1b;font-weight:600;font-size:14px;margin:0 0 6px;">Reason:</p>
-          <p style="color:#b91c1c;font-size:14px;margin:0;">${reason}</p>
+          <p style="color:#b91c1c;font-size:14px;margin:0;">${esc(reason)}</p>
         </div>` : ''}
         <p style="color:#4b5563;font-size:14px;">
           You may re-apply after addressing the above issues. Contact <a href="mailto:support@kleverklues.com" style="color:#4f46e5;">support@kleverklues.com</a>
@@ -230,7 +258,7 @@ export async function sendAdminCreatedAccountEmail(
           <div style="display:inline-block;background:#ede9fe;border-radius:50%;padding:16px;margin-bottom:12px;">
             <span style="font-size:36px;">🎉</span>
           </div>
-          <h2 style="color:#111827;font-size:22px;margin:0;">Welcome, ${name}!</h2>
+          <h2 style="color:#111827;font-size:22px;margin:0;">Welcome, ${esc(name)}!</h2>
           <p style="color:#4b5563;margin:8px 0 0;font-size:14px;">
             Your KleverKlues account has been created by an administrator.<br/>
             You have been added as a <strong style="color:#4f46e5;">${roleLabel}</strong>.
@@ -239,9 +267,9 @@ export async function sendAdminCreatedAccountEmail(
 
         <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:20px;margin:20px 0;">
           <p style="color:#6b21a8;font-weight:700;font-size:14px;margin:0 0 10px;">&#128231; Your Login Email</p>
-          <p style="color:#1e1b4b;font-family:monospace;font-size:15px;margin:0 0 16px;background:#ede9fe;padding:10px 14px;border-radius:6px;">${to}</p>
+          <p style="color:#1e1b4b;font-family:monospace;font-size:15px;margin:0 0 16px;background:#ede9fe;padding:10px 14px;border-radius:6px;">${esc(to)}</p>
           <p style="color:#6b21a8;font-weight:700;font-size:14px;margin:0 0 10px;">&#128273; Temporary Password</p>
-          <p style="color:#1e1b4b;font-family:monospace;font-size:18px;font-weight:900;letter-spacing:2px;margin:0;background:#fef3c7;border:2px dashed #f59e0b;padding:12px 18px;border-radius:8px;text-align:center;">${tempPassword}</p>
+          <p style="color:#1e1b4b;font-family:monospace;font-size:18px;font-weight:900;letter-spacing:2px;margin:0;background:#fef3c7;border:2px dashed #f59e0b;padding:12px 18px;border-radius:8px;text-align:center;">${esc(tempPassword)}</p>
         </div>
 
         <div style="text-align:center;margin:24px 0;">
@@ -268,7 +296,7 @@ export async function sendAdminCreatedAccountEmail(
         </p>
       </div>
       <p style="text-align:center;color:#9ca3af;font-size:11px;margin:16px 0 0;">
-        &#169; ${new Date().getFullYear()} KleverKlues&#8482; &middot; This email was sent to ${to}
+        &#169; ${new Date().getFullYear()} KleverKlues&#8482; &middot; This email was sent to ${esc(to)}
       </p>
     </div>
   `;

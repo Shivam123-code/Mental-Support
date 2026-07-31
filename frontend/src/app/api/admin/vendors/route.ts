@@ -2,17 +2,14 @@
 // Returns all vendor profiles with online/available status for the admin Vendors tab.
 
 import { NextRequest } from 'next/server';
-import { getUserFromToken } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) return unauthorizedResponse();
-    const token = authHeader.substring(7);
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'ADMIN') return unauthorizedResponse();
+    const user = await requireAdmin(request);
+    if (!user) return unauthorizedResponse();
 
     const vendors = await (prisma as any).vendorProfile.findMany({
       include: {

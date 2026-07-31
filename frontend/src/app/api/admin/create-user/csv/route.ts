@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
-import { hashPassword, getUserFromToken } from '@/lib/auth';
+import { hashPassword, requireAdmin, hashToken } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 import { sendAdminCreatedAccountEmail } from '@/lib/server/email';
 import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
@@ -10,10 +10,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = crypto.randomBytes(7);
   let result = 'Kk@';
   for (let i = 0; i < 7; i++) {
-    result += chars[bytes[i] % chars.length];
+    // randomInt is rejection-sampled, so it is uniform over the alphabet.
+    // `randomBytes[i] % chars.length` biased toward the first 36 characters,
+    // since 256 is not a multiple of 55.
+    result += chars[crypto.randomInt(chars.length)];
   }
   return result;
 }
@@ -67,11 +69,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Admin auth
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return unauthorizedResponse();
-  const token = authHeader.slice(7);
-  const admin = await getUserFromToken(token);
-  if (!admin || admin.role !== 'ADMIN') return unauthorizedResponse('Admin access required');
+  const admin = await requireAdmin(request);
+  if (!admin) return unauthorizedResponse('Admin access required');
 
   let formData: FormData;
   try {
@@ -202,7 +201,7 @@ export async function POST(request: NextRequest) {
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await prisma.passwordResetToken.create({
-        data: { userId: newUser.id, token: resetToken, expiresAt },
+        data: { userId: newUser.id, token: hashToken(resetToken), expiresAt },
       });
 
       // Fire-and-forget email

@@ -1,13 +1,16 @@
 import jwt from 'jsonwebtoken';
 
-// Log the JWT secret being used (first 10 chars only for security)
-// Read lazily so dotenv has time to load
+// Read lazily so dotenv has time to load.
+// No fallback secret: an unset JWT_SECRET must fail closed. Falling back to a
+// literal would silently accept tokens anyone could forge. Mirrors the frontend's
+// behaviour in frontend/src/lib/server/auth.ts.
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('FATAL: JWT_SECRET is not set. Add it to socket-server/.env before starting.');
+  }
   return secret;
 }
-
-console.log(`🔑 JWT_SECRET will be loaded from env at runtime`);
 
 export interface JWTPayload {
   userId: string;
@@ -18,11 +21,9 @@ export interface JWTPayload {
 export function validateToken(token: string): JWTPayload | null {
   try {
     const secret = getJwtSecret();
-    const decoded = jwt.verify(token, secret) as JWTPayload;
-    console.log(`✅ Token validated for user: ${decoded.userId} (secret: ${secret.substring(0,10)}...)`);
-    return decoded;
-  } catch (error) {
-    console.error('JWT validation error:', error);
+    // Never log any part of the signing secret.
+    return jwt.verify(token, secret) as JWTPayload;
+  } catch {
     return null;
   }
 }

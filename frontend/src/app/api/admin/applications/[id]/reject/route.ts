@@ -2,19 +2,10 @@
 // Rejects a professional or organization application and sends rejection email
 
 import { NextRequest } from 'next/server';
-import { getUserFromToken } from '@/lib/auth';
+import { requireAdmin as checkAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 import { sendRejectionEmail } from '@/lib/email';
-
-async function checkAdmin(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.substring(7);
-  const user = await getUserFromToken(token);
-  if (!user || user.role !== 'ADMIN') return null;
-  return user;
-}
 
 export async function POST(
   request: NextRequest,

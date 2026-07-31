@@ -142,7 +142,7 @@ function VendorDashboardContent() {
       socketInstance = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
 
       socketInstance.on('connect', () => {
-        socketInstance.emit('authenticate', { userId: user.id, role: 'VENDOR', token });
+        socketInstance.emit('authenticate', { token });
       });
 
       socketInstance.on('vendor:dispatch', (data: IncomingDispatch) => {
@@ -264,24 +264,36 @@ function VendorDashboardContent() {
   const acceptDispatch = () => {
     if (!socket || !incomingDispatch || !user?.id) return;
     setAccepting(true);
-    socket.emit('vendor:accept', { alertId: incomingDispatch.alertId, vendorId: user.id });
+    socket.emit('vendor:accept', { alertId: incomingDispatch.alertId });
   };
 
   const declineDispatch = () => {
     if (!socket || !incomingDispatch || !user?.id) return;
-    socket.emit('vendor:decline', { alertId: incomingDispatch.alertId, vendorId: user.id });
+    socket.emit('vendor:decline', { alertId: incomingDispatch.alertId });
     setIncomingDispatch(null);
   };
 
   // ── Update journey status ─────────────────────────────────────────────────
+  // ARRIVED is verified server-side against the vendor's actual position, so it
+  // must carry a live GPS fix. Marking "arrived" from home is otherwise trivial,
+  // and it tells a person in crisis that help is with them when it is not.
   const updateJourneyStatus = (status: string) => {
     if (!socket || !activeAssignment?.id || !user?.id || statusLoading) return;
     setStatusLoading(true);
-    socket.emit('vendor:status_update', {
-      alertId:  activeAssignment.id,
-      vendorId: user.id,
-      status,
-    });
+
+    const emit = (coords?: { latitude: number; longitude: number }) =>
+      socket.emit('vendor:status_update', { alertId: activeAssignment.id, status, ...coords });
+
+    if (status !== 'ARRIVED' || !navigator.geolocation) {
+      emit();
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => emit({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => emit(), // no fix — the server will reject and explain why
+      { enableHighAccuracy: true, timeout: 10_000 }
+    );
   };
 
   const severityColors: Record<string, string> = {

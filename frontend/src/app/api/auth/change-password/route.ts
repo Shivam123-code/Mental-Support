@@ -4,7 +4,7 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUserFromToken, verifyPassword, hashPassword } from '@/lib/auth';
+import { getUserFromToken, verifyPassword, hashPassword, revokeAllSessions } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
@@ -36,8 +36,18 @@ export async function POST(request: NextRequest) {
       return errorResponse('New password must be different from your current password.', 400);
     }
 
+    // Fetch the hash explicitly. getUserFromToken deliberately no longer returns
+    // passwordHash, so it cannot be leaked by a careless successResponse(user).
+    const account = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordHash: true },
+    });
+    if (!account) {
+      return unauthorizedResponse();
+    }
+
     // Verify current password
-    const isValid = await verifyPassword(currentPassword, user.passwordHash);
+    const isValid = await verifyPassword(currentPassword, account.passwordHash);
     if (!isValid) {
       return errorResponse('Current password is incorrect.', 400);
     }
@@ -49,9 +59,13 @@ export async function POST(request: NextRequest) {
       data: { passwordHash },
     });
 
+    // Changing a password must log out every existing session, including any
+    // held by an attacker. This is the whole point of changing it.
+    await revokeAllSessions(user.id);
+
     console.log(`✅ Password changed for user ${user.id}`);
 
-    return successResponse(null, 'Password changed successfully.');
+    return successResponse(null, 'Password changed successfully. Please sign in again.');
   } catch (error) {
     console.error('Change password error:', error);
     return errorResponse('Something went wrong. Please try again.', 500);

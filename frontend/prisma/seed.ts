@@ -5,17 +5,27 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:kleverklues2024@localhost:5432/kleverklues?schema=public';
+// Seeding creates accounts with known passwords. Running it against production
+// would plant a live ADMIN login whose password is published in this repo.
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('Refusing to seed: this script creates demo accounts and must never run in production.');
+}
+
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set.');
+}
 const adapter = new PrismaPg({ connectionString: DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Create demo users
-  const demoUserPassword = await bcrypt.hash('Demo@123', 12);
-  const demoProfessionalPassword = await bcrypt.hash('Prof@123', 12);
-  const demoAdminPassword = await bcrypt.hash('Admin@123', 12);
+  // Create demo users. Passwords are overridable so a shared/staging database
+  // does not have to use the ones written down in this file.
+  const demoUserPassword = await bcrypt.hash(process.env.SEED_USER_PASSWORD ?? 'Demo@123', 12);
+  const demoProfessionalPassword = await bcrypt.hash(process.env.SEED_PROF_PASSWORD ?? 'Prof@123', 12);
+  const demoAdminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD ?? 'Admin@123', 12);
 
   // Demo User
   const demoUser = await prisma.user.upsert({

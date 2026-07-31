@@ -3,11 +3,12 @@
 // Saves application to DB, uploads files, sends confirmation email
 
 import { NextRequest } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { sendApplicationReceivedEmail } from '@/lib/email';
+import { saveUpload, UploadError } from '@/lib/server/upload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,15 +65,13 @@ export async function POST(request: NextRequest) {
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'professional', application.id);
     await mkdir(uploadDir, { recursive: true });
 
-    async function saveFile(field: string): Promise<string | null> {
-      const file = formData.get(field) as File | null;
-      if (!file || typeof file === 'string') return null;
-      const bytes = await file.arrayBuffer();
-      const ext = path.extname(file.name) || '.bin';
-      const filename = `${field}${ext}`;
-      await writeFile(path.join(uploadDir, filename), Buffer.from(bytes));
-      return `/uploads/professional/${application.id}/${filename}`;
-    }
+    const saveFile = (field: string) =>
+      saveUpload(
+        formData.get(field),
+        uploadDir,
+        `/uploads/professional/${application.id}`,
+        field
+      );
 
     const [licenseDocPath, degreeDocPath, idProofPath, profilePhotoPath] = await Promise.all([
       saveFile('licenseDocument'),
@@ -100,6 +99,9 @@ export async function POST(request: NextRequest) {
       201
     );
   } catch (error: any) {
+    if (error instanceof UploadError) {
+      return errorResponse(error.message, 400);
+    }
     console.error('Professional application error:', error);
     return errorResponse('Failed to submit application. Please try again.', 500);
   }

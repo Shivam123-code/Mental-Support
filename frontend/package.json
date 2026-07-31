@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "check:security": "tsx --env-file=.env.local src/lib/server/security.check.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -21,8 +22,8 @@
     "framer-motion": "^12.40.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
-    "nodemailer": "^8.0.9",
+    "next": "^16.2.12",
+    "nodemailer": "^9.0.3",
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -44,5 +45,10 @@
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5"
+  },
+  "//overrides": "Security patches for transitive deps pinned by upstream to vulnerable versions: postcss (XSS via unescaped </style>, path traversal) and sharp (libvips CVE-2026-33327/33328/35590/35591). Remove an entry once the parent package ships a fixed range.",
+  "overrides": {
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3"
   }
 }

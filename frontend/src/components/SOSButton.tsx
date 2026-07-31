@@ -13,6 +13,9 @@ interface LocationData {
   longitude: number;
   label: string;
   accuracy: LocationAccuracy;
+  /** Real GPS radius in metres. A 1500m fix means "search the block", not
+   *  "knock on this door" — the responder needs to see the difference. */
+  accuracyMeters?: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -85,7 +88,7 @@ async function getBrowserLocation(): Promise<LocationData> {
 
   const { latitude, longitude } = pos.coords;
   const label = await reverseGeocode(latitude, longitude);
-  return { latitude, longitude, label, accuracy: 'precise' };
+  return { latitude, longitude, label, accuracy: 'precise', accuracyMeters: pos.coords.accuracy };
 }
 
 
@@ -126,6 +129,8 @@ export default function SOSButton() {
   // Live dispatch status shown in success screen
   const [dispatchStatus, setDispatchStatus] = useState<{
     icon: string; color: string; label: string; message: string; vendorName?: string;
+    /** Vendor said RESOLVED — we ask the caller to confirm before closing. */
+    awaitingConfirmation?: boolean;
   } | null>(null);
 
   // ── Location state ──────────────────────────────────────────────────────────
@@ -179,14 +184,62 @@ export default function SOSButton() {
       NEARBY:          { icon: '📍', color: 'bg-amber-50 border-amber-400 text-amber-900',    label: 'Vendor is very close — stay calm!' },
       ARRIVED:         { icon: '🟢', color: 'bg-green-50 border-green-500 text-green-900',    label: 'Vendor has arrived!' },
       RESOLVED:        { icon: '✅', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Case resolved — you are safe' },
+      // No responder confirmed. The user is told plainly and pushed to 112
+      // rather than left watching "Searching..." forever.
+      ESCALATED:       { icon: '⚠️', color: 'bg-red-50 border-red-500 text-red-900',          label: 'No responder yet — call 112' },
+      CANCELLED:       { icon: '⏹️', color: 'bg-gray-50 border-gray-300 text-gray-700',       label: 'Alert cancelled' },
     };
     const handler = (update: any) => {
       const ui = statusMap[update.dispatchStatus] || statusMap['PENDING'];
-      setDispatchStatus({ ...ui, message: update.message, vendorName: update.vendorName });
+      setDispatchStatus({
+        ...ui,
+        message: update.message,
+        vendorName: update.vendorName,
+        awaitingConfirmation: Boolean(update.awaitingConfirmation),
+      });
     };
     socket.on('sos:status_update', handler);
     return () => { socket.off('sos:status_update', handler); };
   }, [socket]);
+
+  // Keep the alert id so the caller can stream location, cancel, or confirm safe.
+  const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+
+  // ── Stream location while the alert is live ────────────────────────────────
+  // A person fleeing or in a vehicle is not where they were when they pressed
+  // the button. Without this the responder is sent to a stale pin.
+  useEffect(() => {
+    if (!socket || !activeAlertId || !navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      pos => {
+        socket.emit('sos:location_update', {
+          alertId: activeAlertId,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+      },
+      err => console.warn('[SOS] location watch failed:', err),
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 30_000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [socket, activeAlertId]);
+
+  const cancelAlert = useCallback(() => {
+    if (!socket || !activeAlertId) return;
+    socket.emit('emergency:cancel', { alertId: activeAlertId });
+    setActiveAlertId(null);
+    setIsOpen(false);
+  }, [socket, activeAlertId]);
+
+  const confirmSafe = useCallback(() => {
+    if (!socket || !activeAlertId) return;
+    socket.emit('emergency:confirm_resolved', { alertId: activeAlertId });
+    setActiveAlertId(null);
+    setIsOpen(false);
+  }, [socket, activeAlertId]);
 
   // ── Detect location: GPS first, then server-side IP proxy as fallback ──────
   const startLocationDetection = useCallback(async () => {
@@ -237,6 +290,7 @@ export default function SOSButton() {
     setAddressInput('');
     setAddressError('');
     setDispatchStatus(null);
+    setActiveAlertId(null);
     gpsAttempted.current = false;
   }, []);
 
@@ -286,22 +340,49 @@ export default function SOSButton() {
   // ── Send SOS ────────────────────────────────────────────────────────────────
   const handleSendSOS = async () => {
     try {
-      if (!location) {
-        setErrorMsg('No location available. Please allow location access or enter your address.');
+      setStep('sending');
+
+      // Never let a missing GPS fix block the alert. If detection has not
+      // finished (or was denied), make one last cheap attempt via the server-side
+      // IP lookup rather than refusing to send.
+      let loc = location;
+      if (!loc) {
+        try {
+          const res = await fetch('/api/location/ip', { signal: AbortSignal.timeout(4000) });
+          const data = await res.json();
+          if (data.success && data.latitude && data.longitude) {
+            loc = {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              label: data.label || 'Approximate location',
+              accuracy: 'approximate',
+            };
+            setLocation(loc);
+          }
+        } catch { /* fall through to the error below */ }
+      }
+
+      if (!loc) {
+        // We genuinely cannot place them. Say so and point at 112 — do not
+        // pretend an alert was raised.
+        setErrorMsg(
+          'We could not determine your location, so responders cannot be sent. ' +
+          'Call 112 now, or enter your address and try again.'
+        );
         setStep('error');
         return;
       }
 
-      setStep('sending');
-
       // ─ Logged-in + socket ready: use WebSocket (real-time to admin dashboard) ─
       if (isAuthenticated && isConnected && socketAuth) {
-        await sendSOS({
-          latitude:  location.latitude,
-          longitude: location.longitude,
+        const result: any = await sendSOS({
+          latitude:  loc.latitude,
+          longitude: loc.longitude,
+          accuracy:  typeof loc.accuracyMeters === 'number' ? loc.accuracyMeters : undefined,
           message:   message.trim() || 'Emergency SOS activated',
           severity,
         });
+        if (result?.alertId) setActiveAlertId(result.alertId);
         setStep('success');
         // Stay open to show live dispatch status — auto-close after 2 min or on manual close
         setTimeout(() => { setIsOpen(false); resetModal(); }, 120_000);
@@ -309,21 +390,37 @@ export default function SOSButton() {
       }
 
       // ─ Guest / socket not ready: use public REST API (no auth required) ─
+      // The server attributes the alert from this token, not from the body — a
+      // body userId is ignored, so the header is what keeps a signed-in user's
+      // alert attached to their account on this fallback path.
       const res = await fetch('/api/sos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          latitude:  location.latitude,
-          longitude: location.longitude,
+          latitude:  loc.latitude,
+          longitude: loc.longitude,
           message:   message.trim() || 'Emergency SOS activated (Guest)',
           severity,
-          userId:    user?.id || null,
         }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to send SOS. Please call 112 directly.');
+      }
+
+      const body = await res.json().catch(() => ({}));
+      if (body?.data?.alertId) setActiveAlertId(body.data.alertId);
+
+      // The server tells us whether dispatch was actually reached. If it was
+      // not, the caller must know immediately rather than trusting a green tick.
+      if (body?.data?.dispatched === false) {
+        setErrorMsg(body.message || 'Alert recorded but dispatch is unreachable. Call 112 now.');
+        setStep('error');
+        return;
       }
 
       setStep('success');
@@ -435,14 +532,42 @@ export default function SOSButton() {
                     </div>
                   </div>
 
+                  {/* Emergency services are always one tap away and never
+                      depend on our dispatch chain succeeding. */}
+                  <a
+                    href="tel:112"
+                    className="block w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-center text-sm transition"
+                  >
+                    📞 Call 112 now
+                  </a>
+
+                  {/* The vendor said it is over; only the caller can confirm that. */}
+                  {dispatchStatus?.awaitingConfirmation && activeAlertId && (
+                    <button
+                      onClick={confirmSafe}
+                      className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm transition"
+                    >
+                      ✅ Yes, I am safe — close this case
+                    </button>
+                  )}
+
+                  {activeAlertId && (
+                    <button
+                      onClick={cancelAlert}
+                      className="w-full py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl font-semibold text-sm transition"
+                    >
+                      Cancel alert (false alarm)
+                    </button>
+                  )}
+
                   <button
                     onClick={() => { setIsOpen(false); resetModal(); }}
                     className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition"
                   >
-                    Close (I understand)
+                    Hide (alert stays active)
                   </button>
                   <p className="text-xs text-gray-400 text-center">
-                    Stay calm — help is on the way. Also keep 📱 112 ready.
+                    Your location keeps updating while this alert is open.
                   </p>
                 </div>
               )}

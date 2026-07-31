@@ -28,19 +28,31 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = validation.data;
 
+    // Second bucket keyed on the account, not the IP. Without it, a botnet
+    // spread across many addresses gets 5 attempts each against one account,
+    // and there is no lockout anywhere else in the system.
+    const perAccount = rateLimit(`login-acct:${email}`, 10, 15 * 60 * 1000);
+    if (!perAccount.allowed) {
+      return errorResponse(
+        `Too many login attempts for this account. Please try again in ${Math.ceil(perAccount.retryAfterSeconds / 60)} minute(s).`,
+        429
+      );
+    }
+
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
       include: { profile: true },
     });
 
-    if (!user) {
-      return errorResponse('Invalid email or password', 401);
-    }
+    // Compare against a dummy hash when the account does not exist, so the
+    // response time does not reveal whether the email is registered.
+    const isValidPassword = await verifyPassword(
+      password,
+      user?.passwordHash ?? '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinv'
+    );
 
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.passwordHash);
-    if (!isValidPassword) {
+    if (!user || !isValidPassword) {
       return errorResponse('Invalid email or password', 401);
     }
 

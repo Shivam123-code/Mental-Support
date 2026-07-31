@@ -1,157 +1,63 @@
 import { Server, Socket } from 'socket.io';
 import { PrismaClient } from '../../../frontend/node_modules/@prisma/client';
 import { haversineKm } from '../utils/haversine';
+import {
+  startDispatch,
+  claimAlert,
+  abortDispatch,
+  noteDecline,
+  wasOffered,
+  logDispatch,
+  notifyCaller,
+} from './dispatch';
+import { notifyEmergencyContacts } from '../utils/notify';
 
+// Identity is never taken from these payloads — it comes from socket.data, which
+// is set only from a verified token in index.ts. Client-supplied userId/vendorId/
+// adminId fields are gone deliberately; do not reintroduce them.
 interface SOSData {
-  userId: string;
   latitude: number;
   longitude: number;
+  accuracy?: number;
   message?: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
 }
 
-interface AcknowledgeData {
+interface AlertRef {
   alertId: string;
-  adminId: string;
 }
 
-// Active dispatch timers: alertId -> NodeJS.Timeout
-const dispatchTimers = new Map<string, NodeJS.Timeout>();
+const VALID_SEVERITIES = ['CRITICAL', 'HIGH', 'MEDIUM'] as const;
+const VALID_DISPATCH_STATUSES = ['EN_ROUTE', 'NEARBY', 'ARRIVED', 'RESOLVED'] as const;
+const MAX_MESSAGE_LENGTH = 500;
 
-// Vendor dispatch state per alert: alertId -> sorted list of candidate vendorIds
-const dispatchQueue = new Map<string, string[]>();
+/** A vendor must be physically near the scene to claim they have arrived. */
+const ARRIVAL_PROXIMITY_KM = 0.5;
 
-// Track which vendorId is currently being pinged per alert
-const currentPing = new Map<string, string>(); // alertId -> vendorId
-
-/**
- * Find all online+available vendors, sort by Haversine distance to the alert,
- * and return their userIds in ascending distance order.
- */
-async function findSortedVendors(
-  prisma: PrismaClient,
-  alertLat: number,
-  alertLon: number
-): Promise<{ userId: string; distanceKm: number; businessName: string; phone: string }[]> {
-  const vendors = await (prisma as any).vendorProfile.findMany({
-    where: {
-      isOnline: true,
-      isAvailable: true,
-      latitude: { not: null },
-      longitude: { not: null },
-    },
-    select: {
-      userId: true,
-      businessName: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-    },
-  });
-
-  return vendors
-    .map((v: any) => ({
-      userId: v.userId,
-      businessName: v.businessName,
-      phone: v.phone,
-      distanceKm: haversineKm(alertLat, alertLon, v.latitude!, v.longitude!),
-    }))
-    .sort((a: any, b: any) => a.distanceKm - b.distanceKm);
+/** Reject non-finite or out-of-range coordinates before they reach the DB or Haversine. */
+function validCoords(lat: unknown, lon: unknown): lat is number {
+  return (
+    typeof lat === 'number' && Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+    typeof lon === 'number' && Number.isFinite(lon) && lon >= -180 && lon <= 180
+  );
 }
 
-/**
- * Ping the next vendor in the queue for a given alert.
- * Sets a 30-second timeout; if vendor doesn't accept, moves to next.
- */
-function pingNextVendor(
-  io: Server,
-  prisma: PrismaClient,
-  alertId: string,
-  alertData: { latitude: number; longitude: number; severity: string; message?: string; userId?: string },
-  candidateUserIds: string[]
-): void {
-  // Clear any existing timer
-  const existingTimer = dispatchTimers.get(alertId);
-  if (existingTimer) clearTimeout(existingTimer);
+// Per-user SOS flood control. The REST path is rate-limited but the socket path
+// was not, and it is the path the app prefers.
+const sosRecent = new Map<string, number[]>();
+const SOS_MAX = 3;
+const SOS_WINDOW_MS = 10 * 60 * 1000;
 
-  if (candidateUserIds.length === 0) {
-    // No more vendors — update status to SEARCHING, notify user
-    console.log(`⚠️ No vendors available for alert ${alertId}`);
-    (prisma as any).emergencyAlert.update({
-      where: { id: alertId },
-      data: { dispatchStatus: 'SEARCHING' },
-    }).catch(console.error);
-
-    if (alertData.userId) {
-      io.to(`user-${alertData.userId}`).emit('sos:status_update', {
-        alertId,
-        dispatchStatus: 'SEARCHING',
-        message: '🔍 Searching for nearby vendors. Stay calm, help is being coordinated.',
-      });
-    }
-    return;
+function sosRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const hits = (sosRecent.get(userId) ?? []).filter(t => now - t < SOS_WINDOW_MS);
+  if (hits.length >= SOS_MAX) {
+    sosRecent.set(userId, hits);
+    return true;
   }
-
-  const vendorId = candidateUserIds[0];
-  const remaining = candidateUserIds.slice(1);
-
-  currentPing.set(alertId, vendorId);
-  dispatchQueue.set(alertId, remaining);
-
-  console.log(`📡 Pinging vendor ${vendorId} for alert ${alertId} (${remaining.length} backups remaining)`);
-
-  // Mark alert as VENDOR_ALERTED in DB
-  (prisma as any).emergencyAlert.update({
-    where: { id: alertId },
-    data: {
-      assignedVendorId: vendorId,
-      vendorAssignedAt: new Date(),
-      dispatchStatus: 'VENDOR_ALERTED',
-    },
-  }).catch(console.error);
-
-  // Emit dispatch event to vendor
-  io.to(`vendor-${vendorId}`).emit('vendor:dispatch', {
-    alertId,
-    latitude: alertData.latitude,
-    longitude: alertData.longitude,
-    severity: alertData.severity,
-    message: alertData.message || 'Emergency SOS — someone needs help near you.',
-    timeoutSeconds: 30,
-  });
-
-  // Notify user that a vendor is being alerted
-  if (alertData.userId) {
-    io.to(`user-${alertData.userId}`).emit('sos:status_update', {
-      alertId,
-      dispatchStatus: 'VENDOR_ALERTED',
-      message: '📡 A nearby vendor has been alerted. Hang tight!',
-    });
-  }
-
-  // Notify admin
-  io.to('admin-room').emit('sos:vendor_assigned', {
-    alertId,
-    vendorId,
-    dispatchStatus: 'VENDOR_ALERTED',
-  });
-
-  // 30-second timeout — if vendor doesn't accept, try next
-  const timer = setTimeout(() => {
-    const stillPinging = currentPing.get(alertId) === vendorId;
-    if (!stillPinging) return; // vendor already accepted or another flow cleared this
-
-    console.log(`⏰ Vendor ${vendorId} timed out for alert ${alertId}. Trying next vendor.`);
-    currentPing.delete(alertId);
-
-    // Notify vendor their window expired
-    io.to(`vendor-${vendorId}`).emit('vendor:dispatch_expired', { alertId });
-
-    // Try next vendor
-    pingNextVendor(io, prisma, alertId, alertData, remaining);
-  }, 30_000);
-
-  dispatchTimers.set(alertId, timer);
+  hits.push(now);
+  sosRecent.set(userId, hits);
+  return false;
 }
 
 export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClient) {
@@ -159,118 +65,242 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   // ── Emergency SOS Alert ────────────────────────────────────────────────────
   socket.on('emergency:sos', async (data: SOSData) => {
     try {
-      console.log('🚨 EMERGENCY SOS RECEIVED:', {
-        userId: data.userId,
-        severity: data.severity,
-        location: `${data.latitude}, ${data.longitude}`,
+      // Identity from the verified socket session, never from the payload —
+      // otherwise anyone could file an alert in another user's name.
+      const userId: string | undefined = socket.data.userId;
+      if (!userId) {
+        socket.emit('emergency:error', { error: 'Not authenticated' });
+        return;
+      }
+
+      if (!validCoords(data?.latitude, data?.longitude)) {
+        socket.emit('emergency:error', { error: 'Invalid coordinates' });
+        return;
+      }
+
+      const severity = VALID_SEVERITIES.includes(data.severity) ? data.severity : 'CRITICAL';
+      const message = typeof data.message === 'string'
+        ? data.message.slice(0, MAX_MESSAGE_LENGTH)
+        : 'Emergency SOS activated';
+      const { latitude, longitude } = data;
+      const accuracy = typeof data.accuracy === 'number' && Number.isFinite(data.accuracy)
+        ? data.accuracy
+        : null;
+
+      // Panic taps produce several presses in a few seconds. Without this each
+      // one starts its own dispatch chain, and they compete for the same
+      // vendors while a genuinely separate emergency waits.
+      const existing = await (prisma as any).emergencyAlert.findFirst({
+        where: { userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+        orderBy: { createdAt: 'desc' },
       });
 
-      // Save to database
+      if (existing) {
+        await (prisma as any).emergencyAlert.update({
+          where: { id: existing.id },
+          data: { latitude, longitude, locationAccuracy: accuracy, locationUpdatedAt: new Date() },
+        });
+        await logDispatch(prisma, existing.id, 'LOCATION_UPDATE', { detail: 'duplicate SOS press merged' });
+
+        socket.emit('emergency:confirmed', {
+          alertId: existing.id,
+          message: 'Your emergency is already active. Help is being coordinated.',
+          timestamp: existing.createdAt,
+          emergencyNumber: '112',
+        });
+        io.to('admin-room').emit('emergency:location_update', {
+          alertId: existing.id, latitude, longitude, accuracy,
+        });
+        return;
+      }
+
+      if (sosRateLimited(userId)) {
+        socket.emit('emergency:error', {
+          error: 'Too many SOS alerts. If this is a real emergency, call 112 now.',
+          emergencyNumber: '112',
+        });
+        return;
+      }
+
+      // Coordinates are deliberately not logged at full precision — these are
+      // crisis locations and the log file is unencrypted.
+      console.log(`🚨 EMERGENCY SOS from ${userId} (severity ${severity})`);
+
       const alert = await (prisma as any).emergencyAlert.create({
         data: {
-          userId: data.userId,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          message: data.message || 'Emergency SOS activated',
-          severity: data.severity,
+          userId,
+          latitude,
+          longitude,
+          locationAccuracy: accuracy,
+          locationUpdatedAt: new Date(),
+          message,
+          severity,
           status: 'ACTIVE',
           dispatchStatus: 'PENDING',
         },
       });
 
-      // 1. Broadcast to ALL admins immediately
+      await logDispatch(prisma, alert.id, 'CREATED', { detail: `severity ${severity}` });
+
+      // 1. Admins immediately
       io.to('admin-room').emit('emergency:alert', {
         id: alert.id,
-        userId: data.userId,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        message: data.message,
-        severity: data.severity,
+        userId,
+        latitude,
+        longitude,
+        accuracy,
+        message,
+        severity,
         timestamp: alert.createdAt,
         status: 'ACTIVE',
         dispatchStatus: 'PENDING',
       });
 
-      // 2. Confirm to user immediately
+      // 2. Confirm to the caller, and always surface the emergency number.
+      //    Their safety must never depend on our dispatch chain succeeding.
       socket.emit('emergency:confirmed', {
         alertId: alert.id,
         message: 'Emergency alert sent. Finding help near you...',
         timestamp: alert.createdAt,
+        emergencyNumber: '112',
       });
 
-      // 3. Send initial status to user
-      if (data.userId) {
-        io.to(`user-${data.userId}`).emit('sos:status_update', {
-          alertId: alert.id,
-          dispatchStatus: 'SEARCHING',
-          message: '🔍 Finding the nearest vendor to you...',
-        });
-      }
+      // 3. Emergency contacts are notified in PARALLEL with vendor dispatch.
+      //    Waiting for the vendor chain to fail first would cost a full minute.
+      (async () => {
+        try {
+          const caller = await (prisma as any).user.findUnique({
+            where: { id: userId },
+            select: { firstName: true, lastName: true, profile: true },
+          });
+          const contacts = [
+            {
+              name: caller?.profile?.emergencyContact ?? null,
+              phone: caller?.profile?.emergencyPhone ?? null,
+            },
+          ].filter(c => c.phone);
+          if (contacts.length) {
+            await notifyEmergencyContacts(
+              contacts,
+              `${caller?.firstName ?? 'A KleverKlues user'} ${caller?.lastName ?? ''}`.trim(),
+              { alertId: alert.id, severity, latitude, longitude }
+            );
+          }
+        } catch (err) {
+          console.error('emergency contact notification failed:', err);
+        }
+      })();
 
-      // 4. Find nearest vendors and start dispatch chain
-      const sortedVendors = await findSortedVendors(prisma, data.latitude, data.longitude);
-      console.log(`🗺️ Found ${sortedVendors.length} available vendor(s) for dispatch`);
-      sortedVendors.forEach((v, i) => console.log(`  ${i + 1}. ${v.businessName} — ${v.distanceKm.toFixed(2)}km`));
+      // 4. Start the dispatch chain (fan-out, escalation on exhaustion).
+      void startDispatch(io, prisma, alert.id);
 
-      const candidateIds = sortedVendors.map(v => v.userId);
-
-      pingNextVendor(
-        io,
-        prisma,
-        alert.id,
-        { latitude: data.latitude, longitude: data.longitude, severity: data.severity, message: data.message, userId: data.userId },
-        candidateIds
-      );
-
-      console.log(`✅ Alert ${alert.id} dispatched to admin + vendor queue started`);
     } catch (error) {
       console.error('Emergency SOS error:', error);
       socket.emit('emergency:error', {
-        error: 'Failed to send alert',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to send alert. Call 112 immediately.',
+        emergencyNumber: '112',
       });
     }
   });
 
-  // ── Vendor accepts dispatch ────────────────────────────────────────────────
-  socket.on('vendor:accept', async (data: { alertId: string; vendorId: string }) => {
+  // ── Caller streams an updated position ─────────────────────────────────────
+  // Someone fleeing, or in a vehicle, is not where they were when they pressed
+  // the button. Responders need the current position, not the original one.
+  socket.on('sos:location_update', async (data: { alertId: string; latitude: number; longitude: number; accuracy?: number }) => {
     try {
-      const { alertId, vendorId } = data;
+      const userId: string | undefined = socket.data.userId;
+      if (!userId || !validCoords(data?.latitude, data?.longitude)) return;
 
-      // Ensure this vendor is still the current ping (prevent double-accept)
-      const expectedVendor = currentPing.get(alertId);
-      if (expectedVendor !== vendorId) {
-        socket.emit('vendor:accept_rejected', { alertId, reason: 'Alert already assigned to another vendor or expired.' });
+      const updated = await (prisma as any).emergencyAlert.updateMany({
+        where: { id: data.alertId, userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+        data: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationAccuracy: typeof data.accuracy === 'number' ? data.accuracy : undefined,
+          locationUpdatedAt: new Date(),
+        },
+      });
+      if (updated.count === 0) return;
+
+      const payload = {
+        alertId: data.alertId,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        accuracy: data.accuracy ?? null,
+      };
+      io.to('admin-room').emit('emergency:location_update', payload);
+
+      const alert = await (prisma as any).emergencyAlert.findUnique({
+        where: { id: data.alertId },
+        select: { assignedVendorId: true },
+      });
+      if (alert?.assignedVendorId) {
+        io.to(`vendor-${alert.assignedVendorId}`).emit('sos:location_update', payload);
+      }
+    } catch (error) {
+      console.error('Location update error:', error);
+    }
+  });
+
+  // ── Caller cancels (false alarm) ───────────────────────────────────────────
+  socket.on('emergency:cancel', async (data: AlertRef) => {
+    try {
+      const userId: string | undefined = socket.data.userId;
+      if (!userId) return;
+
+      // Scoped to the owner, so nobody can cancel someone else's emergency.
+      const cancelled = await (prisma as any).emergencyAlert.updateMany({
+        where: { id: data.alertId, userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+        data: { status: 'CANCELLED', dispatchStatus: 'CANCELLED', cancelledAt: new Date() },
+      });
+      if (cancelled.count === 0) return;
+
+      abortDispatch(data.alertId);
+      await logDispatch(prisma, data.alertId, 'CANCELLED', { detail: 'cancelled by caller' });
+
+      const alert = await (prisma as any).emergencyAlert.findUnique({
+        where: { id: data.alertId },
+        select: { assignedVendorId: true },
+      });
+      if (alert?.assignedVendorId) {
+        await (prisma as any).vendorProfile
+          .update({ where: { userId: alert.assignedVendorId }, data: { isAvailable: true } })
+          .catch(() => {});
+        io.to(`vendor-${alert.assignedVendorId}`).emit('vendor:case_resolved', { alertId: data.alertId });
+      }
+
+      // Admins still see it. A cancellation can be made under duress, so it is
+      // recorded and shown rather than silently erased.
+      io.to('admin-room').emit('emergency:cancelled', { alertId: data.alertId, by: 'caller' });
+      socket.emit('emergency:cancel_confirmed', { alertId: data.alertId });
+    } catch (error) {
+      console.error('Cancel error:', error);
+    }
+  });
+
+  // ── Vendor accepts dispatch ────────────────────────────────────────────────
+  socket.on('vendor:accept', async (data: AlertRef) => {
+    try {
+      const { alertId } = data ?? {};
+      const vendorId: string | undefined = socket.data.userId;
+      if (!vendorId || socket.data.role !== 'VENDOR') {
+        socket.emit('error', { message: 'Vendor role required' });
         return;
       }
 
-      // Clear the 30-sec timeout
-      const timer = dispatchTimers.get(alertId);
-      if (timer) clearTimeout(timer);
-      dispatchTimers.delete(alertId);
-      dispatchQueue.delete(alertId);
-      currentPing.delete(alertId);
+      if (!wasOffered(alertId, vendorId)) {
+        socket.emit('vendor:accept_rejected', { alertId, reason: 'This alert was not offered to you.' });
+        return;
+      }
 
-      // Update DB
-      const alert = await (prisma as any).emergencyAlert.update({
-        where: { id: alertId },
-        data: {
-          dispatchStatus: 'VENDOR_ACCEPTED',
-          vendorAcceptedAt: new Date(),
-          assignedVendorId: vendorId,
-        },
-        include: { user: { select: { firstName: true, lastName: true } } },
-      });
+      // Atomic claim — with several vendors pinged at once, exactly one wins.
+      const won = await claimAlert(prisma, alertId, vendorId);
+      if (!won) {
+        socket.emit('vendor:accept_rejected', { alertId, reason: 'Another responder already accepted.' });
+        return;
+      }
 
-      // Mark vendor as unavailable
-      await (prisma as any).vendorProfile.update({
-        where: { userId: vendorId },
-        data: { isAvailable: false },
-      });
-
-      console.log(`✅ Vendor ${vendorId} ACCEPTED alert ${alertId}`);
-
-      // Get vendor info for user notification
+      const alert = await (prisma as any).emergencyAlert.findUnique({ where: { id: alertId } });
       const vendorProfile = await (prisma as any).vendorProfile.findUnique({
         where: { userId: vendorId },
         include: { user: { select: { firstName: true, lastName: true } } },
@@ -278,30 +308,28 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
 
       const vendorName = vendorProfile?.user
         ? `${vendorProfile.user.firstName} ${vendorProfile.user.lastName}`.trim()
-        : 'Your vendor';
+        : 'Your responder';
 
-      // Notify user — VENDOR_ACCEPTED
-      if (alert.userId) {
-        io.to(`user-${alert.userId}`).emit('sos:status_update', {
-          alertId,
-          dispatchStatus: 'VENDOR_ACCEPTED',
-          vendorName,
-          vendorPhone: vendorProfile?.phone,
-          message: `✅ ${vendorName} has accepted and is on the way to you! Stay where you are.`,
-        });
-      }
+      console.log(`✅ Vendor ${vendorId} ACCEPTED alert ${alertId}`);
 
-      // Notify admin dashboard
-      io.to('admin-room').emit('sos:vendor_assigned', {
+      notifyCaller(io, alert?.userId ?? null, {
         alertId,
-        vendorId,
-        vendorName,
         dispatchStatus: 'VENDOR_ACCEPTED',
+        vendorName,
+        vendorPhone: vendorProfile?.phone,
+        message: `✅ ${vendorName} has accepted and is on the way. Stay where you are if it is safe.`,
       });
 
-      // Confirm to vendor
-      socket.emit('vendor:accept_confirmed', { alertId, message: 'You are now dispatched. Head to the location.' });
+      io.to('admin-room').emit('sos:vendor_assigned', {
+        alertId, vendorId, vendorName, dispatchStatus: 'VENDOR_ACCEPTED',
+      });
 
+      socket.emit('vendor:accept_confirmed', {
+        alertId,
+        message: 'You are now dispatched. Head to the location.',
+        latitude: alert?.latitude,
+        longitude: alert?.longitude,
+      });
     } catch (error) {
       console.error('Vendor accept error:', error);
       socket.emit('error', { message: 'Failed to accept dispatch' });
@@ -309,57 +337,84 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   });
 
   // ── Vendor declines dispatch ───────────────────────────────────────────────
-  socket.on('vendor:decline', async (data: { alertId: string; vendorId: string }) => {
+  socket.on('vendor:decline', async (data: AlertRef) => {
     try {
-      const { alertId, vendorId } = data;
-      const expectedVendor = currentPing.get(alertId);
-      if (expectedVendor !== vendorId) return;
+      const { alertId } = data ?? {};
+      const vendorId: string | undefined = socket.data.userId;
+      if (!vendorId || socket.data.role !== 'VENDOR') return;
+      if (!wasOffered(alertId, vendorId)) return;
 
       console.log(`❌ Vendor ${vendorId} DECLINED alert ${alertId}`);
+      await logDispatch(prisma, alertId, 'DECLINED', { vendorId });
 
-      const timer = dispatchTimers.get(alertId);
-      if (timer) clearTimeout(timer);
-      currentPing.delete(alertId);
-
-      const remaining = dispatchQueue.get(alertId) || [];
-
-      // Fetch original alert for location data
-      const alert = await (prisma as any).emergencyAlert.findUnique({ where: { id: alertId } });
-      if (!alert) return;
-
-      pingNextVendor(
-        io, prisma, alertId,
-        { latitude: alert.latitude, longitude: alert.longitude, severity: alert.severity, message: alert.message, userId: alert.userId },
-        remaining
-      );
+      // If everyone in this round declines, the next round starts immediately
+      // instead of waiting out the timeout.
+      noteDecline(alertId, vendorId);
     } catch (error) {
       console.error('Vendor decline error:', error);
     }
   });
 
   // ── Vendor updates journey status (EN_ROUTE / NEARBY / ARRIVED / RESOLVED) ──
-  socket.on('vendor:status_update', async (data: {
-    alertId: string;
-    vendorId: string;
-    status: string;
-    message?: string;
-  }) => {
+  socket.on('vendor:status_update', async (data: { alertId: string; status: string; latitude?: number; longitude?: number }) => {
     try {
-      const { alertId, vendorId, status } = data;
+      const { alertId, status } = data ?? {};
+      const vendorId: string | undefined = socket.data.userId;
+      if (!vendorId || socket.data.role !== 'VENDOR') {
+        socket.emit('error', { message: 'Vendor role required' });
+        return;
+      }
+
+      // Whitelist the status — this string was previously written to the DB
+      // verbatim from the payload.
+      if (!VALID_DISPATCH_STATUSES.includes(status as any)) {
+        socket.emit('vendor:status_ack', { alertId, status, success: false, error: 'Invalid status' });
+        return;
+      }
+
+      // Only the vendor actually assigned to this alert may move it.
+      const assigned = await (prisma as any).emergencyAlert.findUnique({
+        where: { id: alertId },
+        select: { assignedVendorId: true, latitude: true, longitude: true, userId: true },
+      });
+      if (!assigned || assigned.assignedVendorId !== vendorId) {
+        socket.emit('vendor:status_ack', { alertId, status, success: false, error: 'Not assigned to this alert' });
+        return;
+      }
+
+      // ARRIVED is a claim that can be made from the sofa. Require the vendor to
+      // actually be near the scene before it is accepted.
+      if (status === 'ARRIVED') {
+        const hasFix = validCoords(data.latitude, data.longitude);
+        const distanceKm = hasFix
+          ? haversineKm(assigned.latitude, assigned.longitude, data.latitude!, data.longitude!)
+          : null;
+
+        if (distanceKm === null || distanceKm > ARRIVAL_PROXIMITY_KM) {
+          await logDispatch(prisma, alertId, 'ARRIVED', {
+            vendorId,
+            detail: `rejected — vendor ${distanceKm === null ? 'sent no location' : `${distanceKm.toFixed(2)}km away`}`,
+            distanceKm: distanceKm ?? undefined,
+          });
+          socket.emit('vendor:status_ack', {
+            alertId, status, success: false,
+            error: 'You must be at the location to mark arrival. Share your live location and try again.',
+          });
+          return;
+        }
+        await logDispatch(prisma, alertId, 'ARRIVED', { vendorId, distanceKm });
+      }
 
       const statusMessages: Record<string, string> = {
-        EN_ROUTE: '🚗 Your responder is on the way! Stay where you are.',
-        NEARBY:   '📍 Your responder is very close — stay calm, they will be there any moment!',
-        ARRIVED:  '🟢 Your responder has arrived! Help is here.',
-        RESOLVED: '✅ Your case has been resolved. You are safe.',
+        EN_ROUTE: '🚗 Your responder is on the way. Stay where you are if it is safe.',
+        NEARBY:   '📍 Your responder is very close — they will be with you any moment.',
+        ARRIVED:  '🟢 Your responder has arrived.',
+        RESOLVED: '✅ Your responder marked this case resolved. Please confirm you are safe.',
       };
-      const userMessage = data.message || statusMessages[status] || `Status updated to ${status}`;
 
-      // Update DB
       const alert = await (prisma as any).emergencyAlert.update({
         where: { id: alertId },
-        data:  { dispatchStatus: status },
-        include: { user: { select: { firstName: true, lastName: true } } },
+        data: { dispatchStatus: status },
       }).catch((e: any) => { console.error('DB update failed:', e); return null; });
 
       if (!alert) {
@@ -367,68 +422,88 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
         return;
       }
 
-      // Notify the user in real-time
-      if (alert.userId) {
-        io.to(`user-${alert.userId}`).emit('sos:status_update', {
-          alertId,
-          dispatchStatus: status,
-          message: userMessage,
-        });
-      }
-
-      // Notify all admins in real-time
-      io.to('admin-room').emit('sos:vendor_status_update', {
+      notifyCaller(io, alert.userId, {
         alertId,
-        vendorId,
         dispatchStatus: status,
-        message: userMessage,
-        timestamp: new Date(),
+        message: statusMessages[status],
+        // RESOLVED from a vendor is unconfirmed until the caller says so.
+        awaitingConfirmation: status === 'RESOLVED',
       });
 
-      // If resolved — free the vendor for the next alert
+      io.to('admin-room').emit('sos:vendor_status_update', {
+        alertId, vendorId, dispatchStatus: status, message: statusMessages[status], timestamp: new Date(),
+      });
+
       if (status === 'RESOLVED') {
+        abortDispatch(alertId);
+        await logDispatch(prisma, alertId, 'RESOLVED', { vendorId, detail: 'vendor-reported, awaiting caller confirmation' });
+
         await (prisma as any).vendorProfile.update({
           where: { userId: vendorId },
-          data:  { isAvailable: true },
+          data: { isAvailable: true },
         }).catch(console.error);
 
         io.to(`vendor-${vendorId}`).emit('vendor:case_resolved', { alertId });
-        console.log(`✅ Alert ${alertId} RESOLVED by vendor ${vendorId} — vendor freed`);
+        console.log(`✅ Alert ${alertId} marked RESOLVED by vendor ${vendorId} (unconfirmed)`);
       }
 
-      // Acknowledge back to vendor
       socket.emit('vendor:status_ack', { alertId, status, success: true });
-      console.log(`🔄 Vendor ${vendorId} → alert ${alertId}: ${status}`);
-
     } catch (error) {
       console.error('Vendor status update error:', error);
       socket.emit('error', { message: 'Failed to update status' });
     }
   });
 
+  // ── Caller confirms they are safe ──────────────────────────────────────────
+  socket.on('emergency:confirm_resolved', async (data: AlertRef) => {
+    try {
+      const userId: string | undefined = socket.data.userId;
+      if (!userId) return;
+
+      const confirmed = await (prisma as any).emergencyAlert.updateMany({
+        where: { id: data.alertId, userId },
+        data: { status: 'RESOLVED', resolvedAt: new Date(), resolutionConfirmedAt: new Date() },
+      });
+      if (confirmed.count === 0) return;
+
+      await logDispatch(prisma, data.alertId, 'RESOLVED', { detail: 'confirmed by caller' });
+      io.to('admin-room').emit('emergency:resolved', { alertId: data.alertId, confirmedByCaller: true });
+      socket.emit('emergency:resolve_confirmed', { alertId: data.alertId });
+    } catch (error) {
+      console.error('Confirm resolve error:', error);
+    }
+  });
 
   // ── Admin acknowledges alert ───────────────────────────────────────────────
-  socket.on('emergency:acknowledge', async (data: AcknowledgeData) => {
+  socket.on('emergency:acknowledge', async (data: AlertRef) => {
     try {
+      // Admin-only. This handler previously had no check at all, and wrote the
+      // client-supplied adminId straight into the acknowledgedBy audit column.
+      const adminId: string | undefined = socket.data.userId;
+      if (!adminId || socket.data.role !== 'ADMIN') {
+        socket.emit('error', { message: 'Admin role required' });
+        return;
+      }
+
       const alert = await (prisma as any).emergencyAlert.update({
         where: { id: data.alertId },
-        data: { status: 'ACKNOWLEDGED', acknowledgedBy: data.adminId, acknowledgedAt: new Date() },
+        data: { status: 'ACKNOWLEDGED', acknowledgedBy: adminId, acknowledgedAt: new Date() },
       });
+
+      await logDispatch(prisma, data.alertId, 'ACKNOWLEDGED', { vendorId: adminId, detail: 'admin' });
 
       io.to('admin-room').emit('emergency:acknowledged', {
         alertId: data.alertId,
-        adminId: data.adminId,
+        adminId,
         timestamp: alert.acknowledgedAt,
       });
 
-      if (alert.userId) {
-        io.to(`user-${alert.userId}`).emit('emergency:acknowledged', {
-          alertId: data.alertId,
-          message: 'Your emergency has been acknowledged by our team',
-        });
-      }
+      notifyCaller(io, alert.userId, {
+        alertId: data.alertId,
+        message: 'Your emergency has been acknowledged by our team',
+      });
 
-      console.log(`Alert ${data.alertId} acknowledged by admin ${data.adminId}`);
+      console.log(`Alert ${data.alertId} acknowledged by admin ${adminId}`);
     } catch (error) {
       console.error('Acknowledge error:', error);
       socket.emit('error', { message: 'Failed to acknowledge alert' });
@@ -436,14 +511,27 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   });
 
   // ── Admin resolves alert ───────────────────────────────────────────────────
-  socket.on('emergency:resolve', async (data: AcknowledgeData) => {
+  socket.on('emergency:resolve', async (data: AlertRef) => {
     try {
+      // Admin-only. Unauthenticated resolve let anyone silently close a live
+      // emergency and tell the victim in crisis that help had already arrived.
+      const adminId: string | undefined = socket.data.userId;
+      if (!adminId || socket.data.role !== 'ADMIN') {
+        socket.emit('error', { message: 'Admin role required' });
+        return;
+      }
+
+      // Cancel the dispatch chain before closing, or a later round pings a new
+      // vendor for a resolved alert.
+      abortDispatch(data.alertId);
+
       const alert = await (prisma as any).emergencyAlert.update({
         where: { id: data.alertId },
         data: { status: 'RESOLVED', resolvedAt: new Date(), dispatchStatus: 'RESOLVED' },
       });
 
-      // Free up the vendor if one was assigned
+      await logDispatch(prisma, data.alertId, 'RESOLVED', { vendorId: adminId, detail: 'closed by admin' });
+
       if (alert.assignedVendorId) {
         await (prisma as any).vendorProfile.update({
           where: { userId: alert.assignedVendorId },
@@ -454,19 +542,17 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
 
       io.to('admin-room').emit('emergency:resolved', {
         alertId: data.alertId,
-        adminId: data.adminId,
+        adminId,
         timestamp: alert.resolvedAt,
       });
 
-      if (alert.userId) {
-        io.to(`user-${alert.userId}`).emit('sos:status_update', {
-          alertId: data.alertId,
-          dispatchStatus: 'RESOLVED',
-          message: '✅ This emergency case has been resolved. Stay safe.',
-        });
-      }
+      notifyCaller(io, alert.userId, {
+        alertId: data.alertId,
+        dispatchStatus: 'RESOLVED',
+        message: '✅ This emergency case has been resolved. Stay safe.',
+      });
 
-      console.log(`Alert ${data.alertId} resolved`);
+      console.log(`Alert ${data.alertId} resolved by admin ${adminId}`);
     } catch (error) {
       console.error('Resolve error:', error);
       socket.emit('error', { message: 'Failed to resolve alert' });

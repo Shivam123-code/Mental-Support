@@ -9,20 +9,11 @@
 // EMAIL NON-FATAL: approval succeeds even if SMTP fails; temp password returned in response.
 
 import { NextRequest } from 'next/server';
-import { getUserFromToken, hashPassword } from '@/lib/auth';
+import { requireAdmin as checkAdmin, hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 import { sendApprovalEmail } from '@/lib/email';
 import crypto from 'crypto';
-
-async function checkAdmin(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.substring(7);
-  const user = await getUserFromToken(token);
-  if (!user || user.role !== 'ADMIN') return null;
-  return user;
-}
 
 function generateTempPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';

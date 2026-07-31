@@ -2,11 +2,12 @@
 // Accepts multipart/form-data with files + form fields
 
 import { NextRequest } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { sendApplicationReceivedEmail } from '@/lib/email';
+import { saveUpload, UploadError } from '@/lib/server/upload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,15 +56,13 @@ export async function POST(request: NextRequest) {
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'organization', application.id);
     await mkdir(uploadDir, { recursive: true });
 
-    async function saveFile(field: string): Promise<string | null> {
-      const file = formData.get(field) as File | null;
-      if (!file || typeof file === 'string') return null;
-      const bytes = await file.arrayBuffer();
-      const ext = path.extname(file.name) || '.bin';
-      const filename = `${field}${ext}`;
-      await writeFile(path.join(uploadDir, filename), Buffer.from(bytes));
-      return `/uploads/organization/${application.id}/${filename}`;
-    }
+    const saveFile = (field: string) =>
+      saveUpload(
+        formData.get(field),
+        uploadDir,
+        `/uploads/organization/${application.id}`,
+        field
+      );
 
     const [regCertPath, gstCertPath, authLetterPath, logoPath] = await Promise.all([
       saveFile('registrationCert'),
@@ -80,8 +79,10 @@ export async function POST(request: NextRequest) {
 
     // ── Send confirmation email ──────────────────────────────────────────────
     try {
-      const recipientEmail = get('contactEmail') || email;
-      await sendApplicationReceivedEmail(recipientEmail, contactName || orgName, 'organization');
+      // Always send to the application's own email. Honouring a separate
+      // contactEmail turned this unauthenticated route into a mailer that
+      // delivered attacker-authored content to any address, SPF-signed by us.
+      await sendApplicationReceivedEmail(email, contactName || orgName, 'organization');
     } catch (emailErr) {
       console.error('Confirmation email failed (non-fatal):', emailErr);
     }
@@ -92,6 +93,9 @@ export async function POST(request: NextRequest) {
       201
     );
   } catch (error: any) {
+    if (error instanceof UploadError) {
+      return errorResponse(error.message, 400);
+    }
     console.error('Organization application error:', error);
     return errorResponse('Failed to submit application. Please try again.', 500);
   }

@@ -5,6 +5,7 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
+import { hashToken } from '@/lib/auth';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { successResponse, errorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
@@ -43,8 +44,9 @@ export async function POST(request: NextRequest) {
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+      // Persist only the digest — the raw token exists solely in the emailed link.
       await prisma.passwordResetToken.create({
-        data: { userId: user.id, token, expiresAt },
+        data: { userId: user.id, token: hashToken(token), expiresAt },
       });
 
       // Send email (fire and forget — don't block response on email failure)

@@ -3,7 +3,8 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, hashToken } from '@/lib/auth';
+import { PASSWORD_POLICY, PASSWORD_POLICY_MESSAGE } from '@/lib/validation';
 import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
@@ -15,13 +16,16 @@ export async function POST(request: NextRequest) {
       return errorResponse('Invalid or missing reset token.', 400);
     }
 
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return errorResponse('Password must be at least 8 characters.', 400);
+    // Same policy as change-password and register — resetting must not be a way
+    // to set a weaker password than changing it allows.
+    if (!password || typeof password !== 'string' || !PASSWORD_POLICY.test(password)) {
+      return errorResponse(PASSWORD_POLICY_MESSAGE, 400);
     }
 
-    // Find the token
+    // Look up by hash — only the digest is stored, so a leaked DB backup or a
+    // read-only injection yields nothing directly replayable.
     const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: hashToken(token) },
       include: { user: true },
     });
 

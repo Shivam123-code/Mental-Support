@@ -1,10 +1,22 @@
 // Validation Schemas using Zod
 import { z } from 'zod';
 
+/**
+ * Single source of truth for password strength.
+ *
+ * These rules previously lived only in change-password, so "forgot password"
+ * was a downgrade path: a user could route around the complexity requirement
+ * by resetting instead of changing. Every entry point now shares this.
+ */
+export const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+export const PASSWORD_POLICY_MESSAGE =
+  'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.';
+export const passwordSchema = z.string().regex(PASSWORD_POLICY, PASSWORD_POLICY_MESSAGE);
+
 // User Registration
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: passwordSchema,
   firstName: z.string().min(1, 'First name is required').optional(),
   lastName: z.string().min(1, 'Last name is required').optional(),
   role: z.enum(['USER', 'PROFESSIONAL', 'ENTERPRISE']).default('USER'),

@@ -4,16 +4,13 @@
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getUserFromToken } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) return unauthorizedResponse();
-    const token = authHeader.substring(7);
-    const admin = await getUserFromToken(token);
-    if (!admin || admin.role !== 'ADMIN') return unauthorizedResponse();
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorizedResponse();
 
     const { searchParams } = new URL(request.url);
     const panel = searchParams.get('panel') ?? 'USER';

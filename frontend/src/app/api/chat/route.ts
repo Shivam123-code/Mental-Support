@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/server/rate-limit";
+import { getUserFromToken } from "@/lib/auth";
 
 export async function POST(req: Request) {
-  // V-05 + V-04 FIX: Rate limit chat — 30 requests per minute per IP
-  const ip = getClientIp(req);
-  const { allowed } = rateLimit(`chat:${ip}`, 30, 60 * 1000);
+  // This endpoint stays reachable without an account on purpose: someone in
+  // distress must be able to talk to the companion before signing up. So the
+  // spend control is a tighter bucket for anonymous callers rather than a wall.
+  // Signed-in callers are limited per-account, which a shared NAT cannot exhaust
+  // for everyone behind it.
+  const authHeader = req.headers.get("authorization");
+  const user = authHeader?.startsWith("Bearer ")
+    ? await getUserFromToken(authHeader.substring(7))
+    : null;
+
+  const { allowed } = user
+    ? rateLimit(`chat:user:${user.id}`, 30, 60 * 1000)
+    : rateLimit(`chat:ip:${getClientIp(req)}`, 10, 60 * 1000);
+
   if (!allowed) {
     return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
   }
