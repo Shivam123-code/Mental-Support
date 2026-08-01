@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server';
 import { requireAdmin as checkAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
+import { logAdminAction } from '@/lib/server/audit';
 
 export async function DELETE(
   request: NextRequest,
@@ -28,6 +29,12 @@ export async function DELETE(
       if (!app) return errorResponse('Application not found', 404);
       await prisma.organizationApplication.delete({ where: { id } });
     }
+
+    await logAdminAction(request, admin.id, 'application.delete', {
+      resource: type === 'professional' ? 'ProfessionalApplication' : 'OrganizationApplication',
+      resourceId: id,
+      metadata: { type },
+    });
 
     console.log(`🗑️ Admin ${admin.id} deleted ${type} application: ${id}`);
     return successResponse({ deleted: true, id }, 'Application deleted successfully.');

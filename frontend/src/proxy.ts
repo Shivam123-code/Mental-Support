@@ -45,6 +45,7 @@ const PUBLIC_API_ROUTES = new Set([
   '/api/sos',
   '/api/chat',
   '/api/location/ip',
+  '/api/location/geocode',
 ]);
 
 export function proxy(request: NextRequest) {

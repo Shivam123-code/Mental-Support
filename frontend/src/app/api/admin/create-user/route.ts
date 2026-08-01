@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { hashPassword, requireAdmin, hashToken } from '@/lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
+import { logAdminAction } from '@/lib/server/audit';
 import { sendAdminCreatedAccountEmail } from '@/lib/server/email';
 import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
@@ -173,6 +174,14 @@ export async function POST(request: NextRequest) {
   sendAdminCreatedAccountEmail(email, name, plainPassword, role, resetLink).catch((err) =>
     console.error('[create-user] Email send error:', err)
   );
+
+  // Never record the password itself, generated or supplied — only that one
+  // was auto-generated, which is what an investigation actually needs to know.
+  await logAdminAction(request, admin.id, 'user.create', {
+    resource: 'User',
+    resourceId: newUser.id,
+    metadata: { email: newUser.email, role: newUser.role, status: newUser.status, autoPassword: isAutoPassword },
+  });
 
   return successResponse(
     {

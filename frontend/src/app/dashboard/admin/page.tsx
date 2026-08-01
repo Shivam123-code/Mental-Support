@@ -18,6 +18,7 @@ import {
 import ChangePasswordCard from '@/components/ChangePasswordCard';
 import AddUserModal from '@/components/admin/AddUserModal';
 import AnalyticsPanel from '@/components/admin/AnalyticsPanel';
+import { reverseGeocode } from '@/lib/client/geocode';
 
 interface SOSCase {
   id: string; user: string; region: string;
@@ -186,15 +187,36 @@ function AdminDashboardContent() {
 
   useEffect(() => { if (activeTab === 'Vendors') fetchAllVendors(); }, [activeTab]);
 
+  // ── Persisted audit trail ──────────────────────────────────────────────────
+  // Replaces the in-memory string array, which lost every recorded action on
+  // refresh. Cursor-paginated: this table only grows.
+  const [auditEntries, setAuditEntries] = useState<any[]>([]);
+  const [auditCursor, setAuditCursor] = useState<string | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const fetchAuditLogs = async (cursor?: string) => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) return;
+    setAuditLoading(true);
+    try {
+      const qs = new URLSearchParams({ limit: '50', ...(cursor ? { cursor } : {}) });
+      const res = await fetch(`/api/admin/audit-logs?${qs}`, { headers: { Authorization: `Bearer ${t}` } });
+      const data = await res.json();
+      if (data.success) {
+        setAuditEntries(prev => (cursor ? [...prev, ...data.data.items] : data.data.items));
+        setAuditCursor(data.data.nextCursor);
+      }
+    } catch { } finally { setAuditLoading(false); }
+  };
+
+  useEffect(() => { if (activeTab === 'Audit Logs') fetchAuditLogs(); }, [activeTab]);
+
   useEffect(() => {
     allVendors.forEach((v: any) => {
       if (!v.latitude || !v.longitude || vendorLocationLabels[v.id]) return;
-      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${v.latitude}&lon=${v.longitude}&format=json`, { signal: AbortSignal.timeout(6000) })
-        .then(r => r.json()).then(data => {
-          const a = data.address || {};
-          const label = [a.road || a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state].filter(Boolean).join(', ') || data.display_name?.split(',').slice(0, 3).join(',') || '';
-          if (label) setVendorLocationLabels(prev => ({ ...prev, [v.id]: label }));
-        }).catch(() => {});
+      reverseGeocode(v.latitude, v.longitude).then(label => {
+        if (label) setVendorLocationLabels(prev => ({ ...prev, [v.id]: label }));
+      });
     });
   }, [allVendors]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,12 +225,9 @@ function AdminDashboardContent() {
       const key = `${alert.id}`;
       if (locationLabels[key] || !alert.latitude || !alert.longitude) return;
       setLocationLabels((prev) => ({ ...prev, [key]: 'Resolving…' }));
-      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${alert.latitude}&lon=${alert.longitude}&format=json`)
-        .then((r) => r.json()).then((data) => {
-          const a = data.address || {};
-          const label = [a.suburb || a.neighbourhood || a.road, a.city || a.town || a.village || a.county, a.state, a.country].filter(Boolean).join(', ');
-          setLocationLabels((prev) => ({ ...prev, [key]: label || `${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}` }));
-        }).catch(() => { setLocationLabels((prev) => ({ ...prev, [key]: `${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}` })); });
+      reverseGeocode(alert.latitude, alert.longitude).then((label) => {
+        setLocationLabels((prev) => ({ ...prev, [key]: label }));
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveAlerts]);
@@ -261,9 +280,14 @@ function AdminDashboardContent() {
 
 
 
+  // ponytail: local-only. This never persisted — refresh reverted the
+  // assignment and no responder was ever contacted. Real dispatch already runs
+  // server-side via startDispatch; this panel needs to claim an alert through
+  // EmergencyAlert.acknowledgedBy rather than keep its own shadow state.
+  // Ceiling: two admins can each "assign" the same case and neither sees the
+  // other. Upgrade path: POST /api/admin/sos-alerts/[id]/claim.
   const handleAssignSOS = (id: string, responder: string) => {
     setSosCases(prev => prev.map(c => c.id === id ? { ...c, status: "ASSIGNED", assignedTo: responder } : c));
-    setAuditLogs(prev => [`Admin assigned responder ${responder} to safety case ${id}`, ...prev]);
   };
 
   const handleResolveSOS = async (id: string) => {
@@ -907,20 +931,20 @@ function AdminDashboardContent() {
                     </Card>
                     <Card className="md:col-span-2 p-5 space-y-4">
                       <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><ShieldCheck size={14} className="text-indigo-600" /> Privacy & Compliance Queue</h3>
-                      {[
-                        { user: "User #9021", request: "Data Portability / Export", date: "Today", id: "REQ-4401" },
-                        { user: "User #1093", request: "Account Deletion (Right to be Forgotten)", date: "Yesterday", id: "REQ-4402" }
-                      ].map(req => (
-                        <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl text-xs">
-                          <div>
-                            <span className="font-mono font-bold text-indigo-600 block text-[10px]">{req.id}</span>
-                            <span className="font-semibold">{req.user} requests </span><strong>{req.request}</strong>
-                            <p className="text-slate-400 mt-0.5">{req.date}</p>
-                          </div>
-                          <button onClick={() => setAuditLogs(prev => [`Privacy request ${req.id} executed for ${req.user}`, ...prev])}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 cursor-pointer whitespace-nowrap">Execute</button>
-                        </div>
-                      ))}
+                      {/* The rows here were hardcoded fixtures and Execute only
+                          appended a log line — no data was ever exported or
+                          erased. A DPDP/GDPR control that silently no-ops is
+                          worse than none: it gets clicked, and the requester is
+                          told their data is gone. Stays disabled until the
+                          export/erase pipeline is real. */}
+                      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl text-xs">
+                        <p className="font-bold text-amber-900 dark:text-amber-200">Not implemented yet</p>
+                        <p className="text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                          Data export and right-to-be-forgotten requests are not yet wired to a
+                          real pipeline. Handle them manually and record the outcome, and do not
+                          confirm erasure to a requester from this screen.
+                        </p>
+                      </div>
                     </Card>
                   </div>
                 </div>
@@ -1197,8 +1221,10 @@ function AdminDashboardContent() {
                                   <td className="py-3.5 px-4 font-semibold text-indigo-600">{item.wellbeingParticipation}%</td>
                                   <td className="py-3.5 px-4"><StatusPill status={item.status} /></td>
                                   <td className="py-3.5 px-4 text-right">
-                                    <button onClick={() => setAuditLogs(prev => [`Generated workforce report for ${item.name}`, ...prev])}
-                                      className="px-3 py-1.5 text-[10px] font-bold border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">Report</button>
+                                    {/* No report is generated — disabled rather than
+                                        pretending, until an export exists. */}
+                                    <button disabled title="Report generation not implemented yet"
+                                      className="px-3 py-1.5 text-[10px] font-bold border border-slate-200 dark:border-slate-600 rounded-xl opacity-40 cursor-not-allowed">Report</button>
                                   </td>
                                 </tr>
                               ))}
@@ -1297,21 +1323,40 @@ function AdminDashboardContent() {
               {/* ═══════════════ AUDIT LOGS ═══════════════ */}
               {activeTab === "Audit Logs" && (
                 <div className="space-y-5 animate-in fade-in duration-300">
-                  <SectionHead title="Audit Logs" sub="Chronological record of all admin actions this session" />
+                  <SectionHead title="Audit Logs" sub="Permanent record of admin actions — who did what, when, from where" />
                   <Card className="p-5">
-                    {auditLogs.length === 0 ? (
-                      <div className="text-center py-12 text-slate-400 text-sm">No audit logs yet.</div>
+                    {auditLoading && auditEntries.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 text-sm">Loading audit trail…</div>
+                    ) : auditEntries.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 text-sm">No admin actions recorded yet.</div>
                     ) : (
                       <div className="space-y-2">
-                        {auditLogs.map((log, i) => (
-                          <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700 text-xs">
-                            <div className="w-5 h-5 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5"><List size={10} className="text-indigo-600" /></div>
-                            <div className="flex-1">
-                              <p className="text-slate-600 dark:text-slate-300">{log}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">Session · {new Date().toLocaleTimeString()}</p>
+                        {auditEntries.map((e) => (
+                          <div key={e.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700 text-xs">
+                            <div className="w-5 h-5 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5"><List size={10} className="text-indigo-600" /></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-slate-700 dark:text-slate-200">
+                                <span className="font-bold">{e.actor?.name ?? 'unknown'}</span>
+                                <span className="font-mono mx-1.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px]">{e.action}</span>
+                                {e.metadata?.email && <span className="text-slate-500">{e.metadata.email}</span>}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {new Date(e.createdAt).toLocaleString()}
+                                {e.resourceId && <> · <span className="font-mono">{String(e.resourceId).slice(-8)}</span></>}
+                                {e.ipAddress && <> · {e.ipAddress}</>}
+                              </p>
                             </div>
                           </div>
                         ))}
+                        {auditCursor && (
+                          <button
+                            onClick={() => fetchAuditLogs(auditCursor)}
+                            disabled={auditLoading}
+                            className="w-full mt-2 py-2.5 text-xs font-bold border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
+                          >
+                            {auditLoading ? 'Loading…' : 'Load older entries'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </Card>

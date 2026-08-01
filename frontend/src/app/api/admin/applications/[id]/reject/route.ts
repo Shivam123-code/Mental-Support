@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { requireAdmin as checkAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
+import { logAdminAction } from '@/lib/server/audit';
 import { sendRejectionEmail } from '@/lib/email';
 
 export async function POST(
@@ -51,6 +52,12 @@ export async function POST(
         console.error('Rejection email error (non-fatal):', e);
       }
     }
+
+    await logAdminAction(request, admin.id, 'application.reject', {
+      resource: 'Application',
+      resourceId: id,
+      metadata: { reason },
+    });
 
     return successResponse({ id }, 'Application rejected and applicant notified.');
   } catch (error: any) {

@@ -12,6 +12,7 @@ import { NextRequest } from 'next/server';
 import { requireAdmin as checkAdmin, hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
+import { logAdminAction } from '@/lib/server/audit';
 import { sendApprovalEmail } from '@/lib/email';
 import crypto from 'crypto';
 
@@ -180,6 +181,12 @@ export async function POST(
       emailError = e?.message || 'Email delivery failed';
       console.error('Approval email error (non-fatal):', e);
     }
+
+    await logAdminAction(request, admin.id, 'application.approve', {
+      resource: 'Application',
+      resourceId: id,
+      metadata: { grantedUserId: userId, email, role, emailDelivered: !emailError },
+    });
 
     return successResponse(
       { userId, email, emailError, tempPassword: emailError ? tempPassword : undefined },

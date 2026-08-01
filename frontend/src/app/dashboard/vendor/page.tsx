@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import ChangePasswordCard from '@/components/ChangePasswordCard';
 import { FadeIn, SlideUp } from '@/components/motion/animations';
+import { reverseGeocode } from '@/lib/client/geocode';
 
 type DispatchStatus = 'VENDOR_ALERTED' | 'VENDOR_ACCEPTED' | 'EN_ROUTE' | 'NEARBY' | 'ARRIVED' | 'RESOLVED' | 'PENDING';
 
@@ -76,17 +77,8 @@ function VendorDashboardContent() {
   // Auto-geocode any lat/lon pair into a human-readable label
   const geocodeCoords = useCallback(async (key: string, lat: number, lon: number) => {
     if (locationLabels[key]) return; // already fetched
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-        { signal: AbortSignal.timeout(6000) }
-      );
-      const data = await res.json();
-      const a = data.address || {};
-      const label = [a.road || a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
-        .filter(Boolean).join(', ') || data.display_name?.split(',').slice(0, 3).join(',') || '';
-      if (label) setLocationLabels(prev => ({ ...prev, [key]: label }));
-    } catch { /* keep coords only */ }
+    const label = await reverseGeocode(lat, lon);
+    if (label) setLocationLabels(prev => ({ ...prev, [key]: label }));
   }, [locationLabels]);
 
   // Geocode incoming dispatch location as soon as alert arrives
@@ -120,7 +112,12 @@ function VendorDashboardContent() {
         setIsOnline(profileData.data.isOnline);
       }
       if (assignData.success) {
-        setActiveAssignment(assignData.data.active?.[0] || null);
+        const live = assignData.data.active?.[0] || null;
+        setActiveAssignment(live);
+        // Rehydrate the step bar from the server. caseStatus defaults to
+        // VENDOR_ACCEPTED, so without this a reload silently rewound a vendor
+        // who was already ARRIVED back to step one.
+        if (live?.dispatchStatus) setCaseStatus(live.dispatchStatus);
         setHistory(assignData.data.history || []);
       }
     } catch (err) {
@@ -205,12 +202,59 @@ function VendorDashboardContent() {
     return () => clearInterval(t);
   }, [incomingDispatch]); // ← do NOT add dispatchCountdown here
 
+  /**
+   * Push the current GPS position to the server.
+   *
+   * Dispatch ignores vendors whose location is older than 30 minutes — a
+   * position saved this morning is not a position. So going online has to
+   * refresh it automatically; relying on the vendor remembering to tap
+   * "Share location" would make most vendors silently undispatchable.
+   */
+  const pushLocation = useCallback((): Promise<boolean> => {
+    if (!token || !navigator.geolocation) return Promise.resolve(false);
+    return new Promise(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            const res = await fetch('/api/vendor/location', {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ latitude, longitude }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              setProfile(p => p ? { ...p, latitude, longitude, locationUpdatedAt: new Date().toISOString() } : p);
+            }
+            resolve(Boolean(data.success));
+          } catch {
+            resolve(false);
+          }
+        },
+        () => resolve(false),
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    });
+  }, [token]);
+
   // ── Toggle Online/Offline ─────────────────────────────────────────────────
   const toggleOnline = async () => {
     if (!token) return;
     setTogglingOnline(true);
     try {
       const newState = !isOnline;
+
+      // Refresh position BEFORE going online, so the vendor is immediately
+      // dispatchable rather than filtered out as stale.
+      if (newState) {
+        const ok = await pushLocation();
+        if (!ok) {
+          setLocationError(
+            'Could not read your location. Allow location access — without it you will not receive emergency dispatches.'
+          );
+        }
+      }
+
       const res = await fetch('/api/vendor/status', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -225,39 +269,25 @@ function VendorDashboardContent() {
     }
   };
 
-  // ── Share Location ─────────────────────────────────────────────────────────
-  const shareLocation = () => {
+  // Keep the position fresh while online, or it ages past the dispatch window
+  // during a long shift and the vendor quietly stops receiving alerts.
+  useEffect(() => {
+    if (!isOnline || !token) return;
+    const t = setInterval(() => { void pushLocation(); }, 10 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [isOnline, token, pushLocation]);
+
+  // ── Share Location (manual refresh button) ─────────────────────────────────
+  const shareLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation is not supported by your browser.');
       return;
     }
     setLocationLoading(true);
     setLocationError('');
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        try {
-          const res = await fetch('/api/vendor/location', {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ latitude, longitude }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            setProfile(p => p ? { ...p, latitude, longitude, locationUpdatedAt: new Date().toISOString() } : p);
-          }
-        } catch (err) {
-          setLocationError('Failed to save location. Please try again.');
-        } finally {
-          setLocationLoading(false);
-        }
-      },
-      (err) => {
-        setLocationError('Location access denied. Please allow browser location access.');
-        setLocationLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
+    const ok = await pushLocation();
+    if (!ok) setLocationError('Location access denied. Please allow browser location access.');
+    setLocationLoading(false);
   };
 
   // ── Accept dispatch ───────────────────────────────────────────────────────

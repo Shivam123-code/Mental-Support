@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmergencySOS } from '@/hooks/useSocket';
+import { reverseGeocode, geocodeAddress } from '@/lib/client/geocode';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Step = 'form' | 'sending' | 'success' | 'error';
@@ -36,26 +37,6 @@ function normalizeError(error: unknown): Error {
 }
 
 
-
-// ─── Reverse geocode lat/lon → human label ───────────────────────────────────
-async function reverseGeocode(latitude: number, longitude: number): Promise<string> {
-  const fallback = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    const data = await res.json();
-    const a = data.address || {};
-    return (
-      [a.suburb || a.neighbourhood, a.city || a.town || a.village, a.state]
-        .filter(Boolean)
-        .join(', ') || fallback
-    );
-  } catch {
-    return fallback;
-  }
-}
 
 // ─── Single geolocation attempt helper ───────────────────────────────────────
 function geoRequest(highAccuracy: boolean, timeoutMs: number): Promise<GeolocationPosition> {
@@ -92,19 +73,9 @@ async function getBrowserLocation(): Promise<LocationData> {
 }
 
 
-// ─── Geocode a typed address via Nominatim ────────────────────────────────────
-async function geocodeAddress(address: string): Promise<LocationData> {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  const data = await res.json();
-  if (!data || data.length === 0) throw new Error('Address not found. Please try a different address.');
-  const { lat, lon, display_name } = data[0];
-  return {
-    latitude: parseFloat(lat),
-    longitude: parseFloat(lon),
-    label: display_name.split(',').slice(0, 3).join(','),
-    accuracy: 'address',
-  };
+// ─── Geocode a typed address ─────────────────────────────────────────────────
+async function locateByAddress(address: string): Promise<LocationData> {
+  return { ...(await geocodeAddress(address)), accuracy: 'address' };
 }
 
 // ─── Accuracy badge config ────────────────────────────────────────────────────
@@ -312,7 +283,7 @@ export default function SOSButton() {
     setAddressLoading(true);
     setAddressError('');
     try {
-      const loc = await geocodeAddress(addressInput.trim());
+      const loc = await locateByAddress(addressInput.trim());
       setLocation(loc);
       setLocationAccuracy('address');
       setShowAddressInput(false);
@@ -373,8 +344,10 @@ export default function SOSButton() {
         return;
       }
 
-      // ─ Logged-in + socket ready: use WebSocket (real-time to admin dashboard) ─
-      if (isAuthenticated && isConnected && socketAuth) {
+      // ─ Socket ready: use WebSocket (real-time to admin dashboard) ─
+      // Guests included — the server issues them an SOS-only session, so they
+      // get the same realtime dispatch and live status a signed-in caller does.
+      if (isConnected && socketAuth) {
         const result: any = await sendSOS({
           latitude:  loc.latitude,
           longitude: loc.longitude,
@@ -810,7 +783,7 @@ export default function SOSButton() {
                     {showTutorial && (
                       <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                         <iframe
-                          src="https://www.youtube.com/embed/eF_3oRvyyMc?si=Gxb65F6tNyb_r8u-&autoplay=0&rel=0&modestbranding=1"
+                          src="https://www.youtube-nocookie.com/embed/eF_3oRvyyMc?si=Gxb65F6tNyb_r8u-&autoplay=0&rel=0&modestbranding=1"
                           title="How to find longitude and latitude"
                           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen

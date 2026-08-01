@@ -38,6 +38,15 @@ export function rateLimit(
   max: number,
   windowMs: number
 ): { allowed: boolean; retryAfterSeconds: number } {
+  // Disabled on the local dev server. Testing a login means mistyping a password
+  // a few times, and a 15-minute lockout on your own machine only ever blocks
+  // you. Gated on 'development', which `next dev` sets and `next start` does not,
+  // so a real deployment keeps every limit — including the login brute-force
+  // protection this exists for. Applies to all nine rate-limited routes.
+  if (process.env.NODE_ENV === 'development') {
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
+
   const now = Date.now();
   const entry = store.get(key);
 

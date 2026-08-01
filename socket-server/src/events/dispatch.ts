@@ -438,10 +438,24 @@ export async function escalate(
   console.error(`🚨 Alert ${alertId} ESCALATED — ${reason}`);
 }
 
-/** Push a status update to the caller's private room, if they are signed in. */
+/**
+ * Push a status update to the caller.
+ *
+ * Routed by alert room first, user room second. A guest has no account and so
+ * no `user-<id>` room — keying only on userId silently dropped every dispatch
+ * update for exactly the callers least able to chase it up. Every caller joins
+ * `alert-<id>` when their alert is created, signed in or not.
+ *
+ * Both rooms are passed in one `.to()` so a signed-in caller sitting in both
+ * still receives the event once.
+ */
 export function notifyCaller(io: Server, userId: string | null, payload: Record<string, unknown>): void {
-  if (!userId) return;
-  io.to(`user-${userId}`).emit('sos:status_update', payload);
+  const alertId = payload.alertId;
+  const rooms: string[] = [];
+  if (typeof alertId === 'string') rooms.push(`alert-${alertId}`);
+  if (userId) rooms.push(`user-${userId}`);
+  if (!rooms.length) return;
+  io.to(rooms).emit('sos:status_update', payload);
 }
 
 export const dispatchConfig = { TIERS, STALE_LOCATION_MS };

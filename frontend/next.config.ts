@@ -46,8 +46,13 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://images.unsplash.com https://images.pexels.com",
               "font-src 'self' data:",
-              // API + websocket origins the app legitimately talks to
+              // API + websocket origins the app legitimately talks to.
+              // Third-party geocoding is NOT listed here on purpose — it goes
+              // through /api/location/geocode so a victim's GPS fix never
+              // leaves the browser for anywhere but us.
               `connect-src 'self' ${process.env.NEXT_PUBLIC_SOCKET_URL ?? ""} ws: wss:`.trim(),
+              // The SOS "how to find your coordinates" tutorial embed
+              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

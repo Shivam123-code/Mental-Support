@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import ConditionalFooter from "@/components/layout/ConditionalFooter";
 import SOSButton from "@/components/SOSButton";
+import SOSNotifier from "@/components/SOSNotifier";
 import QuickExit from "@/components/layout/QuickExit";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -48,6 +49,7 @@ export default function RootLayout({
           </main>
           <ConditionalFooter />
           <SOSButton />
+          <SOSNotifier />
           <QuickExit />
           <WhatsAppButton />
         </AuthProvider>

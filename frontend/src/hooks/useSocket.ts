@@ -14,7 +14,12 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!enabled || !userId || !role || !token) return;
+    // Only `enabled` gates the connection. Requiring a token here meant a guest
+    // never opened a socket at all, so the SOS modal sat on "Connecting…"
+    // forever and every caller without an account was silently pushed onto the
+    // REST fallback with no live dispatch status. SOS is for everyone; the
+    // server issues a guest session when no token is sent.
+    if (!enabled) return;
 
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -30,7 +35,8 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
       console.log('✅ Socket connected');
       setIsConnected(true);
       // Only the token is sent — the server derives userId and role from it.
-      socket.emit('authenticate', { token });
+      // Omitted entirely for a guest, who gets an SOS-only session.
+      socket.emit('authenticate', token ? { token } : {});
     });
 
     socket.on('authenticated', (data: { success: boolean }) => {
@@ -129,7 +135,9 @@ export function useEmergencySOS(userId?: string, role?: string, token?: string, 
 // useEmergencyAlerts — admin hook, receives + manages SOS alerts
 // ─────────────────────────────────────────────────────────────────────────────
 export function useEmergencyAlerts(adminId?: string, token?: string) {
-  const { socket, isConnected, isAuthenticated } = useSocket(adminId, 'ADMIN', token);
+  // Identity-bound hook: a guest session would receive nothing here, so don't
+  // open one. Only the SOS caller path connects without a token.
+  const { socket, isConnected, isAuthenticated } = useSocket(adminId, 'ADMIN', token, !!token && !!adminId);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [dbLoaded, setDbLoaded] = useState(false);
 
@@ -245,7 +253,9 @@ export interface SOSStatusUpdate {
 }
 
 export function useSOSStatus(userId?: string, role?: string, token?: string) {
-  const { socket, isConnected, isAuthenticated } = useSocket(userId, role, token);
+  // Identity-bound: status arrives in the caller's user room. Guests receive
+  // theirs on the SOS socket itself, via the alert room.
+  const { socket, isConnected, isAuthenticated } = useSocket(userId, role, token, !!token && !!userId);
   const [statusUpdate, setStatusUpdate] = useState<SOSStatusUpdate | null>(null);
 
   useEffect(() => {

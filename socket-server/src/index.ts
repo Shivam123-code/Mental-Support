@@ -130,12 +130,25 @@ io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
 
   // Authenticate user
-  socket.on('authenticate', async (data: { token: string }) => {
+  socket.on('authenticate', async (data?: { token?: string }) => {
     try {
       // Re-authenticating an already-authenticated socket would register a second
       // copy of every SOS handler, so one emit would fire N times. Bind once.
-      if (socket.data.userId) {
+      if (socket.data.userId || socket.data.isGuest) {
         socket.emit('authenticated', { success: false, error: 'Already authenticated' });
+        return;
+      }
+
+      // No token — a guest. SOS is open to everyone, exactly as the public REST
+      // /api/sos already is, so a caller in crisis with no account gets the same
+      // realtime path rather than being stuck on "Connecting…" forever. They get
+      // SOS handlers and nothing else: no admin room, no vendor room, and every
+      // handler still reads identity from socket.data, never from the payload.
+      if (!data?.token) {
+        socket.data.isGuest = true;
+        console.log(`👤 Guest session ${socket.id} — SOS enabled`);
+        socket.emit('authenticated', { success: true, guest: true });
+        setupSOSHandlers(io, socket, prisma);
         return;
       }
 

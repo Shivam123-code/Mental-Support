@@ -25,12 +25,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const active = assignments.filter(a =>
-      ['VENDOR_ALERTED', 'VENDOR_ACCEPTED', 'EN_ROUTE'].includes(a.dispatchStatus)
-    );
-    const history = assignments.filter(a =>
-      !['VENDOR_ALERTED', 'VENDOR_ACCEPTED', 'EN_ROUTE'].includes(a.dispatchStatus)
-    );
+    // A job stays active right through to ARRIVED. NEARBY and ARRIVED were
+    // missing here, so a vendor who had progressed past EN_ROUTE and then
+    // reloaded had their live job sorted into history — the whole status panel
+    // vanished mid-callout, with no way to mark themselves resolved.
+    // Terminal alert states are excluded so a cancelled or resolved alert does
+    // not linger as active just because dispatchStatus was never advanced.
+    const LIVE_DISPATCH = ['VENDOR_ALERTED', 'VENDOR_ACCEPTED', 'EN_ROUTE', 'NEARBY', 'ARRIVED'];
+    const isActive = (a: { dispatchStatus: string; status: string }) =>
+      LIVE_DISPATCH.includes(a.dispatchStatus) && ['ACTIVE', 'ACKNOWLEDGED'].includes(a.status);
+
+    const active = assignments.filter(isActive);
+    const history = assignments.filter(a => !isActive(a));
 
     return successResponse({ active, history, total: assignments.length });
   } catch (error: any) {

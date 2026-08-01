@@ -42,11 +42,41 @@ function validCoords(lat: unknown, lon: unknown): lat is number {
   );
 }
 
-// Per-user SOS flood control. The REST path is rate-limited but the socket path
+// Per-caller SOS flood control. The REST path is rate-limited but the socket path
 // was not, and it is the path the app prefers.
 const sosRecent = new Map<string, number[]>();
 const SOS_MAX = 3;
 const SOS_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * Flood-control key. Signed-in callers key on userId. Guests have no account,
+ * and keying them on socket.id would be free to bypass — reconnect, new bucket —
+ * so they key on remote address instead.
+ *
+ * ponytail: handshake.address is the immediate peer, which behind a reverse
+ * proxy is the proxy itself, putting every guest in one shared bucket. Ceiling:
+ * one guest tripping the limit locks out the rest. Upgrade path: read the
+ * rightmost untrusted x-forwarded-for entry, as frontend getClientIp already does.
+ */
+function callerKey(socket: Socket): string {
+  const userId: string | undefined = socket.data.userId;
+  return userId ? `u:${userId}` : `ip:${socket.handshake.address}`;
+}
+
+/**
+ * WHERE fragment proving this socket owns the alert it names, or null if it
+ * does not. Signed-in callers are scoped by userId. A guest owns exactly the
+ * alert their own connection raised — that id is held server-side in
+ * socket.data, so naming someone else's alert matches nothing here. Identity is
+ * still never read from the payload.
+ */
+function ownedAlertWhere(socket: Socket, alertId: unknown): { id: string; userId?: string } | null {
+  if (typeof alertId !== 'string' || !alertId) return null;
+  const userId: string | undefined = socket.data.userId;
+  if (userId) return { id: alertId, userId };
+  if (socket.data.isGuest && socket.data.guestAlertId === alertId) return { id: alertId };
+  return null;
+}
 
 function sosRateLimited(userId: string): boolean {
   const now = Date.now();
@@ -66,9 +96,12 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   socket.on('emergency:sos', async (data: SOSData) => {
     try {
       // Identity from the verified socket session, never from the payload —
-      // otherwise anyone could file an alert in another user's name.
-      const userId: string | undefined = socket.data.userId;
-      if (!userId) {
+      // otherwise anyone could file an alert in another user's name. A guest has
+      // no identity by definition and files an alert with userId null, exactly as
+      // the public REST /api/sos does; what must never happen is a caller
+      // *claiming* to be someone.
+      const userId: string | null = socket.data.userId ?? null;
+      if (!userId && !socket.data.isGuest) {
         socket.emit('emergency:error', { error: 'Not authenticated' });
         return;
       }
@@ -90,10 +123,19 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
       // Panic taps produce several presses in a few seconds. Without this each
       // one starts its own dispatch chain, and they compete for the same
       // vendors while a genuinely separate emergency waits.
-      const existing = await (prisma as any).emergencyAlert.findFirst({
-        where: { userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
-        orderBy: { createdAt: 'desc' },
-      });
+      // A guest cannot be looked up by account, so their live alert is tracked on
+      // the socket. Same panic-tap protection, scoped to the connection that
+      // raised it — reconnecting and pressing again is a genuinely new alert.
+      const existing = userId
+        ? await (prisma as any).emergencyAlert.findFirst({
+            where: { userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+            orderBy: { createdAt: 'desc' },
+          })
+        : socket.data.guestAlertId
+          ? await (prisma as any).emergencyAlert.findFirst({
+              where: { id: socket.data.guestAlertId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+            })
+          : null;
 
       if (existing) {
         await (prisma as any).emergencyAlert.update({
@@ -114,7 +156,7 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
         return;
       }
 
-      if (sosRateLimited(userId)) {
+      if (sosRateLimited(callerKey(socket))) {
         socket.emit('emergency:error', {
           error: 'Too many SOS alerts. If this is a real emergency, call 112 now.',
           emergencyNumber: '112',
@@ -124,7 +166,7 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
 
       // Coordinates are deliberately not logged at full precision — these are
       // crisis locations and the log file is unencrypted.
-      console.log(`🚨 EMERGENCY SOS from ${userId} (severity ${severity})`);
+      console.log(`🚨 EMERGENCY SOS from ${userId ?? 'guest'} (severity ${severity})`);
 
       const alert = await (prisma as any).emergencyAlert.create({
         data: {
@@ -141,6 +183,11 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
       });
 
       await logDispatch(prisma, alert.id, 'CREATED', { detail: `severity ${severity}` });
+
+      // Every caller listens on their alert's room — this is what carries live
+      // dispatch status to a guest, who has no user room to receive it in.
+      socket.join(`alert-${alert.id}`);
+      if (!userId) socket.data.guestAlertId = alert.id;
 
       // 1. Admins immediately
       io.to('admin-room').emit('emergency:alert', {
@@ -169,6 +216,9 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
       //    Waiting for the vendor chain to fail first would cost a full minute.
       (async () => {
         try {
+          // A guest has no stored contacts to notify. findUnique with a null id
+          // would throw, so skip straight past it.
+          if (!userId) return;
           const caller = await (prisma as any).user.findUnique({
             where: { id: userId },
             select: { firstName: true, lastName: true, profile: true },
@@ -208,11 +258,11 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   // the button. Responders need the current position, not the original one.
   socket.on('sos:location_update', async (data: { alertId: string; latitude: number; longitude: number; accuracy?: number }) => {
     try {
-      const userId: string | undefined = socket.data.userId;
-      if (!userId || !validCoords(data?.latitude, data?.longitude)) return;
+      const owned = ownedAlertWhere(socket, data?.alertId);
+      if (!owned || !validCoords(data?.latitude, data?.longitude)) return;
 
       const updated = await (prisma as any).emergencyAlert.updateMany({
-        where: { id: data.alertId, userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+        where: { ...owned, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
         data: {
           latitude: data.latitude,
           longitude: data.longitude,
@@ -245,12 +295,12 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   // ── Caller cancels (false alarm) ───────────────────────────────────────────
   socket.on('emergency:cancel', async (data: AlertRef) => {
     try {
-      const userId: string | undefined = socket.data.userId;
-      if (!userId) return;
-
       // Scoped to the owner, so nobody can cancel someone else's emergency.
+      const owned = ownedAlertWhere(socket, data?.alertId);
+      if (!owned) return;
+
       const cancelled = await (prisma as any).emergencyAlert.updateMany({
-        where: { id: data.alertId, userId, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
+        where: { ...owned, status: { in: ['ACTIVE', 'ACKNOWLEDGED'] } },
         data: { status: 'CANCELLED', dispatchStatus: 'CANCELLED', cancelledAt: new Date() },
       });
       if (cancelled.count === 0) return;
@@ -457,11 +507,11 @@ export function setupSOSHandlers(io: Server, socket: Socket, prisma: PrismaClien
   // ── Caller confirms they are safe ──────────────────────────────────────────
   socket.on('emergency:confirm_resolved', async (data: AlertRef) => {
     try {
-      const userId: string | undefined = socket.data.userId;
-      if (!userId) return;
+      const owned = ownedAlertWhere(socket, data?.alertId);
+      if (!owned) return;
 
       const confirmed = await (prisma as any).emergencyAlert.updateMany({
-        where: { id: data.alertId, userId },
+        where: owned,
         data: { status: 'RESOLVED', resolvedAt: new Date(), resolutionConfirmedAt: new Date() },
       });
       if (confirmed.count === 0) return;
