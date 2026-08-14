@@ -201,6 +201,29 @@ export async function POST(request: NextRequest) {
       data: { senderId: user.id, receiverId, content },
     });
 
+    // Deliver live to whoever is connected. Fire and forget: the message is
+    // already saved, so a socket server that is down must not fail the send —
+    // the recipient will see it on their next load.
+    const socketUrl = process.env.SOCKET_SERVER_URL;
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    if (socketUrl && internalSecret) {
+      fetch(`${socketUrl}/internal/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': internalSecret },
+        body: JSON.stringify({
+          receiverId,
+          senderId: user.id,
+          message: {
+            id: message.id,
+            content: message.content,
+            createdAt: message.createdAt,
+            isRead: false,
+          },
+        }),
+        signal: AbortSignal.timeout(3000),
+      }).catch(err => console.warn('[messages] live relay failed:', err?.message));
+    }
+
     // A message nobody is looking at should still reach them.
     await prisma.notification.create({
       data: {

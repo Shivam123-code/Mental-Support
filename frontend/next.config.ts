@@ -27,8 +27,15 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           // Controls how much referrer info is sent with requests
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          // Restricts access to sensitive browser APIs
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+          // Restricts access to sensitive browser APIs. camera and microphone
+          // were denied outright, which silently blocks a video session — the
+          // call loads and then has no devices. Allowed for this origin and the
+          // meeting host only; the iframe still needs its own allow attribute,
+          // so this permits without granting.
+          {
+            key: "Permissions-Policy",
+            value: `camera=(self "https://${process.env.JITSI_HOST || 'meet.jit.si'}"), microphone=(self "https://${process.env.JITSI_HOST || 'meet.jit.si'}"), display-capture=(self "https://${process.env.JITSI_HOST || 'meet.jit.si'}"), geolocation=(self)`,
+          },
           // Disabled deliberately: the legacy auditor is itself exploitable and
           // is superseded by the CSP below. "0" is the recommended value.
           { key: "X-XSS-Protection", value: "0" },
@@ -51,8 +58,9 @@ const nextConfig: NextConfig = {
               // through /api/location/geocode so a victim's GPS fix never
               // leaves the browser for anywhere but us.
               `connect-src 'self' ${process.env.NEXT_PUBLIC_SOCKET_URL ?? ""} ws: wss:`.trim(),
-              // The SOS "how to find your coordinates" tutorial embed
-              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+              // The SOS "how to find your coordinates" tutorial embed, and the
+              // Jitsi room a video session runs in.
+              `frame-src https://www.youtube-nocookie.com https://www.youtube.com https://${process.env.JITSI_HOST || 'meet.jit.si'}`,
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

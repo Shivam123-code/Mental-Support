@@ -10,6 +10,8 @@ import {
   MessageSquare, AlertCircle, FileText, ChevronRight, Check, Brain
 } from 'lucide-react';
 import ChangePasswordCard from '@/components/ChangePasswordCard';
+import Chat from '@/components/Chat';
+import VideoCall from '@/components/VideoCall';
 
 export default function ProfessionalDashboard() {
   return (
@@ -432,6 +434,7 @@ function ProfessionalDashboardContent() {
     { label: 'Reviews & Ratings', icon: Star },
     { label: 'AI Assistant', icon: Sparkles, highlight: true },
     { label: 'Trust & Verification', icon: Shield },
+    { label: 'Messages', icon: MessageSquare },
     { label: 'Notifications', icon: Bell, badge: notifications.filter(n => !n.isRead).length.toString() },
     { label: 'Settings', icon: Settings },
   ];
@@ -974,11 +977,15 @@ function ProfessionalDashboardContent() {
                                   so these only offer what is actually allowed from
                                   the session's current status. */}
                               <div className="flex gap-2 flex-wrap justify-end">
-                                {activeSession.meetingLink && (
-                                  <a href={activeSession.meetingLink} target="_blank" rel="noopener noreferrer"
-                                    className="px-3 py-1.5 bg-[var(--primary-bright)] hover:bg-[var(--primary)] text-white text-xs font-bold rounded-xl transition-all shadow-sm">
-                                    Join Call
-                                  </a>
+                                {/* A call only makes sense while the session is
+                                    still live and is not a chat booking. */}
+                                {activeSession.type !== 'Chat session' &&
+                                  ['PENDING', 'CONFIRMED'].includes(activeSession.status) && (
+                                  <VideoCall
+                                    bookingId={activeSession.id}
+                                    label="Start call"
+                                    onError={(m) => triggerToast(m)}
+                                  />
                                 )}
                                 {activeSession.status === 'PENDING' && (
                                   <button onClick={() => handleSessionStatus(activeSession.id, 'CONFIRMED')}
@@ -1802,6 +1809,18 @@ function ProfessionalDashboardContent() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'Messages' && (
+                <div className="space-y-6 animate-fade-in">
+                  <div>
+                    <h2 className="text-lg font-bold">Messages</h2>
+                    <p className="text-xs text-[var(--on-surface-variant)]">
+                      Direct conversations with your clients. A thread opens once a session is booked.
+                    </p>
+                  </div>
+                  <Chat />
                 </div>
               )}
 

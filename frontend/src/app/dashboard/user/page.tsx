@@ -11,13 +11,16 @@ import {
   Cloud, Wind, Smile, Meh, Frown, AlertCircle, CheckCircle, Clock,
   Settings, LogOut, Shield, Compass, BookCheck, ShieldAlert, Star,
   Menu, X, Send, Eye, ShieldCheck, HeartHandshake, EyeOff, Lock,
-  ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw, Bell, Video
+  ChevronRight, ChevronLeft, BarChart2, ArrowRight, RefreshCw, Bell, Video,
+  MessageSquare
 } from 'lucide-react';
 import { ASSESSMENTS, scoreAssessment, AssessmentKey } from '@/lib/assessments';
 import { useSOSStatus } from '@/hooks/useSocket';
 import { TabContent, StaggerList, StaggerItem } from '@/components/motion/animations';
 import ChangePasswordCard from '@/components/ChangePasswordCard';
 import AutoMatchButton from '@/components/AutoMatchButton';
+import Chat from '@/components/Chat';
+import VideoCall from '@/components/VideoCall';
 
 export default function UserDashboard() {
   return (
@@ -322,6 +325,7 @@ function DashboardContent() {
     { label: 'My Care Journey', icon: Compass },
     { label: 'Assessments', icon: Brain },
     { label: 'My Sessions', icon: Video },
+    { label: 'Messages', icon: MessageSquare },
     { label: 'Programs', icon: BookCheck },
     { label: 'Progress Tracker', icon: TrendingUp },
     { label: 'Journal', icon: BookOpen },
@@ -1217,6 +1221,18 @@ function DashboardContent() {
           )}
 
           {/* ──────────────── TAB: JOURNAL ──────────────── */}
+          {activeTab === 'Messages' && (
+            <div className="space-y-6 animate-in fade-in duration-300 p-4 sm:p-6 lg:p-8">
+              <div>
+                <h2 className="text-xl font-bold font-display text-[var(--on-surface)]">Messages</h2>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">
+                  Talk to the professionals you have sessions with.
+                </p>
+              </div>
+              <Chat />
+            </div>
+          )}
+
           {activeTab === 'Journal' && (
             <div className="grid md:grid-cols-3 gap-6 animate-in fade-in duration-300">
               
@@ -1786,13 +1802,12 @@ function DashboardContent() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    <div className="text-right shrink-0 space-y-1.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full block ${
                         s.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                       }`}>{s.status.toLowerCase()}</span>
-                      {s.meetingLink && (
-                        <a href={s.meetingLink} target="_blank" rel="noopener noreferrer"
-                          className="block text-[10px] text-[var(--primary)] font-bold hover:underline mt-1">Join</a>
+                      {s.sessionType !== 'chat' && (
+                        <VideoCall bookingId={s.id} label="Join call" />
                       )}
                     </div>
                   </div>

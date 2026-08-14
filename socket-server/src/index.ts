@@ -138,6 +138,43 @@ app.post('/internal/dispatch', async (req, res) => {
   void startDispatch(io, prisma, alertId);
 });
 
+/**
+ * Relay a direct message that the Next.js route has already persisted and
+ * authorised.
+ *
+ * Delivery is split deliberately: the REST route owns validation, the access
+ * rule and the database write, and this only fans the result out to whoever is
+ * currently connected. Re-implementing "may these two talk?" here would be a
+ * second copy of a security decision, and the two would drift.
+ *
+ * Same shared-secret protection as /internal/dispatch — the caller is our own
+ * backend, not a browser.
+ */
+app.post('/internal/message', (req, res) => {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) {
+    console.error('❌ INTERNAL_API_SECRET not set — messages cannot be delivered live.');
+    res.status(500).json({ error: 'Internal relay not configured' });
+    return;
+  }
+  if (req.headers['x-internal-secret'] !== secret) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const { receiverId, senderId, message } = req.body ?? {};
+  if (!receiverId || !senderId || !message?.id) {
+    res.status(400).json({ error: 'receiverId, senderId and message are required' });
+    return;
+  }
+
+  // The recipient sees it arrive; the sender's other tabs stay in step.
+  io.to(`user-${receiverId}`).emit('message:new', { ...message, from: senderId, mine: false });
+  io.to(`user-${senderId}`).emit('message:sent', { ...message, to: receiverId, mine: true });
+
+  res.json({ ok: true });
+});
+
 // Connected clients tracking
 const connectedAdmins = new Map<string, string>(); // socketId -> userId
 const connectedUsers = new Map<string, string>();  // socketId -> userId
@@ -219,7 +256,12 @@ io.on('connection', (socket) => {
 
       console.log(`🔐 Authenticated ${userId} as ${role}`);
 
-      // Join appropriate rooms based on role
+      // Everyone gets their own room, whatever their role. Direct messages are
+      // addressed to a person, not to a role, and an admin who only sat in
+      // admin-room could be written to but never hear about it.
+      socket.join(`user-${userId}`);
+
+      // Role rooms on top, for broadcast traffic.
       if (role === 'ADMIN') {
         connectedAdmins.set(socket.id, userId);
         socket.join('admin-room');
@@ -230,7 +272,6 @@ io.on('connection', (socket) => {
         console.log(`✅ 🚐 Vendor ${userId} joined vendor-${userId} room`);
       } else {
         connectedUsers.set(socket.id, userId);
-        socket.join(`user-${userId}`);
         console.log(`✅ 👤 User ${userId} authenticated`);
       }
 
