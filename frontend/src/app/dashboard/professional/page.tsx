@@ -31,12 +31,11 @@ function ProfessionalDashboardContent() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Notifications State
-  const [notifications, setNotifications] = useState([
-    { id: '1', title: 'Crisis Escalation Alert', message: 'Client Amit K. triggered emergency resources recommendations. Immediate follow-up advised.', date: '10 mins ago', read: false, type: 'critical' },
-    { id: '2', title: 'New Booking Confirmed', message: 'Rahul S. scheduled an Anxiety Support session for tomorrow 10:00 AM.', date: '2 hours ago', read: false, type: 'booking' },
-    { id: '3', title: 'Program Milestone Reached', message: 'Priya M. completed Module 4 of the Burnout Recovery Program.', date: '4 hours ago', read: true, type: 'info' },
-    { id: '4', title: 'Community Participant Joined', message: '5 new participants registered for your Student Burnout Workshop tonight.', date: '5 hours ago', read: true, type: 'community' },
-  ]);
+  // Real notifications. Bookings, status changes and messages have been writing
+  // these rows for a while; nothing read them, so this list was four invented
+  // alerts about people who do not exist.
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
 
   // ── Sessions and clients, from the database ────────────────────────────────
   // These were fixtures with invented people, so nothing this panel showed or
@@ -154,11 +153,11 @@ function ProfessionalDashboardContent() {
   const [resType, setResType] = useState('PDF Guide');
 
   // AI Assistant insights
-  const [aiInsights, setAiInsights] = useState([
-    { client: 'Priya M.', text: 'Client stress levels appear elevated after work-related interactions. Consider recommending emotional boundary exercises and introducing Module 5 of the Burnout recovery program.', status: 'unread', category: 'burnout pattern alert' },
-    { client: 'Rahul S.', text: 'Noticeable improvement in mood stability after starting daily journal entries. Continue monitoring consistency.', status: 'read', category: 'trend insight' },
-    { client: 'Amit K.', text: 'High correlation between poor sleep rating and parenting distress logs. Consider recommending the Sleep Reset sheets.', status: 'unread', category: 'follow-up suggestion' }
-  ]);
+  // AI insights are switched off. What sat here was three fabricated clinical
+  // assessments naming invented clients ("stress levels appear elevated",
+  // "burnout pattern alert") — the kind of statement a professional could act
+  // on. Nothing generates these, so the tab says so instead of inventing them.
+  const [aiInsights] = useState<any[]>([]);
 
   // Settings State
   const [pricing, setPricing] = useState(120);
@@ -173,12 +172,28 @@ function ProfessionalDashboardContent() {
   };
 
   // Helper for notification colors
+  // Keyed on the NotificationType enum the database actually stores.
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'critical': return 'border-red-200 bg-red-50 text-red-700';
-      case 'booking': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'SYSTEM_ALERT': return 'border-red-200 bg-red-50 text-red-700';
+      case 'BOOKING_CONFIRMED':
+      case 'BOOKING_REMINDER': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'MESSAGE_RECEIVED': return 'border-indigo-200 bg-indigo-50 text-indigo-700';
       default: return 'border-slate-200 bg-slate-50 text-slate-700';
     }
+  };
+
+  /** Relative time, so "2 hours ago" is computed rather than written down. */
+  const timeAgo = (iso: string) => {
+    const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+    if (secs < 60) return 'just now';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return new Date(iso).toLocaleDateString();
   };
 
   // Save session notes. This used to update local state only, so the note was
@@ -251,7 +266,43 @@ function ProfessionalDashboardContent() {
     finally { setResourcesLoading(false); }
   };
 
-  useEffect(() => { loadCircles(); loadResources(); }, []);
+  const loadNotifications = async () => {
+    const h = authHeaders();
+    if (!h) { setNotificationsLoading(false); return; }
+    try {
+      const data = await (await fetch('/api/notifications?limit=30', { headers: h })).json();
+      if (data.success) setNotifications(data.data.items || []);
+    } catch { /* the empty state covers it */ }
+    finally { setNotificationsLoading(false); }
+  };
+
+  useEffect(() => { loadCircles(); loadResources(); loadNotifications(); }, []);
+
+  const markAllRead = async () => {
+    const h = authHeaders();
+    if (!h) return;
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PATCH', headers: h, body: JSON.stringify({ all: true }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      triggerToast('All notifications marked read');
+    } catch (err: any) {
+      triggerToast(`Could not update: ${err?.message ?? 'unknown error'}`);
+    }
+  };
+
+  const markOneRead = async (id: string) => {
+    const h = authHeaders();
+    if (!h) return;
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    // Optimistic: the badge should drop immediately. A failed write only means
+    // it comes back unread on the next load, which is the safe direction.
+    await fetch('/api/notifications', { method: 'PATCH', headers: h, body: JSON.stringify({ id }) })
+      .catch(() => {});
+  };
 
   // Was local state, so a circle vanished on reload and nobody could join it.
   const handleCreateCircle = async (e: React.FormEvent) => {
@@ -333,7 +384,7 @@ function ProfessionalDashboardContent() {
     { label: 'Reviews & Ratings', icon: Star },
     { label: 'AI Assistant', icon: Sparkles, highlight: true },
     { label: 'Trust & Verification', icon: Shield },
-    { label: 'Notifications', icon: Bell, badge: notifications.filter(n => !n.read).length.toString() },
+    { label: 'Notifications', icon: Bell, badge: notifications.filter(n => !n.isRead).length.toString() },
     { label: 'Settings', icon: Settings },
   ];
 
@@ -796,7 +847,8 @@ function ProfessionalDashboardContent() {
                         <span className="text-[8px] bg-indigo-600 text-white font-bold px-1.5 py-0.5 rounded">Ethical Guard</span>
                       </div>
                       <p className="text-[10px] text-indigo-900 leading-relaxed bg-white/80 p-3 rounded-2xl border border-indigo-100/50 shadow-sm">
-                        "<strong>Priya M.</strong> stress levels appear elevated after work-related interactions. Consider recommending emotional boundary exercises and introducing Module 5 of the recovery program."
+                        Automated client insights are turned off. No analysis of your clients is
+                        being run, and nothing on this dashboard is generated from their data.
                       </p>
                       <button 
                         onClick={() => setActiveTab('AI Assistant')}
@@ -1057,66 +1109,19 @@ function ProfessionalDashboardContent() {
                     <p className="text-xs text-[var(--on-surface-variant)]">Track your client's module engagement, completion milestones, and consistency.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    <div className="card space-y-4 bg-white">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Burnout Recovery Program</h3>
-                      
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500">Active Clients enrolled:</span>
-                          <span className="text-xs font-bold text-[var(--on-surface)]">Rahul S., Priya M.</span>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] text-[var(--on-surface-variant)]">
-                            <span>Engagement Rate</span>
-                            <span className="font-bold">88%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div className="bg-[var(--primary)] h-full" style={{ width: '88%' }} />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 border-t pt-3">
-                          <h4 className="text-[10px] font-bold uppercase text-[var(--on-surface-variant)]">Recovery Milestones reached this week</h4>
-                          <ul className="text-[10px] text-slate-600 space-y-1.5 list-disc pl-4">
-                            <li>Rahul S. completed boundaries assessment (Score: Improving)</li>
-                            <li>Priya M. established weekly workload log sheet</li>
-                          </ul>
-                        </div>
-                      </div>
+                  {/* Was two fixture cards naming invented clients with invented
+                      engagement rates and milestones. ProgramEnrollment exists in
+                      the schema but has no route yet, so there is nothing honest
+                      to show here until that is wired. */}
+                  <div className="card p-5 bg-white">
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs">
+                      <p className="font-bold text-amber-900">Not connected yet</p>
+                      <p className="text-amber-800 mt-1 leading-relaxed">
+                        Programme enrolments and milestones are not yet linked to this dashboard.
+                        Nothing is shown here rather than sample figures, so you are never looking
+                        at engagement numbers that belong to nobody.
+                      </p>
                     </div>
-
-                    <div className="card space-y-4 bg-white">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Anxiety Reset Course</h3>
-                      
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500">Active Clients enrolled:</span>
-                          <span className="text-xs font-bold text-[var(--on-surface)]">Kavita R.</span>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] text-[var(--on-surface-variant)]">
-                            <span>Engagement Rate</span>
-                            <span className="font-bold">62%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div className="bg-indigo-600 h-full" style={{ width: '62%' }} />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 border-t pt-3">
-                          <h4 className="text-[10px] font-bold uppercase text-[var(--on-surface-variant)]">Habit Milestones reached this week</h4>
-                          <ul className="text-[10px] text-slate-600 space-y-1.5 list-disc pl-4">
-                            <li>Kavita R. completed 5 consecutive daily check-ins 💚</li>
-                            <li>Weekly reflection journal entries logged: 4 entries</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-
                   </div>
                 </div>
               )}
@@ -1605,40 +1610,17 @@ function ProfessionalDashboardContent() {
                     {/* Insights lists */}
                     <div className="card lg:col-span-2 space-y-4">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Generated Wellbeing Alerts & Insights</h3>
-                      
-                      <div className="space-y-3">
-                        {aiInsights.map((insight, idx) => (
-                          <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl space-y-3 shadow-sm">
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-center gap-2">
-                                <Sparkles size={14} className="text-indigo-600" />
-                                <span className="text-[10px] font-bold text-indigo-950 uppercase">{insight.category}</span>
-                              </div>
-                              <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase ${
-                                insight.status === 'unread' ? 'bg-indigo-600 text-white animate-pulse' : 'bg-slate-100 text-slate-600'
-                              }`}>
-                                {insight.status}
-                              </span>
-                            </div>
-                            
-                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                              <strong>Client {insight.client}:</strong> {insight.text}
-                            </p>
 
-                            <div className="flex gap-2 pt-1 border-t border-slate-50 justify-end">
-                              <button 
-                                onClick={() => {
-                                  triggerToast(`Recommendation copied to notes for ${insight.client}`);
-                                  setAiInsights(prev => prev.map((item, i) => i === idx ? { ...item, status: 'read' } : item));
-                                }}
-                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all"
-                              >
-                                Accept & Draft Follow-Up
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {aiInsights.length === 0 && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs">
+                          <p className="font-bold text-amber-900">Turned off</p>
+                          <p className="text-amber-800 mt-1 leading-relaxed">
+                            Automated client insights are not enabled. Nothing here is generated from
+                            client data, and no analysis of your clients is being run.
+                          </p>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Ethical panel */}
@@ -1731,8 +1713,7 @@ function ProfessionalDashboardContent() {
                     </div>
                     <button 
                       onClick={() => {
-                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                        triggerToast('All notifications marked as read');
+                        markAllRead();
                       }}
                       className="text-xs font-bold text-[var(--primary)] hover:underline"
                     >
@@ -1741,17 +1722,34 @@ function ProfessionalDashboardContent() {
                   </div>
 
                   <div className="card space-y-3 bg-white">
+                    {notificationsLoading && (
+                      <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">Loading notifications…</p>
+                    )}
+                    {!notificationsLoading && notifications.length === 0 && (
+                      <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+                        Nothing yet. Bookings, session updates and messages appear here.
+                      </p>
+                    )}
                     {notifications.map(n => (
-                      <div key={n.id} className={`p-4 border rounded-2xl flex items-start gap-3 transition-all ${getNotificationColor(n.type)}`}>
+                      <div
+                        key={n.id}
+                        onClick={() => !n.isRead && markOneRead(n.id)}
+                        className={`p-4 border rounded-2xl flex items-start gap-3 transition-all ${getNotificationColor(n.type)} ${n.isRead ? 'opacity-60' : 'cursor-pointer'}`}
+                      >
                         <div className="shrink-0 mt-0.5">
-                          {n.type === 'critical' ? <AlertCircle size={16} className="text-red-500 animate-ping" /> : <Bell size={16} className="text-slate-500" />}
+                          {n.type === 'SYSTEM_ALERT'
+                            ? <AlertCircle size={16} className="text-red-500" />
+                            : <Bell size={16} className="text-slate-500" />}
                         </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex justify-between items-start">
-                            <h4 className="text-xs font-bold leading-tight">{n.title}</h4>
-                            <span className="text-[9px] opacity-75 font-semibold">{n.date}</span>
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className="text-xs font-bold leading-tight">
+                              {!n.isRead && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 align-middle" />}
+                              {n.title}
+                            </h4>
+                            <span className="text-[9px] opacity-75 font-semibold shrink-0">{timeAgo(n.createdAt)}</span>
                           </div>
-                          <p className="text-[10px] opacity-90 leading-relaxed font-normal">{n.message}</p>
+                          <p className="text-[10px] opacity-90 leading-relaxed font-normal break-words">{n.message}</p>
                         </div>
                       </div>
                     ))}
