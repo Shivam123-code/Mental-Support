@@ -75,7 +75,8 @@ model User {
   professionalApplications ProfessionalApplication[]
   organizationApplications OrganizationApplication[]
   passwordResetTokens PasswordResetToken[]
-  
+  paymentIntents    PaymentIntent[]
+
   @@index([email])
   @@index([role])
   @@index([status])
@@ -963,4 +964,88 @@ model CircleMember {
 
   @@unique([circleId, userId])
   @@index([userId])
+}
+
+// ============================================
+// PAYMENTS & PAID MATCHING
+// ============================================
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentPurpose {
+  /// Paying for one booked session.
+  BOOKING
+  /// Paying to be matched with a professional and start care with them.
+  AUTOMATCH
+}
+
+/// One attempt to take money, from creation to outcome.
+///
+/// Only the webhook may move this to PAID — never the browser. A client that
+/// can flip its own payment status is a client that never has to pay, which is
+/// why the dummy provider still round-trips a signed webhook rather than
+/// returning success directly: the code path that runs today is the same one a
+/// real gateway will drive.
+model PaymentIntent {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  purpose        PaymentPurpose
+  /// Set for BOOKING. Null for AUTOMATCH — the caller has not chosen anybody yet.
+  bookingId      String?
+
+  /// Smallest currency unit (paise, cents). Floats do not belong in money.
+  amount         Int
+  currency       String         @default("INR")
+  status         PaymentStatus  @default(CREATED)
+
+  /// Which adapter issued this — "dummy" now, "razorpay" later.
+  provider       String
+  /// The provider's own id. Unique, so a replayed webhook cannot be mistaken
+  /// for a second payment.
+  providerRef    String         @unique
+
+  /// Written once, by the webhook. Its presence is what makes fulfilment
+  /// idempotent: a gateway will redeliver, and redelivery must be a no-op.
+  paidAt         DateTime?
+  /// Written when the entitlement is spent, so one payment buys one match.
+  consumedAt     DateTime?
+  failureReason  String?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId, purpose, status])
+  @@index([bookingId])
+  @@index([status])
+}
+
+/// A person is in this professional's care. Created when a paid auto-match is
+/// spent on somebody, and it is what that payment actually buys: the pair can
+/// message each other before any session is booked.
+model CareRelationship {
+  id              String    @id @default(cuid())
+  userId          String
+  professionalId  String
+
+  /// "AUTOMATCH" | "MANUAL" — how the pair found each other.
+  source          String    @default("AUTOMATCH")
+  /// The intent that paid for it. Null for relationships an admin sets up.
+  paymentIntentId String?
+  /// Match score at the time, kept because the ranking will change underneath.
+  matchPercent    Int?
+
+  startedAt       DateTime  @default(now())
+  /// Set when either side ends it. Nulled rows are the active ones.
+  endedAt         DateTime?
+
+  @@unique([userId, professionalId])
+  @@index([professionalId, endedAt])
+  @@index([userId, endedAt])
 }

@@ -45,13 +45,44 @@ Before, the screens showed made-up people like "Rahul S." and "Priya M." who did
 | Vendor | panelvendor@kleverklues.com | Panel@1234 |
 | Admin | admin@kleverklues.com | Admin@123 |
 
+## Payments and auto-match
+
+Auto Match is now a paid feature, and it works end to end today with a **test
+payment**. No real money moves yet.
+
+How it goes:
+
+1. You answer the quiz and press **Find My Match**.
+2. It asks for ₹499 and sends you to a checkout page.
+3. You press **Pay** (or **Simulate a declined card**, to see that path).
+4. You come back to your answers — you do not fill the quiz in again.
+5. You see your ranked matches and **choose one person**.
+6. You can message that person straight away, before booking anything.
+
+Important bits:
+
+- **The browser can never mark itself paid.** Only the payment gateway can, and
+  it does it with a signed message to our server. The test gateway sends that
+  same signed message, so nothing changes when the real one is plugged in.
+- **Paying twice is not possible.** Gateways send the same message over and
+  over; the second one does nothing.
+- **One payment buys one match**, even if you click twice at the same time.
+- **Re-running the quiz is free.** You pay for the person, not the list.
+- **Emergency SOS stays free and always will.** It is not behind any payment.
+
+To go live, someone swaps one file (the gateway adapter) and puts the real keys
+in. Nothing else changes. Session payments are built and tested the same way,
+just not shown on screen yet.
+
 ## Still to do
 
-- **Payments and auto-match** — the plan is ready and everything under it is built.
 - A few user screens still show sample numbers: Programs, Progress Tracker, My Care Journey, Impact & Gratitude, Reminders.
 - **Enterprise screen** is still fake (we agreed to do it later).
 - Nobody can leave a **review** yet, so every professional shows 0 stars.
+- Real gateway keys (Razorpay or similar) when you are ready.
 
 ## Checks
 
-12 test files, all passing. They run against the real app and clean up after themselves.
+13 test files, all passing. They run against the real app and clean up after
+themselves. The payments one alone checks 41 things, including forged payment
+messages, tampered amounts, and two people clicking at the same moment.

@@ -44,6 +44,27 @@ DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/kleverklues?sch
 
 Replace `YOUR_PASSWORD` with your PostgreSQL password.
 
+#### Payments
+
+`.env.local` is gitignored, so these have to be set on every machine. Without
+them auto-match stays free and the payments API refuses to sign anything.
+
+```env
+# "dummy" runs the whole flow locally with a signed webhook, no real money.
+# Swap for a real adapter name once gateway keys exist — nothing else changes.
+PAYMENT_PROVIDER=dummy
+# Any long random string. Generate one with:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# This is what webhook signatures are checked against, so it must NOT be shared
+# or committed. A leaked secret lets anyone mark any payment as paid.
+PAYMENT_WEBHOOK_SECRET=
+PAYMENT_CURRENCY=INR
+# Price in the smallest unit: 49900 paise = ₹499.00
+AUTOMATCH_PRICE_MINOR=49900
+# Auto-match stays free unless this is exactly the string "true".
+AUTOMATCH_REQUIRES_PAYMENT=true
+```
+
 ### 4. Install Dependencies
 
 ```bash

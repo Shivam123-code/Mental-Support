@@ -46,6 +46,9 @@ const PUBLIC_API_ROUTES = new Set([
   '/api/chat',
   '/api/location/ip',
   '/api/location/geocode',
+  // A payment gateway has no account to log in with. Its HMAC signature is the
+  // authentication, checked in the handler.
+  '/api/payments/webhook',
 ]);
 
 export function proxy(request: NextRequest) {

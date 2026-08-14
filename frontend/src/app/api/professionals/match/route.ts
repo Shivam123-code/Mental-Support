@@ -2,11 +2,12 @@
 // Protected route — requires a valid auth token.
 // Accepts quiz answers, scores professionals, returns ranked matches with match%.
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
 import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
+import { automatchRequiresPayment, automatchPrice, CURRENCY, formatMinor } from '@/lib/server/payments/provider';
 
 // Region → states mapping for regional filtering
 const REGION_STATES: Record<string, string[]> = {
@@ -111,6 +112,37 @@ export async function POST(request: NextRequest) {
 
     if (!quiz.concerns?.length || !quiz.preferredLanguages?.length) {
       return errorResponse('concerns and preferredLanguages are required', 400);
+    }
+
+    // ── Paywall ─────────────────────────────────────────────────────────────
+    // Off unless AUTOMATCH_REQUIRES_PAYMENT is explicitly "true", so a missing
+    // or misspelt variable leaves matching working rather than locking everyone
+    // out of a feature that used to be free.
+    //
+    // The entitlement is only *checked* here, never spent. Someone who has paid
+    // can re-run the quiz as many times as they like — the payment buys being
+    // connected to a person, which happens in POST /api/care, and charging for
+    // a list they might not like anything in would be charging for nothing.
+    if (automatchRequiresPayment()) {
+      const entitlement = await prisma.paymentIntent.findFirst({
+        where: { userId: user.id, purpose: 'AUTOMATCH', status: 'PAID', consumedAt: null },
+        select: { id: true },
+      });
+      if (!entitlement) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Auto-match requires payment',
+            data: {
+              paymentRequired: true,
+              amount: automatchPrice(),
+              currency: CURRENCY,
+              amountLabel: formatMinor(automatchPrice()),
+            },
+          },
+          { status: 402 }
+        );
+      }
     }
 
     // ── Fetch candidates ───────────────────────────────────────────────────

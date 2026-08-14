@@ -26,8 +26,13 @@ async function caller(request: NextRequest) {
 }
 
 /**
- * True when these two accounts share a booking, in either direction. Cancelled
- * sessions still count: someone must be able to ask why it was cancelled.
+ * True when these two accounts share a booking or an active care relationship,
+ * in either direction. Cancelled sessions still count: someone must be able to
+ * ask why it was cancelled.
+ *
+ * Care relationships count because talking is the first thing a paid auto-match
+ * buys — requiring a booking first would mean paying to be matched with
+ * somebody you then cannot contact.
  */
 async function haveRelationship(aId: string, bId: string): Promise<boolean> {
   const [aProfile, bProfile] = await Promise.all([
@@ -40,8 +45,11 @@ async function haveRelationship(aId: string, bId: string): Promise<boolean> {
   if (aProfile) pairs.push({ userId: bId, professionalId: aProfile.id });
   if (pairs.length === 0) return false;
 
-  const booking = await prisma.booking.findFirst({ where: { OR: pairs }, select: { id: true } });
-  return !!booking;
+  const [booking, care] = await Promise.all([
+    prisma.booking.findFirst({ where: { OR: pairs }, select: { id: true } }),
+    prisma.careRelationship.findFirst({ where: { OR: pairs, endedAt: null }, select: { id: true } }),
+  ]);
+  return !!booking || !!care;
 }
 
 async function canMessage(fromId: string, toId: string): Promise<boolean> {

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   X, ChevronRight, ChevronLeft, Sparkles, MapPin, Globe, User,
   Monitor, Building, Star, CheckCircle, Clock, Loader2, ArrowRight,
-  Shield, RefreshCw, Heart
+  Shield, RefreshCw, Heart, Lock, CreditCard, MessageCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,6 +13,8 @@ import Link from 'next/link';
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MatchedProfessional {
   id: string;
+  /** The account behind the profile — messaging keys on this, booking on `id`. */
+  userId?: string;
   displayName: string;
   type: string;
   specializations: string[];
@@ -310,7 +312,20 @@ function StepAboutYou({ quiz, setQuiz }: { quiz: QuizState; setQuiz: (q: QuizSta
   );
 }
 
-function MatchResultCard({ prof, index }: { prof: MatchedProfessional; index: number }) {
+function MatchResultCard({
+  prof, index, onStart, starting, startedWith,
+}: {
+  prof: MatchedProfessional;
+  index: number;
+  onStart: (p: MatchedProfessional) => void;
+  starting: string | null;
+  startedWith: { professionalId: string; userId?: string; name: string } | null;
+}) {
+  const isMine = startedWith?.professionalId === prof.id;
+  // One entitlement buys one connection, so once it is spent the other cards
+  // stop offering something the caller cannot currently do.
+  const spentElsewhere = !!startedWith && !isMine;
+
   return (
     <div
       className={`relative p-4 rounded-xl border transition-all hover:shadow-md ${
@@ -408,13 +423,42 @@ function MatchResultCard({ prof, index }: { prof: MatchedProfessional; index: nu
             )}
           </div>
 
-          {/* Book button */}
-          <Link
-            href="/book-session"
-            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 bg-[var(--primary)] hover:bg-[#00685c] text-white text-xs font-bold rounded-xl transition-all"
-          >
-            Book Session <ArrowRight size={12} />
-          </Link>
+          {/* Actions */}
+          {isMine ? (
+            <div className="mt-3 space-y-1.5">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                <CheckCircle size={11} /> You are now in {prof.displayName}'s care
+              </p>
+              <div className="flex gap-1.5">
+                <Link
+                  href="/dashboard/user?tab=messages"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[var(--primary)] hover:bg-[#00685c] text-white text-xs font-bold rounded-xl transition-all"
+                >
+                  <MessageCircle size={12} /> Message
+                </Link>
+                <Link
+                  href="/book-session"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-[var(--primary)] text-[var(--primary)] text-xs font-bold rounded-xl transition-all hover:bg-[var(--primary)]/5"
+                >
+                  Book <ArrowRight size={12} />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => onStart(prof)}
+              disabled={!!starting || spentElsewhere || !prof.isAcceptingClients}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 bg-[var(--primary)] hover:bg-[#00685c] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all"
+            >
+              {starting === prof.id ? (
+                <><Loader2 size={12} className="animate-spin" /> Connecting…</>
+              ) : spentElsewhere ? (
+                'Match already used'
+              ) : (
+                <>Choose {prof.displayName.split(' ')[0]} <ArrowRight size={12} /></>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -441,6 +485,9 @@ const DEFAULT_QUIZ: QuizState = {
   sessionMode: 'Either',
 };
 
+/** Survives the trip to the payment page, so nobody re-answers the quiz. */
+const QUIZ_STASH = 'automatch_quiz';
+
 export default function AutoMatchModal({ isOpen, onClose }: Props) {
   const { isAuthenticated } = useAuth();
   const [step, setStep] = useState(0);
@@ -448,6 +495,11 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchedProfessional[] | null>(null);
   const [error, setError] = useState('');
+  /** Set when the server says this needs paying for. Its price comes from the server. */
+  const [paywall, setPaywall] = useState<{ amountLabel: string } | null>(null);
+  const [payRedirecting, setPayRedirecting] = useState(false);
+  const [starting, setStarting] = useState<string | null>(null);
+  const [startedWith, setStartedWith] = useState<{ professionalId: string; userId?: string; name: string } | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -456,6 +508,26 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
       setQuiz(DEFAULT_QUIZ);
       setResults(null);
       setError('');
+      setPaywall(null);
+      setStarting(null);
+      setStartedWith(null);
+    }
+  }, [isOpen]);
+
+  // Coming back from checkout: pick the quiz up where it was left and run it,
+  // rather than making somebody who has just paid answer four screens again.
+  useEffect(() => {
+    if (!isOpen) return;
+    const stashed = typeof window !== 'undefined' ? sessionStorage.getItem(QUIZ_STASH) : null;
+    if (!stashed) return;
+    sessionStorage.removeItem(QUIZ_STASH);
+    try {
+      const restored = JSON.parse(stashed) as QuizState;
+      setQuiz(restored);
+      setStep(STEPS.length - 1);
+      void runMatch(restored);
+    } catch {
+      // A corrupt stash is not worth surfacing — the quiz simply starts fresh.
     }
   }, [isOpen]);
 
@@ -466,30 +538,39 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
     return true; // Step 3 (about you) — all optional
   };
 
-  const handleFind = async () => {
+  const authToken = () => (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null);
+
+  async function runMatch(answers: QuizState) {
     setLoading(true);
     setError('');
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    setPaywall(null);
     try {
       const res = await fetch('/api/professionals/match', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken()}`,
         },
         body: JSON.stringify({
-          concerns: quiz.concerns,
-          city: quiz.city || undefined,
-          state: quiz.state || undefined,
-          region: quiz.region || undefined,
-          privacyMode: quiz.privacyMode,
-          preferredLanguages: quiz.preferredLanguages,
-          userAgeRange: quiz.userAgeRange || undefined,
-          preferredGender: quiz.preferredGender === 'No preference' ? undefined : quiz.preferredGender,
-          sessionMode: quiz.sessionMode === 'Either' ? undefined : quiz.sessionMode,
+          concerns: answers.concerns,
+          city: answers.city || undefined,
+          state: answers.state || undefined,
+          region: answers.region || undefined,
+          privacyMode: answers.privacyMode,
+          preferredLanguages: answers.preferredLanguages,
+          userAgeRange: answers.userAgeRange || undefined,
+          preferredGender: answers.preferredGender === 'No preference' ? undefined : answers.preferredGender,
+          sessionMode: answers.sessionMode === 'Either' ? undefined : answers.sessionMode,
         }),
       });
       const data = await res.json();
+
+      // 402 is the paywall, not a failure. The price is whatever the server
+      // says it is — a figure hardcoded here would drift the day it changes.
+      if (res.status === 402 && data.data?.paymentRequired) {
+        setPaywall({ amountLabel: data.data.amountLabel });
+        return;
+      }
       if (!data.success) throw new Error(data.error || 'Matching failed');
       setResults(data.data);
     } catch (err: any) {
@@ -497,11 +578,73 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  const handleFind = () => runMatch(quiz);
+
+  const handlePay = async () => {
+    setPayRedirecting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/payments/intents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+        body: JSON.stringify({ purpose: 'AUTOMATCH' }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not start payment');
+
+      // Already paid and unspent — nothing to charge for, just run the match.
+      if (data.data.alreadyPaid || !data.data.checkoutUrl) {
+        setPayRedirecting(false);
+        return runMatch(quiz);
+      }
+
+      sessionStorage.setItem(QUIZ_STASH, JSON.stringify(quiz));
+      const back = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `${data.data.checkoutUrl}?return=${back}`;
+    } catch (err: any) {
+      setError(err.message || 'Could not start payment.');
+      setPayRedirecting(false);
+    }
+  };
+
+  const handleStartCare = async (prof: MatchedProfessional) => {
+    setStarting(prof.id);
+    setError('');
+    try {
+      const res = await fetch('/api/care', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken()}` },
+        body: JSON.stringify({ professionalId: prof.id, matchPercent: prof.matchPercent }),
+      });
+      const data = await res.json();
+
+      // The entitlement was spent in another tab between seeing the matches and
+      // clicking. Re-running the match is the way back to the paywall, because
+      // that is the endpoint that knows the current price.
+      if (res.status === 402) {
+        setResults(null);
+        return runMatch(quiz);
+      }
+      if (!data.success) throw new Error(data.error || 'Could not start care');
+
+      setStartedWith({
+        professionalId: prof.id,
+        userId: data.data.professionalUserId ?? prof.userId,
+        name: prof.displayName,
+      });
+    } catch (err: any) {
+      setError(err.message || 'Could not connect you to this professional.');
+    } finally {
+      setStarting(null);
+    }
   };
 
   if (!isOpen) return null;
 
   const showingResults = results !== null;
+  const showingPaywall = paywall !== null;
 
   return (
     <div
@@ -519,10 +662,14 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-sm font-bold text-[var(--on-surface)]">
-                {showingResults ? `Your Matches (${results!.length})` : 'Auto Match Me'}
+                {showingPaywall ? 'Unlock Auto Match' : showingResults ? `Your Matches (${results!.length})` : 'Auto Match Me'}
               </h2>
               <p className="text-[10px] text-[var(--on-surface-variant)]">
-                {showingResults ? 'Ranked by compatibility' : `Step ${step + 1} of ${STEPS.length} — ${STEPS[step]}`}
+                {showingPaywall
+                  ? 'One payment, one match'
+                  : showingResults
+                  ? 'Ranked by compatibility'
+                  : `Step ${step + 1} of ${STEPS.length} — ${STEPS[step]}`}
               </p>
             </div>
           </div>
@@ -532,7 +679,7 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Step indicator (only during quiz) */}
-        {!showingResults && !loading && (
+        {!showingResults && !showingPaywall && !loading && (
           <div className="flex gap-1.5 px-5 pt-4 flex-shrink-0">
             {STEPS.map((s, i) => (
               <div key={s} className="flex-1 flex flex-col items-center gap-1">
@@ -559,6 +706,48 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
                 <p className="text-xs text-[var(--on-surface-variant)] mt-1">Analysing {quiz.concerns.join(', ')} · {quiz.region}</p>
               </div>
             </div>
+          ) : showingPaywall ? (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-center w-14 h-14 mx-auto rounded-full bg-[var(--primary)]/10">
+                <Lock size={24} className="text-[var(--primary)]" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-[var(--on-surface)]">Auto Match is a paid feature</p>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-1">
+                  Pay once, see your ranked matches, and start care with the one you choose.
+                </p>
+              </div>
+
+              {paywall!.amountLabel && (
+                <p className="text-center text-2xl font-bold text-[var(--on-surface)]">{paywall!.amountLabel}</p>
+              )}
+
+              <ul className="space-y-2 text-[11px] text-[var(--on-surface-variant)]">
+                {[
+                  'Ranked matches from verified professionals only',
+                  'Message your professional straight away — no session needed first',
+                  'Re-run the quiz as many times as you like before choosing',
+                ].map(line => (
+                  <li key={line} className="flex items-start gap-2">
+                    <CheckCircle size={12} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={handlePay}
+                disabled={payRedirecting}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[var(--primary)] hover:bg-[#00685c] disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+              >
+                {payRedirecting ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} />}
+                {payRedirecting ? 'Opening checkout…' : 'Continue to payment'}
+              </button>
+
+              <p className="text-center text-[10px] text-[var(--on-surface-variant)]">
+                In crisis right now? <Link href="/sos" onClick={onClose} className="text-[var(--primary)] font-semibold hover:underline">Emergency support is always free.</Link>
+              </p>
+            </div>
           ) : showingResults ? (
             <div className="space-y-3">
               {/* Privacy mode notice */}
@@ -581,7 +770,16 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
                   </button>
                 </div>
               ) : (
-                results!.map((prof, i) => <MatchResultCard key={prof.id} prof={prof} index={i} />)
+                results!.map((prof, i) => (
+                  <MatchResultCard
+                    key={prof.id}
+                    prof={prof}
+                    index={i}
+                    onStart={handleStartCare}
+                    starting={starting}
+                    startedWith={startedWith}
+                  />
+                ))
               )}
             </div>
           ) : (
@@ -598,8 +796,8 @@ export default function AutoMatchModal({ isOpen, onClose }: Props) {
           )}
         </div>
 
-        {/* Footer */}
-        {!loading && (
+        {/* Footer — the paywall carries its own single action, so no footer there */}
+        {!loading && !showingPaywall && (
           <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--outline-variant)]/20 flex-shrink-0 bg-[var(--surface)]">
             {showingResults ? (
               <>
