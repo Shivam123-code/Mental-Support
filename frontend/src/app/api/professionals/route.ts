@@ -4,7 +4,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/api-response';
-import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,9 +29,17 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    if (dbProfessionals.length > 0) {
+    // No static fallback. Those entries have no user account behind them, so a
+    // caller who picks one cannot book, message or be matched to anybody — the
+    // directory looked populated while every entry was a dead end. An empty
+    // result is the truth when no professional matches the filters.
+    {
       const formatted = dbProfessionals.map((p) => ({
         id: p.id,
+        // The account behind the profile. Booking keys on Professional.id, but
+        // messaging and "is this me?" checks key on User.id, and without it a
+        // directory entry cannot be tied back to a person.
+        userId: p.userId,
         displayName: p.displayName || `Professional #${p.id.slice(-4)}`,
         type: p.type,
         specializations: p.specializations,
@@ -52,17 +59,11 @@ export async function GET(request: NextRequest) {
         currency: p.currency,
         bio: p.bio,
       }));
-      return successResponse(formatted, 'Professionals fetched');
+      return successResponse(
+        formatted,
+        formatted.length ? 'Professionals fetched' : 'No professionals match those filters yet'
+      );
     }
-
-    // Fallback to static (filter by query params if provided)
-    let filtered = [...STATIC_PROFESSIONALS];
-    if (region) filtered = filtered.filter((p) => p.region === region);
-    if (language) filtered = filtered.filter((p) => p.languages.includes(language));
-    if (gender) filtered = filtered.filter((p) => p.gender === gender);
-    if (type) filtered = filtered.filter((p) => p.type === type.toUpperCase());
-
-    return successResponse(filtered, 'Professionals fetched');
   } catch (error) {
     console.error('Professionals fetch error:', error);
     return errorResponse('Failed to fetch professionals', 500);

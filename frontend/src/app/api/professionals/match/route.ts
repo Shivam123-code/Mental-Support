@@ -121,10 +121,18 @@ export async function POST(request: NextRequest) {
       take: 100,
     });
 
-    if (dbProfs.length > 0) {
-      // Format DB professionals to match static shape
+    {
+      // Only real accounts are matchable. The static fallback that used to sit
+      // here returned entries with no user behind them, so a matched caller
+      // could not book or message the person they were matched to — and once
+      // matching sits behind a payment, that would be taking money for a match
+      // that cannot function. Better to return nothing and say so.
       candidates = dbProfs.map((p) => ({
         id: p.id,
+        // The account behind the profile. Booking keys on Professional.id but
+        // messaging keys on User.id, and without this the caller has no way to
+        // reach the person they matched with.
+        userId: p.userId,
         displayName: p.displayName || `Professional #${p.id.slice(-4)}`,
         type: p.type as string,
         specializations: p.specializations,
@@ -144,8 +152,6 @@ export async function POST(request: NextRequest) {
         currency: p.currency,
         bio: p.bio ?? undefined,
       })) as Professional[];
-    } else {
-      candidates = [...STATIC_PROFESSIONALS];
     }
 
     // ── Apply regional filter override ─────────────────────────────────────
