@@ -897,3 +897,70 @@ model PasswordResetToken {
   @@index([token])
   @@index([userId])
 }
+
+// ============================================
+// PROFESSIONAL LIBRARY & GROUPS
+// ============================================
+
+/// A worksheet, audio guide or handout published by a professional.
+/// Previously a fixture in the professional dashboard, so nothing uploaded
+/// existed and clients had no way to receive anything.
+model Resource {
+  id             String   @id @default(cuid())
+  /// Professional.id of the author.
+  professionalId String
+  title          String
+  category       String
+  /// "PDF Guide", "Audio Sheet", "Interactive PDF", ...
+  type           String
+  description    String?
+  /// Where the file lives. Null while a resource is drafted without an upload.
+  url            String?
+  /// Unpublished resources are visible only to their author.
+  isPublished    Boolean  @default(true)
+  downloads      Int      @default(0)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([professionalId])
+  @@index([isPublished])
+  @@index([category])
+}
+
+/// A recurring support circle, healing group or workshop run by a professional.
+model SupportCircle {
+  id             String   @id @default(cuid())
+  professionalId String
+  title          String
+  description    String
+  /// "Support Circle", "Healing Group", "Workshop"
+  type           String
+  /// Human schedule as the professional words it, e.g. "Wednesdays at 7:00 PM".
+  scheduleLabel  String?
+  /// Set for one-off sessions; recurring circles carry only scheduleLabel.
+  scheduledAt    DateTime?
+  capacity       Int      @default(15)
+  isActive       Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  members        CircleMember[]
+
+  @@index([professionalId])
+  @@index([isActive])
+}
+
+/// One person's place in a circle. The unique pair is what stops a double join
+/// silently inflating the count against capacity.
+model CircleMember {
+  id        String        @id @default(cuid())
+  circleId  String
+  circle    SupportCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  userId    String
+  joinedAt  DateTime      @default(now())
+
+  @@unique([circleId, userId])
+  @@index([userId])
+}
