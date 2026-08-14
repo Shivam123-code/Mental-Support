@@ -38,21 +38,97 @@ function ProfessionalDashboardContent() {
     { id: '4', title: 'Community Participant Joined', message: '5 new participants registered for your Student Burnout Workshop tonight.', date: '5 hours ago', read: true, type: 'community' },
   ]);
 
-  // Session Notes & Management State
-  const [sessions, setSessions] = useState([
-    { id: 's1', clientName: 'Rahul S.', initials: 'RS', time: '10:00 AM', type: 'Video call', category: 'Anxiety Support Session', duration: '50 mins', goal: 'Establish daily boundary markers', notes: '', nextStep: '', priority: 'Medium', status: 'Scheduled' },
-    { id: 's2', clientName: 'Priya M.', initials: 'PM', time: '11:30 AM', type: 'Video call', category: 'Burnout Follow-Up', duration: '50 mins', goal: 'Design work-life buffer periods', notes: 'Discussed workplace workload dynamics. Reported high fatigue.', nextStep: 'Complete burnout scale, practice box breathing', priority: 'High', status: 'Scheduled' },
-    { id: 's3', clientName: 'Amit K.', initials: 'AK', time: '4:00 PM', type: 'Chat session', category: 'Parenting Guidance', duration: '30 mins', goal: 'Co-regulation techniques for bedtime anxiety', notes: '', nextStep: '', priority: 'Low', status: 'Scheduled' }
-  ]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('s1');
+  // ── Sessions and clients, from the database ────────────────────────────────
+  // These were fixtures with invented people, so nothing this panel showed or
+  // saved existed anywhere. Both now derive from real Booking rows: the same
+  // rows the client sees on their own dashboard.
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
 
-  // Client list data
-  const [clients, setClients] = useState([
-    { id: 'c1', name: 'Rahul S.', initials: 'RS', area: 'Anxiety', stressTrend: 'Improving', burnoutRisk: 'Moderate', progress: 72, mood: 'Calm', lastSession: 'May 28' },
-    { id: 'c2', name: 'Priya M.', initials: 'PM', area: 'Burnout', stressTrend: 'Elevating', burnoutRisk: 'High', progress: 45, mood: 'Anxious', lastSession: 'May 30' },
-    { id: 'c3', name: 'Amit K.', initials: 'AK', area: 'Family Guidance', stressTrend: 'Stable', burnoutRisk: 'Low', progress: 90, mood: 'Tired', lastSession: 'May 25' },
-    { id: 'c4', name: 'Kavita R.', initials: 'KR', area: 'Stress', stressTrend: 'Improving', burnoutRisk: 'Low', progress: 60, mood: 'Content', lastSession: 'May 24' },
-  ]);
+  const initialsOf = (name: string) =>
+    name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('') || '??';
+
+  /** A Booking as this panel wants to read it. */
+  const toSession = (b: any) => {
+    const at = new Date(b.scheduledAt);
+    const name = b.client?.name ?? 'Client';
+    return {
+      id: b.id,
+      clientId: b.client?.id ?? null,
+      clientName: name,
+      initials: initialsOf(name),
+      time: at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: at.toLocaleDateString(),
+      scheduledAt: b.scheduledAt,
+      type: b.sessionType === 'video' ? 'Video call' : b.sessionType === 'audio' ? 'Audio call' : 'Chat session',
+      category: b.sessionType === 'chat' ? 'Chat session' : 'Session',
+      duration: `${b.duration} mins`,
+      goal: b.userNotes || '',
+      notes: b.professionalNotes || '',
+      nextStep: '',
+      priority: 'Medium',
+      status: b.status,
+      meetingLink: b.meetingLink,
+      isPaid: b.isPaid,
+      amount: b.amount,
+      currency: b.currency,
+    };
+  };
+
+  const loadSessions = async () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) { setSessionsLoading(false); return; }
+    setSessionsLoading(true);
+    setSessionsError(null);
+    try {
+      const res = await fetch('/api/bookings?scope=all&limit=100', { headers: { Authorization: `Bearer ${t}` } });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not load sessions');
+      const mapped = (data.data.items || []).map(toSession);
+      setSessions(mapped);
+      // Keep the current selection if it still exists, otherwise pick the
+      // soonest upcoming session rather than a hardcoded id.
+      setSelectedSessionId(prev =>
+        mapped.some((s: any) => s.id === prev) ? prev : (mapped[0]?.id ?? '')
+      );
+    } catch (err: any) {
+      setSessionsError(err?.message ?? 'Could not load sessions');
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => { loadSessions(); }, []);
+
+  /**
+   * Clients are whoever actually has sessions with this professional — derived,
+   * never a separate list that can drift out of step with the bookings.
+   */
+  const clients = (() => {
+    const byClient = new Map<string, any>();
+    for (const s of sessions) {
+      if (!s.clientId) continue;
+      const seen = byClient.get(s.clientId);
+      const when = new Date(s.scheduledAt).getTime();
+      if (!seen) {
+        byClient.set(s.clientId, {
+          id: s.clientId, name: s.clientName, initials: s.initials,
+          total: 1, completed: s.status === 'COMPLETED' ? 1 : 0,
+          lastSession: when, upcoming: s.status === 'PENDING' || s.status === 'CONFIRMED' ? 1 : 0,
+        });
+      } else {
+        seen.total += 1;
+        if (s.status === 'COMPLETED') seen.completed += 1;
+        if (s.status === 'PENDING' || s.status === 'CONFIRMED') seen.upcoming += 1;
+        if (when > seen.lastSession) seen.lastSession = when;
+      }
+    }
+    return [...byClient.values()]
+      .sort((a, b) => b.lastSession - a.lastSession)
+      .map(c => ({ ...c, lastSessionLabel: new Date(c.lastSession).toLocaleDateString() }));
+  })();
 
   // Circles / Workshops State
   const [circles, setCircles] = useState([
@@ -108,10 +184,46 @@ function ProfessionalDashboardContent() {
     }
   };
 
-  // Handle saving session notes
-  const handleSaveNotes = (id: string, notes: string, nextStep: string) => {
-    setSessions(prev => prev.map(s => s.id === id ? { ...s, notes, nextStep } : s));
-    triggerToast('Session notes saved successfully 💚');
+  // Save session notes. This used to update local state only, so the note was
+  // gone on refresh and the client's side never reflected anything.
+  const handleSaveNotes = async (id: string, notes: string, nextStep: string) => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) return;
+    // The next step belongs with the note; there is no separate column for it.
+    const body = nextStep ? `${notes}\n\nNext step: ${nextStep}` : notes;
+    try {
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ professionalNotes: body }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save failed');
+      setSessions(prev => prev.map(s => s.id === id ? { ...s, notes: body, nextStep } : s));
+      triggerToast('Session notes saved 💚');
+    } catch (err: any) {
+      // Never claim a save that did not happen.
+      triggerToast(`Could not save notes: ${err?.message ?? 'unknown error'}`);
+    }
+  };
+
+  /** Move a session along. The client is notified server-side. */
+  const handleSessionStatus = async (id: string, status: string) => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) return;
+    try {
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Update failed');
+      setSessions(prev => prev.map(s => s.id === id ? { ...s, status: data.data.status } : s));
+      triggerToast(`Session marked ${status.toLowerCase()}`);
+    } catch (err: any) {
+      triggerToast(`Could not update: ${err?.message ?? 'unknown error'}`);
+    }
   };
 
   // Handle creating a support circle
@@ -467,6 +579,13 @@ function ProfessionalDashboardContent() {
                       </div>
 
                       <div className="space-y-3">
+                        {sessionsLoading && <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">Loading your sessions…</p>}
+                        {sessionsError && <p className="text-xs text-rose-600 py-6 text-center">{sessionsError}</p>}
+                        {!sessionsLoading && !sessionsError && sessions.length === 0 && (
+                          <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+                            No sessions booked yet. They appear here the moment a client books one.
+                          </p>
+                        )}
                         {sessions.map((session) => (
                           <div key={session.id} className="p-3 bg-white border border-slate-100 rounded-2xl hover:border-[var(--primary)]/20 transition-all space-y-2.5">
                             <div className="flex justify-between items-start">
@@ -475,16 +594,19 @@ function ProfessionalDashboardContent() {
                                   {session.initials}
                                 </div>
                                 <div>
-                                  <h4 className="text-xs font-bold">{session.clientName} <span className="text-[10px] text-slate-400 font-normal">({session.time})</span></h4>
+                                  <h4 className="text-xs font-bold">{session.clientName} <span className="text-[10px] text-slate-400 font-normal">({session.date} {session.time})</span></h4>
                                   <p className="text-[9px] text-[var(--on-surface-variant)]">{session.category}</p>
                                 </div>
                               </div>
+                              {/* Was a "stress level" badge invented in the fixture.
+                                  Status is what the record actually holds. */}
                               <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase ${
-                                session.priority === 'High' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                                session.priority === 'Medium' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                'bg-slate-50 text-slate-600 border border-slate-100'
+                                session.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                session.status === 'CONFIRMED' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                session.status === 'CANCELLED' || session.status === 'NO_SHOW' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                                'bg-amber-50 text-amber-700 border border-amber-100'
                               }`}>
-                                {session.priority} Stress
+                                {session.status}
                               </span>
                             </div>
 
@@ -518,8 +640,16 @@ function ProfessionalDashboardContent() {
                         </button>
                       </div>
 
+                      {/* Stress trend, risk level and programme percentage used to
+                          sit here as fixtures. They are clinical inferences with
+                          no data behind them, so this shows what is actually
+                          recorded: the sessions themselves. */}
                       <div className="space-y-3">
-                        {clients.map((c) => (
+                        {clients.length === 0 ? (
+                          <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+                            No clients yet. They appear here once someone books a session with you.
+                          </p>
+                        ) : clients.map((c) => (
                           <div key={c.id} className="p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <div className="w-7 h-7 rounded-full bg-emerald-50 text-[var(--primary)] flex items-center justify-center font-bold text-xs">
@@ -527,30 +657,22 @@ function ProfessionalDashboardContent() {
                               </div>
                               <div>
                                 <h4 className="text-xs font-bold">{c.name}</h4>
-                                <p className="text-[9px] text-[var(--on-surface-variant)]">Last Session: {c.lastSession}</p>
+                                <p className="text-[9px] text-[var(--on-surface-variant)]">Last session: {c.lastSessionLabel}</p>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-3 text-right">
                               <div className="space-y-0.5">
-                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Stress Trend</span>
-                                <span className={`text-[10px] font-bold ${c.stressTrend === 'Improving' ? 'text-emerald-600' : c.stressTrend === 'Elevating' ? 'text-rose-600 animate-pulse' : 'text-slate-500'}`}>
-                                  {c.stressTrend}
-                                </span>
+                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Sessions</span>
+                                <span className="text-[10px] font-bold text-[var(--on-surface)]">{c.total}</span>
                               </div>
-
                               <div className="space-y-0.5">
-                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Risk Level</span>
-                                <span className={`text-[10px] font-bold ${c.burnoutRisk === 'High' ? 'text-rose-600' : c.burnoutRisk === 'Moderate' ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                  {c.burnoutRisk}
-                                </span>
+                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Completed</span>
+                                <span className="text-[10px] font-bold text-emerald-600">{c.completed}</span>
                               </div>
-
                               <div className="space-y-0.5">
-                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Program</span>
-                                <span className="text-[10px] font-bold text-[var(--on-surface)]">
-                                  {c.progress}%
-                                </span>
+                                <span className="text-[8px] text-[var(--outline)] block uppercase font-semibold">Upcoming</span>
+                                <span className="text-[10px] font-bold text-indigo-600">{c.upcoming}</span>
                               </div>
                             </div>
                           </div>
@@ -670,11 +792,14 @@ function ProfessionalDashboardContent() {
                             }`}
                           >
                             <div className="flex justify-between items-start">
-                              <span className="text-[10px] text-slate-400 font-semibold">{s.time} ({s.duration})</span>
+                              <span className="text-[10px] text-slate-400 font-semibold">{s.date} {s.time} ({s.duration})</span>
                               <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${
-                                s.priority === 'High' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-700'
+                                s.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' :
+                                s.status === 'CONFIRMED' ? 'bg-indigo-50 text-indigo-700' :
+                                s.status === 'CANCELLED' || s.status === 'NO_SHOW' ? 'bg-rose-50 text-rose-700' :
+                                'bg-amber-50 text-amber-700'
                               }`}>
-                                {s.priority} Priority
+                                {s.status}
                               </span>
                             </div>
                             <h4 className="text-xs font-bold text-[var(--on-surface)]">{s.clientName}</h4>
@@ -697,24 +822,59 @@ function ProfessionalDashboardContent() {
                                 <span className="text-[10px] uppercase font-bold text-[var(--primary-bright)]">{activeSession.category}</span>
                                 <h3 className="text-sm font-bold mt-1">Workspace for {activeSession.clientName}</h3>
                               </div>
-                              <div className="flex gap-2">
-                                <button className="px-3 py-1.5 bg-[var(--primary-bright)] hover:bg-[var(--primary)] text-white text-xs font-bold rounded-xl transition-all shadow-sm">
-                                  Join Call
-                                </button>
-                                <button className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all">
-                                  Reschedule
-                                </button>
+                              {/* Real transitions. The API enforces the same rules,
+                                  so these only offer what is actually allowed from
+                                  the session's current status. */}
+                              <div className="flex gap-2 flex-wrap justify-end">
+                                {activeSession.meetingLink && (
+                                  <a href={activeSession.meetingLink} target="_blank" rel="noopener noreferrer"
+                                    className="px-3 py-1.5 bg-[var(--primary-bright)] hover:bg-[var(--primary)] text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                                    Join Call
+                                  </a>
+                                )}
+                                {activeSession.status === 'PENDING' && (
+                                  <button onClick={() => handleSessionStatus(activeSession.id, 'CONFIRMED')}
+                                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all">
+                                    Confirm
+                                  </button>
+                                )}
+                                {activeSession.status === 'CONFIRMED' && (
+                                  <>
+                                    <button onClick={() => handleSessionStatus(activeSession.id, 'COMPLETED')}
+                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all">
+                                      Mark Completed
+                                    </button>
+                                    <button onClick={() => handleSessionStatus(activeSession.id, 'NO_SHOW')}
+                                      className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all">
+                                      No Show
+                                    </button>
+                                  </>
+                                )}
+                                {(activeSession.status === 'PENDING' || activeSession.status === 'CONFIRMED') && (
+                                  <button onClick={() => handleSessionStatus(activeSession.id, 'CANCELLED')}
+                                    className="px-3 py-1.5 border border-rose-200 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-50 transition-all">
+                                    Cancel
+                                  </button>
+                                )}
                               </div>
                             </div>
 
-                            <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                            <div className="grid sm:grid-cols-3 gap-4 text-xs">
                               <div className="p-3 bg-slate-50 rounded-xl">
-                                <span className="text-[8px] font-bold text-[var(--outline)] uppercase block">Session Target Goal</span>
-                                <p className="font-semibold text-slate-700 mt-1">{activeSession.goal}</p>
+                                <span className="text-[8px] font-bold text-[var(--outline)] uppercase block">Client&apos;s Note</span>
+                                <p className="font-semibold text-slate-700 mt-1">{activeSession.goal || '—'}</p>
                               </div>
                               <div className="p-3 bg-slate-50 rounded-xl">
-                                <span className="text-[8px] font-bold text-[var(--outline)] uppercase block">Verification Mode</span>
-                                <p className="font-semibold text-slate-700 mt-1">Secure & Privacy-First 🛡️</p>
+                                <span className="text-[8px] font-bold text-[var(--outline)] uppercase block">When</span>
+                                <p className="font-semibold text-slate-700 mt-1">{activeSession.date} {activeSession.time}</p>
+                              </div>
+                              <div className="p-3 bg-slate-50 rounded-xl">
+                                <span className="text-[8px] font-bold text-[var(--outline)] uppercase block">Payment</span>
+                                <p className="font-semibold text-slate-700 mt-1">
+                                  {activeSession.amount
+                                    ? `${activeSession.currency} ${activeSession.amount.toFixed(2)} — ${activeSession.isPaid ? 'paid' : 'unpaid'}`
+                                    : 'Not priced'}
+                                </p>
                               </div>
                             </div>
 
@@ -783,17 +943,20 @@ function ProfessionalDashboardContent() {
                     <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[9px] text-left">
-                          <th className="py-3 px-4">Client Initials</th>
-                          <th className="py-3 px-4">Specialization Focus</th>
-                          <th className="py-3 px-4">Stress Trend</th>
-                          <th className="py-3 px-4">Burnout Risk</th>
-                          <th className="py-3 px-4">Program Completion</th>
-                          <th className="py-3 px-4">Current Mood</th>
-                          <th className="py-3 px-4">Last Check-In</th>
+                          <th className="py-3 px-4">Client</th>
+                          <th className="py-3 px-4">Total Sessions</th>
+                          <th className="py-3 px-4">Completed</th>
+                          <th className="py-3 px-4">Upcoming</th>
+                          <th className="py-3 px-4">Last Session</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
+                        {clients.length === 0 && (
+                          <tr><td colSpan={6} className="py-8 px-4 text-center text-[var(--on-surface-variant)]">
+                            No clients yet — this fills in as people book sessions with you.
+                          </td></tr>
+                        )}
                         {clients.map(c => (
                           <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="py-3.5 px-4 font-bold flex items-center gap-2">
@@ -802,32 +965,15 @@ function ProfessionalDashboardContent() {
                               </div>
                               {c.name}
                             </td>
-                            <td className="py-3.5 px-4 text-[var(--on-surface-variant)]">{c.area}</td>
-                            <td className="py-3.5 px-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                                c.stressTrend === 'Improving' ? 'bg-emerald-50 text-emerald-700' :
-                                c.stressTrend === 'Elevating' ? 'bg-rose-50 text-rose-700 font-semibold animate-pulse' :
-                                'bg-slate-50 text-slate-600'
-                              }`}>
-                                {c.stressTrend}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 font-semibold">
-                              <span className={`text-[10px] ${
-                                c.burnoutRisk === 'High' ? 'text-rose-600' :
-                                c.burnoutRisk === 'Moderate' ? 'text-amber-500' :
-                                'text-emerald-500'
-                              }`}>
-                                {c.burnoutRisk} Risk
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 font-semibold">{c.progress}% Finished</td>
-                            <td className="py-3.5 px-4 font-semibold text-slate-600">{c.mood}</td>
-                            <td className="py-3.5 px-4 text-slate-400">{c.lastSession}</td>
+                            <td className="py-3.5 px-4 font-semibold">{c.total}</td>
+                            <td className="py-3.5 px-4 font-semibold text-emerald-600">{c.completed}</td>
+                            <td className="py-3.5 px-4 font-semibold text-indigo-600">{c.upcoming}</td>
+                            <td className="py-3.5 px-4 text-slate-400">{c.lastSessionLabel}</td>
                             <td className="py-3.5 px-4 text-right">
-                              <button 
+                              <button
                                 onClick={() => {
-                                  setSelectedSessionId(sessions.find(s => s.initials === c.initials)?.id || 's1');
+                                  const theirs = sessions.find(s => s.clientId === c.id);
+                                  if (theirs) setSelectedSessionId(theirs.id);
                                   setActiveTab('My Sessions');
                                 }}
                                 className="px-2.5 py-1 text-[9px] font-bold bg-[#eff6f3] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white rounded-lg transition-all"
