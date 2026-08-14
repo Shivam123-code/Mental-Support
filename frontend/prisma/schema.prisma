@@ -424,15 +424,30 @@ model Review {
   professionalId  String
   professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   userId          String
-  
+
+  /// The session being reviewed. Unique, and that uniqueness is the whole
+  /// integrity story: one session yields one review, enforced by the database
+  /// rather than by a check-then-insert that two tabs would both pass. Without
+  /// it a professional's rating is whatever anybody types, as often as they
+  /// like.
+  ///
+  /// ponytail: nullable rather than required, because making it required is a
+  /// destructive migration on a live database and Postgres treats NULLs as
+  /// distinct so the unique index is unaffected. Ceiling — the database alone
+  /// would accept a review with no session behind it; POST /api/reviews is the
+  /// only writer and always sets it. Upgrade path: once there is a migrations
+  /// directory, backfill and make it `String` in a real migration.
+  bookingId       String?      @unique
+
   rating          Float        // 1-5
   comment         String?
   isAnonymous     Boolean      @default(false)
-  
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-  
+
   @@index([professionalId])
+  @@index([userId])
 }
 
 // ============================================

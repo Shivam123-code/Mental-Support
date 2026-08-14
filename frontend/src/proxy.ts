@@ -40,6 +40,10 @@ const PUBLIC_API_ROUTES = new Set([
   '/api/validate-email',
   // Public directory listing
   '/api/professionals',
+  // Reviews are shown on public professional profiles, so reading them cannot
+  // need an account. Writing one, and the ?pending / ?mine views, check the
+  // token in the handler.
+  '/api/reviews',
   // Public by design: someone in crisis must reach these without an account.
   // Both read the bearer token when present, and are rate limited.
   '/api/sos',

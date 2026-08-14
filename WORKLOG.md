@@ -74,15 +74,33 @@ To go live, someone swaps one file (the gateway adapter) and puts the real keys
 in. Nothing else changes. Session payments are built and tested the same way,
 just not shown on screen yet.
 
+## Reviews
+
+Nobody could leave a review before, so every professional showed 0 stars — and
+the match ranking sorts on that number, so it was sorting on nothing.
+
+Now: after a professional marks a session **complete**, the client sees a
+**Rate session** button next to it. Five stars, an optional comment, and a
+tick-box to post without their name.
+
+- You can only review a session **you were actually on**, and only **once**.
+- The professional's average is worked out from the real reviews every time, so
+  it can never drift away from what people actually said.
+- Reviews show on the professional's own dashboard, replacing the fake "4.9 over
+  42 reviews" and the two invented testimonials that were there.
+- Their dashboard also stopped saying "Verified Specialist" to everyone — it now
+  says what their account actually is.
+
 ## Still to do
 
 - A few user screens still show sample numbers: Programs, Progress Tracker, My Care Journey, Impact & Gratitude, Reminders.
 - **Enterprise screen** is still fake (we agreed to do it later).
-- Nobody can leave a **review** yet, so every professional shows 0 stars.
+- The public professionals list still shows 8 made-up professionals rather than
+  real accounts.
 - Real gateway keys (Razorpay or similar) when you are ready.
 
 ## Checks
 
-13 test files, all passing. They run against the real app and clean up after
+14 test files, all passing. They run against the real app and clean up after
 themselves. The payments one alone checks 41 things, including forged payment
 messages, tampered amounts, and two people clicking at the same moment.

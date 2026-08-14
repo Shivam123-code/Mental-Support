@@ -161,6 +161,15 @@ function ProfessionalDashboardContent() {
   // on. Nothing generates these, so the tab says so instead of inventing them.
   const [aiInsights] = useState<any[]>([]);
 
+  // Reviews State
+  // The tab showed a fixed 4.9 "calculated over 42 reviews" and two invented
+  // testimonials, on a platform where no review had ever been collected. These
+  // come from the Review table now, and read 0 when there are none.
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [ratingSummary, setRatingSummary] = useState({ average: 0, total: 0 });
+  const [verification, setVerification] = useState<string>('');
+
   // Settings State
   // Settings read from and write to the real profile. These were defaults every
   // professional saw, and nothing edited here reached the directory clients
@@ -286,16 +295,36 @@ function ProfessionalDashboardContent() {
 
   const loadProfile = async () => {
     const h = authHeaders();
-    if (!h) return;
+    if (!h) { setReviewsLoading(false); return; }
     try {
       const data = await (await fetch('/api/professional/profile', { headers: h })).json();
-      if (!data.success) return;
+      if (!data.success) { setReviewsLoading(false); return; }
       setPricing(data.data.hourlyRate ?? 0);
       setCurrency(data.data.currency ?? 'USD');
       setLanguages(data.data.languages ?? []);
       setSpecialties(data.data.specializations ?? []);
       setOnlineStatus(data.data.isAcceptingClients ?? true);
-    } catch { /* the form stays on its current values */ }
+      setVerification(data.data.verificationStatus ?? '');
+      // Reviews hang off the profile id, which is only known once this returns
+      // — hence the chain rather than another top-level loader.
+      await loadReviews(data.data.id);
+    } catch {
+      // The form stays on its current values; the reviews tab shows its empty
+      // state rather than spinning forever.
+      setReviewsLoading(false);
+    }
+  };
+
+  const loadReviews = async (professionalId: string) => {
+    setReviewsLoading(true);
+    try {
+      const data = await (await fetch(`/api/reviews?professionalId=${professionalId}&limit=50`)).json();
+      if (data.success) {
+        setReviews(data.data.items || []);
+        setRatingSummary({ average: data.data.averageRating ?? 0, total: data.data.totalReviews ?? 0 });
+      }
+    } catch { /* the empty state covers it */ }
+    finally { setReviewsLoading(false); }
   };
 
   useEffect(() => { loadCircles(); loadResources(); loadNotifications(); loadProfile(); }, []);
@@ -1606,46 +1635,94 @@ function ProfessionalDashboardContent() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    
+
                     <div className="card text-center p-6 space-y-2 bg-white">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--outline)]">Average Satisfaction Rating</span>
-                      <p className="text-4xl font-display font-bold text-[var(--primary)] flex items-center justify-center gap-1">
-                        4.9 <Star size={24} className="fill-[var(--primary)] text-[var(--primary)]" />
-                      </p>
-                      <span className="text-[10px] text-slate-400">Calculated over 42 reviews</span>
+                      {ratingSummary.total > 0 ? (
+                        <>
+                          <p className="text-4xl font-display font-bold text-[var(--primary)] flex items-center justify-center gap-1">
+                            {ratingSummary.average.toFixed(1)} <Star size={24} className="fill-[var(--primary)] text-[var(--primary)]" />
+                          </p>
+                          <span className="text-[10px] text-slate-400">
+                            Across {ratingSummary.total} review{ratingSummary.total === 1 ? '' : 's'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-4xl font-display font-bold text-slate-300">—</p>
+                          <span className="text-[10px] text-slate-400">No reviews yet</span>
+                        </>
+                      )}
                     </div>
 
-                    <div className="card text-center p-6 space-y-2 bg-[#f4faf6] border-[#089D8C]/20">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--primary)]">Clinical Verification Status</span>
-                      <p className="text-base font-bold text-[var(--primary)] flex items-center justify-center gap-1.5 mt-2">
-                        <CheckCircle size={16} /> Verified Specialist
+                    <div className={`card text-center p-6 space-y-2 ${verification === 'VERIFIED' ? 'bg-[#f4faf6] border-[#089D8C]/20' : 'bg-white'}`}>
+                      <span className={`text-[9px] font-bold uppercase tracking-wider ${verification === 'VERIFIED' ? 'text-[var(--primary)]' : 'text-[var(--outline)]'}`}>Clinical Verification Status</span>
+                      {/* Read from the profile. It used to read "Verified Specialist"
+                          for everyone, including accounts still awaiting review. */}
+                      <p className={`text-base font-bold flex items-center justify-center gap-1.5 mt-2 ${verification === 'VERIFIED' ? 'text-[var(--primary)]' : 'text-slate-500'}`}>
+                        {verification === 'VERIFIED'
+                          ? <><CheckCircle size={16} /> Verified Specialist</>
+                          : verification === 'REJECTED'
+                          ? 'Not verified'
+                          : 'Verification pending'}
                       </p>
-                      <span className="text-[9px] text-[var(--on-surface-variant)] font-semibold uppercase">Verification Active ✓</span>
+                      <span className="text-[9px] text-[var(--on-surface-variant)] font-semibold uppercase">
+                        {verification === 'VERIFIED' ? 'Verification active ✓' : 'Our team is reviewing your credentials'}
+                      </span>
                     </div>
 
                     <div className="card text-center p-6 space-y-2 bg-white">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--outline)]">Quality Response Score</span>
-                      <p className="text-4xl font-display font-bold text-slate-700">98%</p>
-                      <span className="text-[10px] text-slate-400">Excellent follow-up feedback</span>
+                      {/* Was a fixed "Quality Response Score 98%" that nothing
+                          computed. Completed sessions is a real number the
+                          dashboard already holds. */}
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--outline)]">Sessions Completed</span>
+                      <p className="text-4xl font-display font-bold text-slate-700">
+                        {sessions.filter(s => s.status === 'COMPLETED').length}
+                      </p>
+                      <span className="text-[10px] text-slate-400">
+                        {ratingSummary.total > 0
+                          ? `${ratingSummary.total} reviewed`
+                          : 'Clients can review once a session is completed'}
+                      </span>
                     </div>
 
                   </div>
 
-                  {/* Testimonial logs */}
+                  {/* Client feedback, from the Review table */}
                   <div className="card space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Testimonials & Client Feedback</h3>
-                    
-                    <div className="space-y-4">
-                      {[
-                        { text: "Dr. Sarah's session felt incredibly safe. I didn't feel judged at all. The boundary exercises changed how I view work.", author: "Verified Client (Anonymous)" },
-                        { text: "The Student Burnout workshop was extremely practical. Highly recommend the worksheets.", author: "Workshop Participant" }
-                      ].map((t, idx) => (
-                        <div key={idx} className="p-4 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-2">
-                          <p className="text-xs text-slate-600 italic">"{t.text}"</p>
-                          <span className="text-[9px] font-bold text-[var(--outline)] block text-right">— {t.author}</span>
-                        </div>
-                      ))}
-                    </div>
+
+                    {reviewsLoading ? (
+                      <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">Loading reviews…</p>
+                    ) : reviews.length === 0 ? (
+                      <div className="py-8 text-center space-y-1">
+                        <p className="text-xs font-bold text-[var(--on-surface)]">No reviews yet</p>
+                        <p className="text-[11px] text-[var(--on-surface-variant)]">
+                          Clients are invited to leave one after you mark a session complete.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {reviews.map((r) => (
+                          <div key={r.id} className="p-4 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-2">
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map(n => (
+                                <Star
+                                  key={n}
+                                  size={12}
+                                  className={n <= Math.round(r.rating) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}
+                                />
+                              ))}
+                              <span className="text-[10px] font-bold text-slate-500 ml-1">{r.rating.toFixed(1)}</span>
+                            </div>
+                            {r.comment && <p className="text-xs text-slate-600 italic">"{r.comment}"</p>}
+                            <span className="text-[9px] font-bold text-[var(--outline)] block text-right">
+                              — {r.author} · {new Date(r.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

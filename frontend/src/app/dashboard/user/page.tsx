@@ -21,6 +21,7 @@ import ChangePasswordCard from '@/components/ChangePasswordCard';
 import AutoMatchButton from '@/components/AutoMatchButton';
 import Chat from '@/components/Chat';
 import VideoCall from '@/components/VideoCall';
+import ReviewSession from '@/components/ReviewSession';
 
 export default function UserDashboard() {
   return (
@@ -59,6 +60,32 @@ function DashboardContent() {
       finally { setBookingsLoading(false); }
     })();
   }, []);
+
+  // ── Sessions still waiting on a review ───────────────────────────────────────
+  // Which completed sessions the caller has not rated. Held as a set of booking
+  // ids so a row can decide in constant time whether to offer the prompt.
+  const [awaitingReview, setAwaitingReview] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    (async () => {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (!t) return;
+      try {
+        const data = await (await fetch('/api/reviews?pending=1', {
+          headers: { Authorization: `Bearer ${t}` },
+        })).json();
+        if (data.success) setAwaitingReview(new Set(data.data.items.map((i: any) => i.bookingId)));
+      } catch { /* no prompt is shown; the review can still be left later */ }
+    })();
+  }, []);
+
+  /** Drop the prompt once a review lands, without refetching the whole list. */
+  const markReviewed = (bookingId: string) =>
+    setAwaitingReview(prev => {
+      const next = new Set(prev);
+      next.delete(bookingId);
+      return next;
+    });
 
   // ── Library and circles, from the database ───────────────────────────────────
   // Both tabs listed invented handouts and circles with invented member counts.
@@ -1921,6 +1948,15 @@ function DashboardContent() {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         s.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
                       }`}>{s.status.toLowerCase()}</span>
+                      {/* Only for a completed session that has not been rated —
+                          the server refuses anything else anyway. */}
+                      {awaitingReview.has(s.id) && (
+                        <ReviewSession
+                          bookingId={s.id}
+                          professionalName={s.professional?.name ?? 'your professional'}
+                          onDone={markReviewed}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1929,8 +1965,9 @@ function DashboardContent() {
               {/* Session stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {/* Every account used to show the same twelve sessions and 4.8
-                    stars. Counted from real bookings instead; average rating is
-                    gone because no review is ever collected. */}
+                    stars. Counted from real bookings instead. The rating stat
+                    stays out: a client does not have one, and the ratings they
+                    give belong on the professional's profile, not here. */}
                 {[
                   { label: 'Total Sessions', value: String(myBookings.length), sub: 'booked in total', color: 'text-[var(--primary)]' },
                   { label: 'Completed', value: String(completedSessions.length), sub: 'sessions attended', color: 'text-emerald-600' },
