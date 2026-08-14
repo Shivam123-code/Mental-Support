@@ -71,18 +71,36 @@ app.get('/health', (req, res) => {
 
 // Stats endpoint — admin only. Connected-admin counts tell an attacker whether
 // anyone is watching the emergency queue, so this is not public.
-app.get('/stats', (req, res) => {
+app.get('/stats', async (req, res) => {
   const payload = validateToken(extractTokenFromHeader(req.headers.authorization) ?? '');
   if (!payload || payload.role !== 'ADMIN') {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const sockets = io.sockets.sockets;
-  res.json({
-    connectedClients: sockets.size,
-    admins: connectedAdmins.size,
-    users: connectedUsers.size,
-  });
+  try {
+    // fetchSockets() goes through the adapter, so with Redis attached this
+    // counts every instance. The local Maps only ever saw this process, which
+    // would have reported 1/N of the fleet as if it were the whole picture.
+    const sockets = await io.fetchSockets();
+    const byRole = { ADMIN: 0, VENDOR: 0, USER: 0, GUEST: 0, PENDING: 0 };
+    for (const s of sockets) {
+      const role = s.data.userId ? (s.data.role ?? 'USER') : s.data.isGuest ? 'GUEST' : 'PENDING';
+      byRole[role as keyof typeof byRole] = (byRole[role as keyof typeof byRole] ?? 0) + 1;
+    }
+    res.json({
+      connectedClients: sockets.length,
+      admins: byRole.ADMIN,
+      users: byRole.USER,
+      vendors: byRole.VENDOR,
+      guests: byRole.GUEST,
+      // Connected but not yet authenticated. A number that will not fall is a
+      // client stuck in an auth loop.
+      unauthenticated: byRole.PENDING,
+      thisInstanceOnly: !process.env.REDIS_URL,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'stats unavailable', detail: err?.message });
+  }
 });
 
 /**
@@ -294,8 +312,65 @@ io.on('connection', (socket) => {
   });
 });
 
+/**
+ * Cross-instance room fan-out.
+ *
+ * socket.io rooms live inside one process. With the default adapter a second
+ * instance is invisible to the first: an alert raised on A never reaches an
+ * admin connected to B, and `vendor-<id>` only pages the vendors that happen to
+ * share a process with the caller. That makes the service vertically scalable
+ * only — one bigger box, never more boxes.
+ *
+ * The Redis adapter relays every emit between instances, so rooms behave as one
+ * namespace however many processes are running.
+ *
+ * Opt-in via REDIS_URL. Unset (the normal local setup) keeps the in-process
+ * adapter and behaves exactly as before, so development needs no Redis. In
+ * production leaving it unset is a silent single-instance ceiling, so say so
+ * loudly at boot rather than letting it be discovered by a dropped alert.
+ */
+async function connectRedisAdapter(): Promise<void> {
+  const url = process.env.REDIS_URL;
+  if (!url) {
+    if (!isDev) {
+      console.warn(
+        '⚠️  REDIS_URL is not set. Running with the in-process adapter: rooms do ' +
+        'NOT span instances, so this process must be the only one, or alerts ' +
+        'will be delivered to some clients and not others.'
+      );
+    }
+    return;
+  }
+
+  const { createAdapter } = await import('@socket.io/redis-adapter');
+  const { createClient } = await import('redis');
+
+  const pubClient = createClient({ url });
+  const subClient = pubClient.duplicate();
+
+  // A dropped Redis connection must not take the process down; socket.io keeps
+  // serving the clients already attached to this instance while it reconnects.
+  pubClient.on('error', (err) => console.error('[redis pub]', err.message));
+  subClient.on('error', (err) => console.error('[redis sub]', err.message));
+
+  await Promise.all([pubClient.connect(), subClient.connect()]);
+  io.adapter(createAdapter(pubClient, subClient));
+  console.log(`🔗 Redis adapter connected — rooms span instances`);
+}
+
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
+  // Awaited inside listen so a Redis failure surfaces at boot rather than on
+  // the first emit. A failure here is fatal on purpose: silently falling back
+  // to the in-process adapter in a multi-instance deployment would drop alerts
+  // for whichever clients happened to land on another process.
+  try {
+    await connectRedisAdapter();
+  } catch (err) {
+    console.error('FATAL: could not connect the Redis adapter:', err);
+    process.exit(1);
+  }
+
   console.log('');
   console.log('🚀 ========================================');
   console.log('🚀  KleverKlues Socket Server Started');
