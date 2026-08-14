@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Booking writes a row and will later trigger payment, so it is not a free
     // endpoint to hammer.
-    const limit = rateLimit(`booking:${caller.id || getClientIp(request)}`, 20, 60 * 60 * 1000);
+    const limit = await rateLimit(`booking:${caller.id || getClientIp(request)}`, 20, 60 * 60 * 1000);
     if (!limit.allowed) {
       return errorResponse(
         `Too many booking attempts. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s).`,

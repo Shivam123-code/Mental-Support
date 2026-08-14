@@ -127,6 +127,27 @@ Now it is real: you write a note from your dashboard, your team approves it, and
 it appears. You can post without your name. Nothing reaches the public wall
 unreviewed.
 
+## Ready for more than one server
+
+Rate limits (how many times you can try a password, send a message, book, pay)
+were counted **inside each server**. Run three servers and everyone got three
+times the allowance; restart a server and every counter reset to zero. For login
+that is close to no protection at all.
+
+They are now shared, using the same Redis the chat server already uses. Set
+`REDIS_URL` and every server counts together. Leave it unset and nothing changes
+from before — so your laptop needs no Redis.
+
+If Redis goes down, the site keeps working on per-server limits rather than
+locking everyone out, and reconnects by itself. It gives up on an unreachable
+Redis after 2 seconds instead of hanging the request.
+
+Also fixed: the address-lookup cache grew forever and would have slowly eaten
+memory on a long-running server. It now holds 2,000 entries and drops the oldest.
+
+And: a known security hole in a library the website uses (the same one fixed in
+the chat server earlier) is now patched here too. **Zero known vulnerabilities.**
+
 ## Still to do
 
 - **Enterprise screen** is still fake (we agreed to do it later).
@@ -137,6 +158,6 @@ unreviewed.
 
 ## Checks
 
-15 test files, all passing. They run against the real app and clean up after
+16 test files, all passing. They run against the real app and clean up after
 themselves. The payments one alone checks 41 things, including forged payment
 messages, tampered amounts, and two people clicking at the same moment.

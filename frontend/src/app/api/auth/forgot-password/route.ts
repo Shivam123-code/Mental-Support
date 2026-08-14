@@ -13,7 +13,7 @@ import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 export async function POST(request: NextRequest) {
   // V-04 FIX: Rate limit — 3 reset requests per 15 minutes per IP
   const ip = getClientIp(request);
-  const { allowed, retryAfterSeconds } = rateLimit(`forgot-pw:${ip}`, 3, 15 * 60 * 1000);
+  const { allowed, retryAfterSeconds } = await rateLimit(`forgot-pw:${ip}`, 3, 15 * 60 * 1000);
   if (!allowed) {
     // Still return 200 to not reveal anything, but don't process
     return successResponse(

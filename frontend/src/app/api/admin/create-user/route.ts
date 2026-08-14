@@ -30,7 +30,7 @@ function generatePassword(): string {
 export async function POST(request: NextRequest) {
   // Rate limit: 50 requests/hour per IP
   const ip = getClientIp(request);
-  const rl = rateLimit(`admin-create-user:${ip}`, 50, 60 * 60 * 1000);
+  const rl = await rateLimit(`admin-create-user:${ip}`, 50, 60 * 60 * 1000);
   if (!rl.allowed) {
     return errorResponse(`Rate limit exceeded. Try again in ${rl.retryAfterSeconds}s.`, 429);
   }

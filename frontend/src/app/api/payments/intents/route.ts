@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const user = await caller(request);
     if (!user) return unauthorizedResponse();
 
-    const limit = rateLimit(`payment:${user.id || getClientIp(request)}`, 20, 60 * 60 * 1000);
+    const limit = await rateLimit(`payment:${user.id || getClientIp(request)}`, 20, 60 * 60 * 1000);
     if (!limit.allowed) {
       return errorResponse(
         `Too many payment attempts. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s).`,

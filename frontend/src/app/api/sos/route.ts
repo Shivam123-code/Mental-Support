@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   // V-06 FIX: Rate limit SOS — max 3 alerts per 10 minutes per IP
   // Prevents fake-alert flooding while allowing genuine emergencies (need only 1).
   const ip = getClientIp(request);
-  const { allowed } = rateLimit(`sos:${ip}`, 3, 10 * 60 * 1000);
+  const { allowed } = await rateLimit(`sos:${ip}`, 3, 10 * 60 * 1000);
   if (!allowed) {
     // Still log the attempt for admin awareness
     console.warn(`SOS rate limit exceeded from IP: ${ip}`);

@@ -65,6 +65,20 @@ AUTOMATCH_PRICE_MINOR=49900
 AUTOMATCH_REQUIRES_PAYMENT=true
 ```
 
+#### Shared rate limiting (optional, but required for more than one instance)
+
+```env
+# Unset locally: limits are per-process, which is correct for a single instance.
+# Set it in production BEFORE running a second instance — otherwise the real cap
+# is max x instance_count and login brute-force protection is close to absent.
+# The socket server uses the same variable for its room adapter.
+REDIS_URL=redis://localhost:6379
+```
+
+If Redis is unreachable the app keeps serving and falls back to per-process
+limits rather than locking everybody out, and retries the connection every 30
+seconds.
+
 ### 4. Install Dependencies
 
 ```bash

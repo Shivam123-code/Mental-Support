@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     const user = await caller(request);
     if (!user) return unauthorizedResponse();
 
-    const limit = rateLimit(`review:${user.id}`, 20, 60 * 60 * 1000);
+    const limit = await rateLimit(`review:${user.id}`, 20, 60 * 60 * 1000);
     if (!limit.allowed) {
       return errorResponse('Too many reviews submitted. Please try again later.', 429);
     }

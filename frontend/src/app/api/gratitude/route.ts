@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (!user) return unauthorizedResponse();
 
     // A public wall is a spam target even behind a login.
-    const limit = rateLimit(`gratitude:${user.id || getClientIp(request)}`, 10, 60 * 60 * 1000);
+    const limit = await rateLimit(`gratitude:${user.id || getClientIp(request)}`, 10, 60 * 60 * 1000);
     if (!limit.allowed) {
       return errorResponse(
         `You have posted a few already. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s).`,

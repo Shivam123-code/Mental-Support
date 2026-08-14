@@ -9,7 +9,7 @@ import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 export async function POST(request: NextRequest) {
   // V-04 FIX: Rate limit — 5 attempts per 15 minutes per IP
   const ip = getClientIp(request);
-  const { allowed, retryAfterSeconds } = rateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+  const { allowed, retryAfterSeconds } = await rateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
   if (!allowed) {
     return errorResponse(
       `Too many login attempts. Please try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Second bucket keyed on the account, not the IP. Without it, a botnet
     // spread across many addresses gets 5 attempts each against one account,
     // and there is no lockout anywhere else in the system.
-    const perAccount = rateLimit(`login-acct:${email}`, 10, 15 * 60 * 1000);
+    const perAccount = await rateLimit(`login-acct:${email}`, 10, 15 * 60 * 1000);
     if (!perAccount.allowed) {
       return errorResponse(
         `Too many login attempts for this account. Please try again in ${Math.ceil(perAccount.retryAfterSeconds / 60)} minute(s).`,

@@ -15,24 +15,43 @@ import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 const HEADERS = { 'User-Agent': 'KleverKlues-SOS/1.0' };
 
-// ponytail: unbounded in-process Map — one entry per distinct lookup, never
-// evicted, not shared across instances. It exists to collapse the dashboard
-// fan-out (N vendors → N identical repeat lookups) under Nominatim's 1 req/s
-// policy. Ceiling: a long-lived server with many unique coords grows this
-// forever, and each instance keeps its own copy. Upgrade path when that bites:
-// self-hosted Nominatim, or Redis with a TTL.
-const cache = new Map<string, unknown>();
+// Collapses the dashboard fan-out (N vendors → N identical repeat lookups)
+// under Nominatim's 1 req/s policy.
+//
+// This was an unbounded Map that never evicted anything, which on a long-lived
+// server is a memory leak: one entry per distinct coordinate, kept forever.
+// Bounded LRU with a TTL instead — a Map iterates in insertion order, so the
+// oldest key is simply the first one.
+//
+// ponytail: still per-instance, so each process warms its own copy. That is
+// only ever a few extra upstream calls, not a correctness problem, and the
+// rate limit in front of it is shared now. Upgrade path if geocoding volume
+// ever justifies it: self-hosted Nominatim.
+const CACHE_MAX = 2_000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // an address does not move
+const cache = new Map<string, { at: number; data: unknown }>();
 
 async function nominatim(path: string): Promise<any> {
   const hit = cache.get(path);
-  if (hit !== undefined) return hit;
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    // Re-insert so recently used entries move to the back of the eviction queue.
+    cache.delete(path);
+    cache.set(path, hit);
+    return hit.data;
+  }
+
   const res = await fetch(`${NOMINATIM}${path}`, {
     headers: HEADERS,
     signal: AbortSignal.timeout(6000),
   });
   if (!res.ok) throw new Error(`Nominatim ${res.status}`);
   const data = await res.json();
-  cache.set(path, data);
+
+  cache.set(path, { at: Date.now(), data });
+  if (cache.size > CACHE_MAX) {
+    // Map keys come back oldest-first, so this drops the least recently used.
+    cache.delete(cache.keys().next().value!);
+  }
   return data;
 }
 
@@ -56,7 +75,7 @@ export async function GET(request: NextRequest) {
   // Public by design (the SOS flow must work without an account), so this is an
   // open relay to Nominatim unless we cap it. Generous enough for the admin
   // dashboard fan-out, tight enough that nobody proxies a scrape through us.
-  const limit = rateLimit(`geocode:${getClientIp(request)}`, 60, 60_000);
+  const limit = await rateLimit(`geocode:${getClientIp(request)}`, 60, 60_000);
   if (!limit.allowed) {
     return Response.json(
       { success: false, error: 'Too many location lookups. Please wait a moment.' },

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   // VENDOR is a privileged role — it can read victims' names, phones and live
   // locations for dispatched alerts — so self-service signup gets the same
   // throttle as the other registration routes, which this one was missing.
-  const { allowed, retryAfterSeconds } = rateLimit(`vendor-register:${getClientIp(request)}`, 3, 60 * 60 * 1000);
+  const { allowed, retryAfterSeconds } = await rateLimit(`vendor-register:${getClientIp(request)}`, 3, 60 * 60 * 1000);
   if (!allowed) {
     return errorResponse(
       `Too many signup attempts. Please try again in ${Math.ceil(retryAfterSeconds / 60)} minute(s).`,

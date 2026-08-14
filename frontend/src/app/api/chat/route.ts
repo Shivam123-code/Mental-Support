@@ -14,8 +14,8 @@ export async function POST(req: Request) {
     : null;
 
   const { allowed } = user
-    ? rateLimit(`chat:user:${user.id}`, 30, 60 * 1000)
-    : rateLimit(`chat:ip:${getClientIp(req)}`, 10, 60 * 1000);
+    ? await rateLimit(`chat:user:${user.id}`, 30, 60 * 1000)
+    : await rateLimit(`chat:ip:${getClientIp(req)}`, 10, 60 * 1000);
 
   if (!allowed) {
     return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });

@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     if (!user) return unauthorizedResponse();
 
     // A messaging endpoint is a spam vector even between legitimate parties.
-    const limit = rateLimit(`message:${user.id}`, 60, 60 * 1000);
+    const limit = await rateLimit(`message:${user.id}`, 60, 60 * 1000);
     if (!limit.allowed) {
       return errorResponse('You are sending messages too quickly. Please wait a moment.', 429);
     }

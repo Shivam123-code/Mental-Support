@@ -63,7 +63,7 @@ function parseCsvRow(line: string, role: string): CsvRow {
 export async function POST(request: NextRequest) {
   // Rate limit
   const ip = getClientIp(request);
-  const rl = rateLimit(`admin-create-user-csv:${ip}`, 10, 60 * 60 * 1000);
+  const rl = await rateLimit(`admin-create-user-csv:${ip}`, 10, 60 * 60 * 1000);
   if (!rl.allowed) {
     return errorResponse(`Rate limit exceeded. Try again in ${rl.retryAfterSeconds}s.`, 429);
   }
