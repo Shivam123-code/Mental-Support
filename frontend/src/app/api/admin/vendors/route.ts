@@ -11,14 +11,29 @@ export async function GET(request: NextRequest) {
     const user = await requireAdmin(request);
     if (!user) return unauthorizedResponse();
 
-    const vendors = await (prisma as any).vendorProfile.findMany({
-      include: {
-        user: {
-          select: { id: true, firstName: true, lastName: true, email: true, status: true },
+    // Was an unbounded findMany joining a user row each. At a thousand vendors
+    // that is one enormous response, and the dashboard then fires a reverse
+    // geocode per vendor on top of it.
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Math.max(Number(searchParams.get('limit') || '100'), 1), 200);
+    const cursor = searchParams.get('cursor');
+
+    const [rows, total] = await Promise.all([
+      (prisma as any).vendorProfile.findMany({
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true, status: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      }),
+      (prisma as any).vendorProfile.count(),
+    ]);
+
+    const hasMore = rows.length > limit;
+    const vendors = hasMore ? rows.slice(0, limit) : rows;
 
     const formatted = vendors.map((v: any) => ({
       id:                v.id,
@@ -38,7 +53,14 @@ export async function GET(request: NextRequest) {
       },
     }));
 
-    return successResponse(formatted, `Found ${formatted.length} vendor(s)`);
+    return successResponse(
+      {
+        items: formatted,
+        nextCursor: hasMore ? formatted[formatted.length - 1]?.id ?? null : null,
+        total,
+      },
+      `Showing ${formatted.length} of ${total} vendor(s)`
+    );
   } catch (error: any) {
     console.error('Admin vendors fetch error:', error);
     return errorResponse('Failed to fetch vendors: ' + (error?.message || 'Unknown'), 500);

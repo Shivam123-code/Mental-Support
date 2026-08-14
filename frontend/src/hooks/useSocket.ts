@@ -11,6 +11,8 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
 export function useSocket(userId?: string, role?: string, token?: string, enabled = true) {
   const [isConnected, setIsConnected] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  /** Set when the server refuses the credential, so the UI can stop pretending. */
+  const [authError, setAuthError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -31,21 +33,47 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
 
     socketRef.current = socket;
 
+    // The credential this connection presents. Nulled the moment the server
+    // rejects it, so reconnects never replay a token already known to be dead.
+    let credential = token;
+    let downgraded = false;
+
     socket.on('connect', () => {
-      console.log('✅ Socket connected');
       setIsConnected(true);
       // Only the token is sent — the server derives userId and role from it.
       // Omitted entirely for a guest, who gets an SOS-only session.
-      socket.emit('authenticate', token ? { token } : {});
+      socket.emit('authenticate', credential ? { token: credential } : {});
     });
 
-    socket.on('authenticated', (data: { success: boolean }) => {
+    socket.on('authenticated', (data: { success: boolean; error?: string }) => {
       if (data.success) {
-        console.log('✅ Socket authenticated');
         setIsAuthenticated(true);
-      } else {
-        console.error('❌ Socket authentication failed');
+        setAuthError(null);
+        return;
       }
+
+      // A refused credential is PERMANENT — an expired token does not become
+      // valid by being sent again. Previously this only logged, while
+      // socket.io reconnected forever and replayed the same dead token, each
+      // attempt costing the server a JWT verify plus a user lookup. One stale
+      // tab did that every few seconds indefinitely; a thousand of them is a
+      // self-inflicted load test. Drop the credential and stop replaying it.
+      if (credential && !downgraded) {
+        downgraded = true;
+        credential = undefined;
+        // Fall back to a guest session rather than going dark: someone whose
+        // session expired mid-crisis still needs SOS and live dispatch status.
+        // The token is deliberately NOT cleared from storage here — session
+        // lifecycle belongs to AuthContext, and racing it would log the user
+        // out from under an open SOS modal.
+        setAuthError('Session expired — connected as guest. SOS still works.');
+        socket.emit('authenticate', {});
+        return;
+      }
+
+      // Guest auth failing too means the server is unhealthy, not the caller.
+      // Reconnection stays on (backoff caps at 10s) so it recovers by itself.
+      setAuthError(data.error ?? 'Emergency server refused the connection.');
     });
 
     socket.on('disconnect', () => {
@@ -67,6 +95,7 @@ export function useSocket(userId?: string, role?: string, token?: string, enable
     socket: socketRef.current,
     isConnected,
     isAuthenticated,
+    authError,
   };
 }
 

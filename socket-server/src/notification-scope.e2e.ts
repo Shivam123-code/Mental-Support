@@ -31,16 +31,6 @@ function check(ok: boolean, label: string, detail = '') {
   if (!ok) failures++;
 }
 
-function connectGuest(): Promise<Socket> {
-  return new Promise((resolve, reject) => {
-    const s = ioClient(URL, { transports: ['websocket'], forceNew: true });
-    const t = setTimeout(() => reject(new Error('guest auth timeout')), 10_000);
-    s.on('connect', () => s.emit('authenticate', {}));
-    s.on('authenticated', (r: any) => { clearTimeout(t); r?.success ? resolve(s) : reject(new Error(r?.error)); });
-    s.on('connect_error', e => { clearTimeout(t); reject(e); });
-  });
-}
-
 /** Authenticate with a real account, exactly as the browser does. */
 function connectAs(userId: string, email: string, role: string): Promise<Socket> {
   return new Promise((resolve, reject) => {
@@ -68,12 +58,18 @@ async function main() {
 
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'ADMIN', status: 'ACTIVE' } });
-    const plainUser = await prisma.user.findFirst({ where: { role: 'USER', status: 'ACTIVE' } });
-    if (!admin || !plainUser) throw new Error('need one ACTIVE admin and one ACTIVE user');
+    const users = await prisma.user.findMany({ where: { role: 'USER', status: 'ACTIVE' }, take: 3 });
+    if (!admin || users.length < 3) throw new Error('need one ACTIVE admin and three ACTIVE users');
+    const [userA, userB, plainUser] = users;
 
-    // Three independent callers + one admin + one uninvolved signed-in user.
-    const a = await connectGuest();
-    const b = await connectGuest();
+    // Two independent callers + one admin + one uninvolved signed-in user.
+    // Callers are distinct accounts rather than guests on purpose: guest flood
+    // control keys on remote address, so two local guests share one bucket and
+    // the harness would fail on its own rate limit after a few runs. Separate
+    // accounts also test the property that actually matters here — that scoping
+    // follows identity.
+    const a = await connectAs(userA.id, userA.email, 'USER');
+    const b = await connectAs(userB.id, userB.email, 'USER');
     const adminSock = await connectAs(admin.id, admin.email, 'ADMIN');
     const bystander = await connectAs(plainUser.id, plainUser.email, 'USER');
     sockets.push(a, b, adminSock, bystander);

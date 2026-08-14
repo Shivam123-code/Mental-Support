@@ -139,6 +139,19 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Every attempt costs a JWT verify and a user lookup, and nothing capped
+      // how many one socket could make. A client looping on a rejected token —
+      // which is what a stale tab does — could drive that lookup indefinitely,
+      // multiplied by however many such tabs are open. Three tries is enough for
+      // a real client: token, then the guest downgrade, plus one spare.
+      const attempts = (socket.data.authAttempts ?? 0) + 1;
+      socket.data.authAttempts = attempts;
+      if (attempts > 3) {
+        socket.emit('authenticated', { success: false, error: 'Too many authentication attempts' });
+        socket.disconnect(true);
+        return;
+      }
+
       // No token — a guest. SOS is open to everyone, exactly as the public REST
       // /api/sos already is, so a caller in crisis with no account gets the same
       // realtime path rather than being stuck on "Connecting…" forever. They get

@@ -9,6 +9,12 @@ import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+/** Mirrors the ProfessionalType enum in schema.prisma. */
+const PROFESSIONAL_TYPES = [
+  'THERAPIST', 'PSYCHOLOGIST', 'COUNSELOR', 'COACH',
+  'PSYCHIATRIST', 'SOCIAL_WORKER', 'MENTOR',
+] as const;
+
 function generatePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let result = 'Kk@';
@@ -102,11 +108,23 @@ export async function POST(request: NextRequest) {
 
       // Role-specific records
       if (role === 'PROFESSIONAL') {
-        const proType = (specialization?.toUpperCase() || 'COUNSELOR') as any;
+        // `specialization` is free text ("Anxiety", "CBT", "Trauma") but was
+        // being uppercased straight into `type`, a ProfessionalType enum — so
+        // every realistic value threw a raw Prisma error and rolled the whole
+        // transaction back. It only ever worked if the admin happened to type
+        // an enum member. These are two different things: what kind of
+        // professional they are, versus what they specialise in.
+        const proType = PROFESSIONAL_TYPES.includes(String(specialization).toUpperCase() as any)
+          ? (String(specialization).toUpperCase() as any)
+          : 'COUNSELOR';
         await tx.professional.create({
           data: {
             userId: user.id,
             type: proType,
+            // Anything that was not a type is kept as what it actually is.
+            specializations: specialization && proType !== String(specialization).toUpperCase()
+              ? [String(specialization)]
+              : [],
             licenseNumber: licenseNumber || null,
             verificationStatus: 'VERIFIED',
             verifiedAt: new Date(),

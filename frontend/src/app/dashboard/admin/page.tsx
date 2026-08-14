@@ -174,14 +174,23 @@ function AdminDashboardContent() {
     return () => { adminSocket.off('sos:vendor_status_update', handler); };
   }, [adminSocket]);
 
-  const fetchAllVendors = async () => {
+  const [vendorCursor, setVendorCursor] = useState<string | null>(null);
+  const [vendorTotal, setVendorTotal] = useState(0);
+
+  const fetchAllVendors = async (cursor?: string) => {
     const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     if (!t) return;
     setVendorsLoading(true);
     try {
-      const res = await fetch('/api/admin/vendors', { headers: { Authorization: `Bearer ${t}` } });
+      const qs = new URLSearchParams({ limit: '100', ...(cursor ? { cursor } : {}) });
+      const res = await fetch(`/api/admin/vendors?${qs}`, { headers: { Authorization: `Bearer ${t}` } });
       const data = await res.json();
-      if (data.success) setAllVendors(data.data || []);
+      if (data.success) {
+        // Paginated now — append on "load more", replace on a fresh open.
+        setAllVendors(prev => (cursor ? [...prev, ...data.data.items] : data.data.items));
+        setVendorCursor(data.data.nextCursor);
+        setVendorTotal(data.data.total);
+      }
     } catch { } finally { setVendorsLoading(false); }
   };
 
@@ -875,13 +884,20 @@ function AdminDashboardContent() {
 
                   <Card>
                     <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                      <div><h3 className="text-sm font-bold">All Vendors</h3><p className="text-xs text-slate-400 mt-0.5">Registered service providers</p></div>
-                      <button onClick={fetchAllVendors} disabled={vendorsLoading} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition disabled:opacity-60 cursor-pointer">
+                      <div><h3 className="text-sm font-bold">All Vendors</h3>
+                        {/* Honest count: the list is paged, so say how much of it is on screen. */}
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {vendorTotal > 0 ? `Showing ${allVendors.length} of ${vendorTotal} registered` : 'Registered service providers'}
+                        </p>
+                      </div>
+                      {/* Wrapped: passing the handler directly hands React's click
+                          event to the cursor parameter. */}
+                      <button onClick={() => fetchAllVendors()} disabled={vendorsLoading} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition disabled:opacity-60 cursor-pointer">
                         {vendorsLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Refresh
                       </button>
                     </div>
                     <div className="p-5">
-                      {vendorsLoading ? <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-orange-500" /></div>
+                      {vendorsLoading && allVendors.length === 0 ? <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-orange-500" /></div>
                         : allVendors.length === 0 ? <div className="text-center py-10"><Truck size={28} className="mx-auto text-slate-300 mb-3" /><p className="text-sm text-slate-400">No vendors registered yet</p></div>
                         : (
                           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -903,6 +919,15 @@ function AdminDashboardContent() {
                             ))}
                           </div>
                         )}
+                      {vendorCursor && (
+                        <button
+                          onClick={() => fetchAllVendors(vendorCursor)}
+                          disabled={vendorsLoading}
+                          className="w-full mt-4 py-2.5 text-xs font-bold border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
+                        >
+                          {vendorsLoading ? 'Loading…' : `Load more (${vendorTotal - allVendors.length} remaining)`}
+                        </button>
+                      )}
                     </div>
                   </Card>
                 </div>
