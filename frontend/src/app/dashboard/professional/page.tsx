@@ -131,11 +131,10 @@ function ProfessionalDashboardContent() {
   })();
 
   // Circles / Workshops State
-  const [circles, setCircles] = useState([
-    { id: 'cr1', title: 'Anxiety Support Circle', description: 'Safe space discussion on work-related anxiety and shared coping tools.', time: 'Wednesdays at 7:00 PM', capacity: 15, joined: 12, type: 'Support Circle' },
-    { id: 'cr2', title: 'Emotional Healing Group', description: 'Shared reflection circle focusing on grief, life transitions, and somatic grounding.', time: 'Fridays at 6:00 PM', capacity: 10, joined: 8, type: 'Healing Group' },
-    { id: 'cr3', title: 'Student Burnout Workshop', description: 'Actionable strategies for academic load mitigation, time management, and self-compassion.', time: 'Tonight at 8:00 PM', capacity: 30, joined: 24, type: 'Workshop' },
-  ]);
+  // Circles and resources come from the database. Both were fixtures whose
+  // joined counts and download counts no action could ever change.
+  const [circles, setCircles] = useState<any[]>([]);
+  const [circlesLoading, setCirclesLoading] = useState(true);
 
   // Create Circle Form State
   const [newCircleTitle, setNewCircleTitle] = useState('');
@@ -145,11 +144,9 @@ function ProfessionalDashboardContent() {
   const [newCircleType, setNewCircleType] = useState('Support Circle');
 
   // Resources State
-  const [resources, setResources] = useState([
-    { id: 'r1', title: 'Building Emotional Boundaries Cheat Sheet', category: 'Boundaries', type: 'PDF Guide', downloads: 34 },
-    { id: 'r2', title: '5-Minute Calm Box Breathing Instructions', category: 'Breathwork', type: 'Audio Sheet', downloads: 58 },
-    { id: 'r3', title: 'Overcoming Work Anxiety Log Sheets', category: 'Cognitive reframing', type: 'Interactive PDF', downloads: 22 },
-  ]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resUrl, setResUrl] = useState('');
 
   // Add Resource Form State
   const [resTitle, setResTitle] = useState('');
@@ -227,39 +224,90 @@ function ProfessionalDashboardContent() {
   };
 
   // Handle creating a support circle
-  const handleCreateCircle = (e: React.FormEvent) => {
+  const authHeaders = () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    return t ? { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` } : null;
+  };
+
+  const loadCircles = async () => {
+    const h = authHeaders();
+    if (!h) { setCirclesLoading(false); return; }
+    setCirclesLoading(true);
+    try {
+      const data = await (await fetch('/api/circles?mine=true', { headers: h })).json();
+      if (data.success) setCircles(data.data.items || []);
+    } catch { /* leave the list as it is and show the empty state */ }
+    finally { setCirclesLoading(false); }
+  };
+
+  const loadResources = async () => {
+    const h = authHeaders();
+    if (!h) { setResourcesLoading(false); return; }
+    setResourcesLoading(true);
+    try {
+      const data = await (await fetch('/api/resources?mine=true', { headers: h })).json();
+      if (data.success) setResources(data.data.items || []);
+    } catch { /* same */ }
+    finally { setResourcesLoading(false); }
+  };
+
+  useEffect(() => { loadCircles(); loadResources(); }, []);
+
+  // Was local state, so a circle vanished on reload and nobody could join it.
+  const handleCreateCircle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCircleTitle || !newCircleDesc) return;
-    const newCircle = {
-      id: `cr-${Date.now()}`,
-      title: newCircleTitle,
-      description: newCircleDesc,
-      time: newCircleTime || 'TBD',
-      capacity: newCircleCap,
-      joined: 0,
-      type: newCircleType
-    };
-    setCircles(prev => [newCircle, ...prev]);
-    setNewCircleTitle('');
-    setNewCircleDesc('');
-    setNewCircleTime('');
-    triggerToast('New Support Circle created! 🌐');
+    const h = authHeaders();
+    if (!h) return;
+    try {
+      const res = await fetch('/api/circles', {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          title: newCircleTitle,
+          description: newCircleDesc,
+          scheduleLabel: newCircleTime || null,
+          capacity: newCircleCap,
+          type: newCircleType,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not create circle');
+      setCircles(prev => [data.data, ...prev]);
+      setNewCircleTitle('');
+      setNewCircleDesc('');
+      setNewCircleTime('');
+      triggerToast('Circle created 🌐');
+    } catch (err: any) {
+      triggerToast(`Could not create circle: ${err?.message ?? 'unknown error'}`);
+    }
   };
 
   // Handle adding a resource
-  const handleAddResource = (e: React.FormEvent) => {
+  const handleAddResource = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resTitle) return;
-    const newRes = {
-      id: `r-${Date.now()}`,
-      title: resTitle,
-      category: resCategory,
-      type: resType,
-      downloads: 0
-    };
-    setResources(prev => [newRes, ...prev]);
-    setResTitle('');
-    triggerToast('Wellbeing resource uploaded! 📄');
+    const h = authHeaders();
+    if (!h) return;
+    try {
+      const res = await fetch('/api/resources', {
+        method: 'POST', headers: h,
+        body: JSON.stringify({
+          title: resTitle,
+          category: resCategory,
+          type: resType,
+          url: resUrl.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not publish');
+      setResources(prev => [data.data, ...prev]);
+      setResTitle('');
+      setResUrl('');
+      triggerToast('Resource published 📄');
+    } catch (err: any) {
+      // The old version always claimed success, even though nothing was stored.
+      triggerToast(`Could not publish: ${err?.message ?? 'unknown error'}`);
+    }
   };
 
   // Handle adding a specialty
@@ -1089,18 +1137,26 @@ function ProfessionalDashboardContent() {
                     <div className="card lg:col-span-2 space-y-4">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Your Upcoming Leadership Sessions</h3>
                       
+                      {circlesLoading && <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">Loading your circles…</p>}
+                      {!circlesLoading && circles.length === 0 && (
+                        <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+                          You have not opened any circles yet. Create one below and it appears here for clients to join.
+                        </p>
+                      )}
                       <div className="grid sm:grid-cols-2 gap-4">
                         {circles.map(c => (
                           <div key={c.id} className="p-4 bg-white border border-slate-100 rounded-2xl space-y-2.5 shadow-sm">
                             <div className="flex justify-between items-start">
                               <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-[var(--primary-fixed)] px-2 py-0.5 rounded-full">{c.type}</span>
-                              <span className="text-[9px] text-slate-400 font-semibold">{c.joined}/{c.capacity} Registered</span>
+                              {/* Real membership count, not a fixed number. */}
+                              <span className={`text-[9px] font-semibold ${c.isFull ? 'text-rose-600' : 'text-slate-400'}`}>
+                                {c.joined ?? 0}/{c.capacity} joined{c.isFull ? ' — full' : ''}
+                              </span>
                             </div>
                             <h4 className="text-xs font-bold">{c.title}</h4>
                             <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed">{c.description}</p>
                             <div className="text-[10px] font-semibold text-[var(--primary)] pt-1.5 border-t border-slate-50 flex justify-between items-center">
-                              <span>📅 {c.time}</span>
-                              <span className="underline cursor-pointer">Manage circle</span>
+                              <span>📅 {c.scheduleLabel || (c.scheduledAt ? new Date(c.scheduledAt).toLocaleString() : 'Time to be confirmed')}</span>
                             </div>
                           </div>
                         ))}
@@ -1342,6 +1398,12 @@ function ProfessionalDashboardContent() {
                       <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Available Handouts</h3>
                       
                       <div className="space-y-3">
+                        {resourcesLoading && <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">Loading your library…</p>}
+                        {!resourcesLoading && resources.length === 0 && (
+                          <p className="text-xs text-[var(--on-surface-variant)] py-6 text-center">
+                            Nothing published yet. Anything you add below becomes visible to clients.
+                          </p>
+                        )}
                         {resources.map(r => (
                           <div key={r.id} className="p-3.5 bg-white border border-slate-100 rounded-2xl flex justify-between items-center gap-3 hover:border-[var(--primary)]/10 transition-all shadow-sm">
                             <div className="flex items-center gap-3">
@@ -1354,8 +1416,11 @@ function ProfessionalDashboardContent() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <span className="text-[10px] font-bold text-slate-600 block">{r.downloads} Uses</span>
-                              <span className="text-[9px] text-[var(--primary)] font-bold hover:underline cursor-pointer">Recommend file</span>
+                              <span className="text-[10px] font-bold text-slate-600 block">{r.downloads ?? 0} downloads</span>
+                              {r.url && (
+                                <a href={r.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-[9px] text-[var(--primary)] font-bold hover:underline">Open file</a>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1405,8 +1470,21 @@ function ProfessionalDashboardContent() {
                           </select>
                         </div>
 
+                        {/* There is no file upload yet, so a resource points at a
+                            link. https only — the value is rendered as an anchor. */}
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold uppercase text-slate-500">Link (https, optional)</label>
+                          <input
+                            type="url"
+                            value={resUrl}
+                            onChange={e => setResUrl(e.target.value)}
+                            placeholder="https://…"
+                            className="w-full text-xs p-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:border-[var(--primary)]"
+                          />
+                        </div>
+
                         <button type="submit" className="w-full py-2.5 bg-[var(--primary)] hover:bg-[#00685c] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1">
-                          <Plus size={14} /> Upload Sheet
+                          <Plus size={14} /> Publish Resource
                         </button>
                       </form>
                     </div>

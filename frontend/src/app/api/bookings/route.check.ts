@@ -134,10 +134,18 @@ async function main() {
     });
     check(noAuth.status === 401, 'unauthenticated callers are rejected');
   } finally {
-    // Leave no trace in the real database.
+    // Leave no trace in the real database. There is deliberately no delete
+    // endpoint — a completed session is a record, not something an API should
+    // erase — so the harness removes its own row directly.
     if (bookingId) {
-      await fetch(`${BASE}/api/bookings/${bookingId}`, { method: 'PATCH', headers: auth(proToken), body: '{}' })
-        .catch(() => {});
+      const { PrismaClient } = await import('@prisma/client');
+      const { PrismaPg } = await import('@prisma/adapter-pg');
+      const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+      await prisma.booking.delete({ where: { id: bookingId } }).catch(() => {});
+      await prisma.notification.deleteMany({
+        where: { message: { contains: 'booked a 50-minute video session' } },
+      }).catch(() => {});
+      await prisma.$disconnect();
     }
   }
 

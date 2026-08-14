@@ -37,6 +37,37 @@ function DashboardContent() {
   const sosToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const { statusUpdate, clearStatus } = useSOSStatus(user?.id, user?.role, sosToken || undefined);
 
+  // ── Sessions, from the database ──────────────────────────────────────────────
+  // My Sessions listed invented therapists and a fixed set of statistics. These
+  // are the caller's real Booking rows — the same rows the professional sees.
+  const [myBookings, setMyBookings] = useState<any[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (!t) { setBookingsLoading(false); return; }
+      try {
+        const data = await (await fetch('/api/bookings?scope=all&limit=100', {
+          headers: { Authorization: `Bearer ${t}` },
+        })).json();
+        if (data.success) setMyBookings(data.data.items || []);
+      } catch { /* the empty state below covers this */ }
+      finally { setBookingsLoading(false); }
+    })();
+  }, []);
+
+  const now = Date.now();
+  const upcomingSessions = myBookings.filter(
+    b => ['PENDING', 'CONFIRMED'].includes(b.status) && new Date(b.scheduledAt).getTime() >= now
+  );
+  const pastSessions = myBookings.filter(b => !upcomingSessions.includes(b));
+  const completedSessions = myBookings.filter(b => b.status === 'COMPLETED');
+  // Real totals rather than the fixed "12 sessions, 4.8 stars" that every
+  // account displayed regardless of history.
+  const totalMinutes = completedSessions.reduce((sum, b) => sum + (b.duration ?? 0), 0);
+  const uniqueProfessionals = new Set(myBookings.map(b => b.professional?.id).filter(Boolean)).size;
+
   // Show browser notification when vendor status changes
   useEffect(() => {
     if (!statusUpdate) return;
@@ -1735,43 +1766,67 @@ function DashboardContent() {
               {/* Upcoming sessions */}
               <div className="card p-5 space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Upcoming Sessions</h3>
-                {[
-                  { name: 'Dr. Ananya Rao', type: 'Cognitive Behavioural Therapy', date: 'Tomorrow, 4:00 PM', mode: 'Video', status: 'confirmed' },
-                  { name: 'Priya Sharma', type: 'Mindfulness Coaching', date: 'Aug 2, 11:00 AM', mode: 'Video', status: 'confirmed' },
-                ].map((s, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
+                {bookingsLoading && <p className="text-xs text-[var(--on-surface-variant)] py-4">Loading your sessions…</p>}
+                {!bookingsLoading && upcomingSessions.length === 0 && (
+                  <p className="text-xs text-[var(--on-surface-variant)] py-4">
+                    Nothing booked yet. Browse professionals above to arrange a session.
+                  </p>
+                )}
+                {upcomingSessions.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--primary)]">{s.name[0]}</div>
+                      <div className="w-9 h-9 rounded-full bg-[var(--primary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--primary)]">
+                        {(s.professional?.name ?? '?')[0]}
+                      </div>
                       <div>
-                        <p className="text-xs font-bold text-[var(--on-surface)]">{s.name}</p>
-                        <p className="text-[10px] text-[var(--on-surface-variant)]">{s.type}</p>
-                        <p className="text-[10px] text-[var(--primary)] font-semibold mt-0.5">{s.date} · {s.mode}</p>
+                        <p className="text-xs font-bold text-[var(--on-surface)]">{s.professional?.name ?? 'Professional'}</p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)]">{s.professional?.type ?? ''}</p>
+                        <p className="text-[10px] text-[var(--primary)] font-semibold mt-0.5">
+                          {new Date(s.scheduledAt).toLocaleString()} · {s.sessionType} · {s.duration} min
+                        </p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{s.status}</span>
+                    <div className="text-right shrink-0">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        s.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>{s.status.toLowerCase()}</span>
+                      {s.meetingLink && (
+                        <a href={s.meetingLink} target="_blank" rel="noopener noreferrer"
+                          className="block text-[10px] text-[var(--primary)] font-bold hover:underline mt-1">Join</a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Past sessions */}
               <div className="card p-5 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Past Sessions (Last 30 Days)</h3>
-                {[
-                  { name: 'Dr. Ananya Rao', type: 'CBT Session 3', date: 'Jul 22', rating: 5, notes: 'Worked on negative thought patterns' },
-                  { name: 'Priya Sharma', type: 'Mindfulness Intro', date: 'Jul 15', rating: 4, notes: 'Body scan & breathing exercises' },
-                  { name: 'Dr. Rahul Mehta', type: 'Stress Assessment', date: 'Jul 8', rating: 5, notes: 'GAD-7 & PHQ-9 completed' },
-                ].map((s, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row justify-between gap-3 p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Past Sessions</h3>
+                {!bookingsLoading && pastSessions.length === 0 && (
+                  <p className="text-xs text-[var(--on-surface-variant)] py-4">No past sessions yet.</p>
+                )}
+                {pastSessions.map((s) => (
+                  <div key={s.id} className="flex flex-col sm:flex-row justify-between gap-3 p-3 bg-[var(--surface-container-low)] rounded-xl border border-[var(--outline-variant)]/30">
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[var(--secondary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--secondary)] flex-shrink-0">{s.name[0]}</div>
+                      <div className="w-9 h-9 rounded-full bg-[var(--secondary-fixed)] flex items-center justify-center font-bold text-xs text-[var(--secondary)] shrink-0">
+                        {(s.professional?.name ?? '?')[0]}
+                      </div>
                       <div>
-                        <p className="text-xs font-bold text-[var(--on-surface)]">{s.name} <span className="font-normal text-[var(--on-surface-variant)]">&mdash; {s.type}</span></p>
-                        <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{s.notes}</p>
+                        <p className="text-xs font-bold text-[var(--on-surface)]">
+                          {s.professional?.name ?? 'Professional'}
+                          <span className="font-normal text-[var(--on-surface-variant)]"> &mdash; {s.sessionType}, {s.duration} min</span>
+                        </p>
+                        {/* Only the professional's own note, never invented detail. */}
+                        {s.professionalNotes && (
+                          <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5 whitespace-pre-line">{s.professionalNotes}</p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
-                      <span className="text-[var(--on-surface-variant)] text-[10px]">{s.date}</span>
-                      <span className="text-amber-500">{Array.from({length: s.rating}).map((_, j) => <Star key={j} size={10} fill="currentColor" />)}</span>
+                    <div className="flex items-center gap-2 text-xs shrink-0">
+                      <span className="text-[var(--on-surface-variant)] text-[10px]">{new Date(s.scheduledAt).toLocaleDateString()}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        s.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                      }`}>{s.status.toLowerCase()}</span>
                     </div>
                   </div>
                 ))}
@@ -1779,11 +1834,20 @@ function DashboardContent() {
 
               {/* Session stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Every account used to show the same twelve sessions and 4.8
+                    stars. Counted from real bookings instead; average rating is
+                    gone because no review is ever collected. */}
                 {[
-                  { label: 'Total Sessions', value: '12', sub: 'since joining', color: 'text-[var(--primary)]' },
-                  { label: 'Avg Rating', value: '4.8★', sub: 'across all sessions', color: 'text-amber-500' },
-                  { label: 'Hours of Care', value: '9h 40m', sub: 'invested in you', color: 'text-emerald-600' },
-                  { label: 'Therapists Met', value: '3', sub: 'unique professionals', color: 'text-indigo-600' },
+                  { label: 'Total Sessions', value: String(myBookings.length), sub: 'booked in total', color: 'text-[var(--primary)]' },
+                  { label: 'Completed', value: String(completedSessions.length), sub: 'sessions attended', color: 'text-emerald-600' },
+                  {
+                    label: 'Hours of Care',
+                    value: totalMinutes >= 60
+                      ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
+                      : `${totalMinutes}m`,
+                    sub: 'invested in you', color: 'text-amber-600',
+                  },
+                  { label: 'Professionals', value: String(uniqueProfessionals), sub: 'you have worked with', color: 'text-indigo-600' },
                 ].map((s, i) => (
                   <div key={i} className="card p-4 text-center">
                     <p className={`text-xl font-bold font-display ${s.color}`}>{s.value}</p>
