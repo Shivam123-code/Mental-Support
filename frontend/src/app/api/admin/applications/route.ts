@@ -14,15 +14,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'PENDING';
     const type = searchParams.get('type'); // 'professional' | 'organization' | null (all)
+    const limit = Math.min(Math.max(Number(searchParams.get('limit') || '200'), 1), 500);
 
     const [professionalApps, orgApps] = await Promise.all([
+      // Both were unbounded. An application queue only grows, and the default
+      // view is every status, so this returned the entire history in one
+      // response once the platform had any age to it.
       type === 'organization' ? [] : prisma.professionalApplication.findMany({
         where: status === 'ALL' ? {} : { status: status as any },
         orderBy: { createdAt: 'desc' },
+        take: limit,
       }),
       type === 'professional' ? [] : prisma.organizationApplication.findMany({
         where: status === 'ALL' ? {} : { status: status as any },
         orderBy: { createdAt: 'desc' },
+        take: limit,
       }),
     ]);
 

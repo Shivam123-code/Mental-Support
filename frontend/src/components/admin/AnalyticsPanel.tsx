@@ -727,6 +727,8 @@ const PANELS = [
 export default function AnalyticsPanel() {
   const [activePanel, setActivePanel] = useState<"USER" | "PROFESSIONAL" | "VENDOR" | "ENTERPRISE">("USER");
   const [panelUsers, setPanelUsers] = useState<any[]>([]);
+  /** How many exist in total, so a truncated page can say so. */
+  const [panelTotal, setPanelTotal] = useState(0);
   const [panelLoading, setPanelLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -739,7 +741,8 @@ export default function AnalyticsPanel() {
     setSelectedUserId(null);
     try {
       const data = await authFetch(`/api/admin/panel-users?panel=${panel}&search=${encodeURIComponent(q)}`);
-      if (data.success) setPanelUsers(data.data || []);
+      // The route now returns { items, total, limit } so truncation is visible.
+      if (data.success) { setPanelUsers(data.data.items || []); setPanelTotal(data.data.total ?? 0); }
     } catch { /* silently ignore */ } finally { setPanelLoading(false); }
   }, [activePanel, search]);
 
@@ -766,7 +769,7 @@ export default function AnalyticsPanel() {
     setTimeout(() => {
       setPanelLoading(true);
       authFetch(`/api/admin/panel-users?panel=${key}&search=`).then(data => {
-        if (data.success) setPanelUsers(data.data || []);
+        if (data.success) { setPanelUsers(data.data.items || []); setPanelTotal(data.data.total ?? 0); }
       }).finally(() => setPanelLoading(false));
     }, 0);
   };
@@ -858,8 +861,12 @@ export default function AnalyticsPanel() {
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               {panelCfg.label}
             </span>
+            {/* Says when the page is only part of the picture — the badge used
+                to read "100" whether there were 100 accounts or 10,000. */}
             {!panelLoading && panelUsers.length > 0 && (
-              <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{panelUsers.length}</span>
+              <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                {panelTotal > panelUsers.length ? `${panelUsers.length} of ${panelTotal}` : panelUsers.length}
+              </span>
             )}
           </div>
           <span className="text-[10px] text-slate-400">Click a row to expand analytics</span>

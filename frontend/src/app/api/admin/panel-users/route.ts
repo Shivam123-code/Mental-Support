@@ -15,6 +15,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const panel = searchParams.get('panel') ?? 'USER';
     const search = searchParams.get('search') ?? '';
+    // Was a hardcoded take: 100 with no total, so an admin looking at a
+    // thousand accounts saw the first hundred and was told nothing about the
+    // rest — silent truncation reads as "this is everyone".
+    const limit = Math.min(Math.max(Number(searchParams.get('limit') || '100'), 1), 500);
 
     const nameFilter = search
       ? {
@@ -28,10 +32,11 @@ export async function GET(request: NextRequest) {
 
     // ── USER panel ───────────────────────────────────────────────────────────
     if (panel === 'USER') {
+      const total = await prisma.user.count({ where: { role: 'USER', ...nameFilter } });
       const users = await prisma.user.findMany({
         where: { role: 'USER', ...nameFilter },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: limit,
         select: {
           id: true,
           firstName: true,
@@ -52,8 +57,8 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return successResponse(
-        users.map((u) => ({
+      return successResponse({
+        items: users.map((u) => ({
           id: u.id,
           name: `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim(),
           email: u.email,
@@ -68,16 +73,20 @@ export async function GET(request: NextRequest) {
             sosAlerts: u._count.emergencyAlerts,
           },
         })),
+        total,
+        limit,
+      },
         'Users loaded',
       );
     }
 
     // ── PROFESSIONAL panel ────────────────────────────────────────────────────
     if (panel === 'PROFESSIONAL') {
+      const total = await prisma.user.count({ where: { role: 'PROFESSIONAL', ...nameFilter } });
       const users = await prisma.user.findMany({
         where: { role: 'PROFESSIONAL', ...nameFilter },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: limit,
         select: {
           id: true,
           firstName: true,
@@ -110,8 +119,8 @@ export async function GET(request: NextRequest) {
       });
       const profileMap = Object.fromEntries(profiles.map((p) => [p.userId, p]));
 
-      return successResponse(
-        users.map((u) => {
+      return successResponse({
+        items: users.map((u) => {
           const pro = profileMap[u.id];
           return {
             id: u.id,
@@ -129,16 +138,20 @@ export async function GET(request: NextRequest) {
             },
           };
         }),
+        total,
+        limit,
+      },
         'Professionals loaded',
       );
     }
 
     // ── VENDOR panel ──────────────────────────────────────────────────────────
     if (panel === 'VENDOR') {
+      const total = await prisma.user.count({ where: { role: 'VENDOR', ...nameFilter } });
       const users = await prisma.user.findMany({
         where: { role: 'VENDOR', ...nameFilter },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: limit,
         select: {
           id: true,
           firstName: true,
@@ -164,8 +177,8 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return successResponse(
-        users.map((u) => ({
+      return successResponse({
+        items: users.map((u) => ({
           id: u.id,
           name: `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim(),
           email: u.email,
@@ -179,6 +192,9 @@ export async function GET(request: NextRequest) {
             isAvailable: u.vendorProfile?.isAvailable ?? false,
           },
         })),
+        total,
+        limit,
+      },
         'Vendors loaded',
       );
     }
@@ -194,10 +210,14 @@ export async function GET(request: NextRequest) {
           }
         : {};
 
+      const total = await prisma.organizationApplication.count({
+        where: { status: 'APPROVED', ...orgFilter },
+      });
+
       const orgs = await prisma.organizationApplication.findMany({
         where: { status: 'APPROVED', ...orgFilter },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: limit,
         select: {
           id: true,
           orgName: true,
@@ -213,8 +233,8 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      return successResponse(
-        orgs.map((o) => ({
+      return successResponse({
+        items: orgs.map((o) => ({
           id: o.id,
           name: o.orgName,
           email: o.email,
@@ -228,6 +248,9 @@ export async function GET(request: NextRequest) {
             phone: o.contactPhone,
           },
         })),
+        total,
+        limit,
+      },
         'Enterprises loaded',
       );
     }

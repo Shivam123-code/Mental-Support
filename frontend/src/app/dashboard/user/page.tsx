@@ -60,6 +60,58 @@ function DashboardContent() {
     })();
   }, []);
 
+  // ── Library and circles, from the database ───────────────────────────────────
+  // Both tabs listed invented handouts and circles with invented member counts.
+  // These are what professionals have actually published.
+  const [library, setLibrary] = useState<any[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(true);
+  const [circles, setCircles] = useState<any[]>([]);
+  const [circlesLoading, setCirclesLoading] = useState(true);
+  const [circleBusy, setCircleBusy] = useState<string | null>(null);
+
+  const authHeaders = useCallback(() => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    return t ? { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` } : null;
+  }, []);
+
+  const loadCircles = useCallback(async () => {
+    const h = authHeaders();
+    if (!h) { setCirclesLoading(false); return; }
+    try {
+      const data = await (await fetch('/api/circles', { headers: h })).json();
+      if (data.success) setCircles(data.data.items || []);
+    } catch { /* empty state covers it */ }
+    finally { setCirclesLoading(false); }
+  }, [authHeaders]);
+
+  useEffect(() => {
+    (async () => {
+      const h = authHeaders();
+      if (!h) { setLibraryLoading(false); return; }
+      try {
+        const data = await (await fetch('/api/resources?limit=50', { headers: h })).json();
+        if (data.success) setLibrary(data.data.items || []);
+      } catch { /* empty state covers it */ }
+      finally { setLibraryLoading(false); }
+    })();
+    loadCircles();
+  }, [authHeaders, loadCircles]);
+
+  /** Join or leave, then reload so the count shown is the server's, not a guess. */
+  const toggleCircle = async (circle: any) => {
+    const h = authHeaders();
+    if (!h || circleBusy) return;
+    setCircleBusy(circle.id);
+    try {
+      await fetch(`/api/circles/${circle.id}/join`, {
+        method: circle.hasJoined ? 'DELETE' : 'POST', headers: h,
+      });
+      await loadCircles();
+    } finally {
+      setCircleBusy(null);
+    }
+  };
+
   const now = Date.now();
   const upcomingSessions = myBookings.filter(
     b => ['PENDING', 'CONFIRMED'].includes(b.status) && new Date(b.scheduledAt).getTime() >= now
@@ -1458,25 +1510,41 @@ function DashboardContent() {
                 
                 {/* Active Circles list */}
                 <div className="card md:col-span-2 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider border-b border-[var(--outline-variant)]/20 pb-3">Your Subscribed Support Circles</h3>
-                  
+                  <h3 className="text-xs font-bold uppercase tracking-wider border-b border-[var(--outline-variant)]/20 pb-3">Support Circles</h3>
+
                   <div className="space-y-4">
-                    {[
-                      { name: "Anxiety Support Circle", members: "482 active members", posts: "12 new discussions today", icon: Users, color: "bg-rose-50 text-rose-700" },
-                      { name: "Burnout Recovery Alliance", members: "120 active members", posts: "5 new posts today", icon: Target, color: "bg-emerald-50 text-emerald-700" },
-                      { name: "Daily Gratitude Community", members: "840 active members", posts: "42 entries logged today", icon: Award, color: "bg-amber-50 text-amber-700" }
-                    ].map((circle, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-4 bg-[var(--surface-container-low)] border-hairline rounded-2xl">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl ${circle.color} flex items-center justify-center flex-shrink-0`}>
-                            <circle.icon size={20} />
+                    {circlesLoading && <p className="text-xs text-[var(--on-surface-variant)]">Loading circles…</p>}
+                    {!circlesLoading && circles.length === 0 && (
+                      <p className="text-xs text-[var(--on-surface-variant)]">
+                        No circles are running yet. They appear here when a professional opens one.
+                      </p>
+                    )}
+                    {circles.map((circle) => (
+                      <div key={circle.id} className="flex justify-between items-center gap-3 p-4 bg-[var(--surface-container-low)] border-hairline rounded-2xl">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                            <Users size={20} />
                           </div>
-                          <div>
-                            <h4 className="text-xs font-bold">{circle.name}</h4>
-                            <p className="text-[10px] text-[var(--on-surface-variant)]">{circle.members} &bull; {circle.posts}</p>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold truncate">{circle.title}</h4>
+                            {/* Real membership against real capacity, not an
+                                invented "482 active members". */}
+                            <p className="text-[10px] text-[var(--on-surface-variant)]">
+                              {circle.joined}/{circle.capacity} joined &bull; {circle.scheduleLabel || (circle.scheduledAt ? new Date(circle.scheduledAt).toLocaleString() : 'time to be confirmed')}
+                            </p>
                           </div>
                         </div>
-                        <button className="px-3 py-1.5 bg-white border border-[var(--outline-variant)]/60 hover:border-[var(--primary)] rounded-lg text-[10px] font-bold transition-all">Enter Circle</button>
+                        <button
+                          onClick={() => toggleCircle(circle)}
+                          disabled={circleBusy === circle.id || (circle.isFull && !circle.hasJoined)}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all shrink-0 disabled:opacity-40 ${
+                            circle.hasJoined
+                              ? 'bg-white border border-[var(--outline-variant)]/60 hover:border-rose-400 text-rose-600'
+                              : 'bg-[var(--primary)] text-white'
+                          }`}
+                        >
+                          {circleBusy === circle.id ? '…' : circle.hasJoined ? 'Leave' : circle.isFull ? 'Full' : 'Join'}
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -1556,25 +1624,36 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)]">Personalized recommendations based on your assessments and checked-in mood logs.</p>
               </div>
 
+              {libraryLoading && <p className="text-xs text-[var(--on-surface-variant)]">Loading the library…</p>}
+              {!libraryLoading && library.length === 0 && (
+                <p className="text-xs text-[var(--on-surface-variant)]">
+                  Nothing published yet. Resources appear here as professionals add them.
+                </p>
+              )}
               <div className="grid sm:grid-cols-3 gap-6">
-                {[
-                  { title: "Building Mindful Boundaries", desc: "Learn to separate personal time from professional stress.", time: "8 mins audio", tag: "Burnout" },
-                  { title: "Overcoming Anxiety Loops", desc: "CBT methods to control repetitive thoughts.", time: "5 mins read", tag: "Anxiety" },
-                  { title: "Calming Sleep Induction", desc: "Deep relaxation audio for circadian synchronization.", time: "15 mins audio", tag: "Sleep" },
-                  { title: "Managing Workplace Overwhelm", desc: "Short video workbook for instant calm.", time: "10 mins video", tag: "Work" },
-                  { title: "Developing Emotional IQ", desc: "A comprehensive handbook for empathy coaching.", time: "12 mins read", tag: "EQ" },
-                  { title: "Restorative Breathing", desc: "Guided breathing training session.", time: "6 mins audio", tag: "Calm" }
-                ].map((item, idx) => (
-                  <div key={idx} className="card flex flex-col justify-between space-y-4">
+                {library.map((item) => (
+                  <div key={item.id} className="card flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-[var(--primary-fixed)] px-2.5 py-0.5 rounded-full">{item.tag}</span>
-                        <span className="text-[9px] text-[var(--outline)]">{item.time}</span>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-[var(--primary-fixed)] px-2.5 py-0.5 rounded-full">{item.category}</span>
+                        <span className="text-[9px] text-[var(--outline)] shrink-0">{item.type}</span>
                       </div>
                       <h3 className="text-xs font-bold">{item.title}</h3>
-                      <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed">{item.desc}</p>
+                      {item.description && (
+                        <p className="text-[10px] text-[var(--on-surface-variant)] leading-relaxed">{item.description}</p>
+                      )}
+                      <p className="text-[9px] text-[var(--outline)]">By {item.author}</p>
                     </div>
-                    <button className="w-full text-center py-2 border border-[var(--outline-variant)]/60 hover:border-[var(--primary)] rounded-lg text-[10px] font-bold transition-all">Open Resource</button>
+                    {/* Only offer to open it when there is genuinely something
+                        to open — a dead button is worse than none. */}
+                    {item.url ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer"
+                        className="w-full text-center py-2 border border-[var(--outline-variant)]/60 hover:border-[var(--primary)] rounded-lg text-[10px] font-bold transition-all">
+                        Open Resource
+                      </a>
+                    ) : (
+                      <span className="w-full text-center py-2 text-[10px] text-[var(--outline)]">No file attached</span>
+                    )}
                   </div>
                 ))}
               </div>
