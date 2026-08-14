@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api-client';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -22,6 +22,28 @@ import AutoMatchButton from '@/components/AutoMatchButton';
 import Chat from '@/components/Chat';
 import VideoCall from '@/components/VideoCall';
 import ReviewSession from '@/components/ReviewSession';
+import { getProgramConfig } from '@/data/programs';
+
+/** The ProgramType enum, in the order the catalogue presents them. */
+const PROGRAM_TYPES = [
+  'BURNOUT_RECOVERY', 'ANXIETY_RESET', 'SLEEP_RECOVERY', 'EMOTIONAL_HEALING',
+  'CONFIDENCE_REBUILD', 'PARENTING_CONFIDENCE', 'FOCUS_IMPROVEMENT', 'RELATIONSHIP_HEALING',
+] as const;
+
+/** BURNOUT_RECOVERY -> burnout-recovery, which is how the catalogue keys them. */
+const programSlug = (type: string) => type.toLowerCase().replace(/_/g, '-');
+
+const MOOD_EMOJI: Record<string, string> = {
+  happy: '😊', calm: '😌', neutral: '😐', anxious: '😰',
+  stressed: '😣', sad: '😢', angry: '😠', tired: '😴',
+};
+
+const PROGRAM_COLORS = [
+  'from-[var(--primary-fixed)]/20 to-[var(--secondary-fixed)]/20',
+  'from-blue-50 to-indigo-50',
+  'from-purple-50 to-rose-50',
+  'from-amber-50 to-orange-50',
+];
 
 export default function UserDashboard() {
   return (
@@ -60,6 +82,91 @@ function DashboardContent() {
       finally { setBookingsLoading(false); }
     })();
   }, []);
+
+  // ── Programme enrolments, from the database ──────────────────────────────────
+  // The Programs tab listed four courses with a fixed 68% and a "7 Day Streak"
+  // on an account that had never enrolled in anything, and both buttons were
+  // dead. /api/programs already existed and nothing called it.
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [programsLoading, setProgramsLoading] = useState(true);
+  const [programBusy, setProgramBusy] = useState<string | null>(null);
+
+  const loadPrograms = useCallback(async () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) { setProgramsLoading(false); return; }
+    try {
+      const data = await (await fetch('/api/programs', {
+        headers: { Authorization: `Bearer ${t}` },
+      })).json();
+      if (data.success) setEnrollments(data.data || []);
+    } catch { /* the empty state covers it */ }
+    finally { setProgramsLoading(false); }
+  }, []);
+
+  useEffect(() => { loadPrograms(); }, [loadPrograms]);
+
+  const enrollInProgram = async (programType: string) => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t || programBusy) return;
+    setProgramBusy(programType);
+    try {
+      await fetch('/api/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ programType }),
+      });
+      // Reload rather than guess: the server owns the enrolment row.
+      await loadPrograms();
+    } finally {
+      setProgramBusy(null);
+    }
+  };
+
+  // ── Gratitude wall ───────────────────────────────────────────────────────────
+  // The Impact tab's input was uncontrolled and its button had no handler, so
+  // everything typed was discarded. These post to the real wall, which waits on
+  // the admin moderation queue that already existed.
+  const [myGratitude, setMyGratitude] = useState<any[]>([]);
+  const [gratitudeDraft, setGratitudeDraft] = useState('');
+  const [gratitudeAnon, setGratitudeAnon] = useState(false);
+  const [gratitudePosting, setGratitudePosting] = useState(false);
+  const [gratitudeMessage, setGratitudeMessage] = useState('');
+
+  const loadGratitude = useCallback(async () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t) return;
+    try {
+      const data = await (await fetch('/api/gratitude?mine=1', {
+        headers: { Authorization: `Bearer ${t}` },
+      })).json();
+      if (data.success) setMyGratitude(data.data.items || []);
+    } catch { /* the empty state covers it */ }
+  }, []);
+
+  useEffect(() => { loadGratitude(); }, [loadGratitude]);
+
+  const postGratitude = async () => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t || gratitudePosting) return;
+    setGratitudePosting(true);
+    setGratitudeMessage('');
+    try {
+      const res = await fetch('/api/gratitude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ content: gratitudeDraft.trim(), isAnonymous: gratitudeAnon }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not post');
+      setGratitudeDraft('');
+      setGratitudeMessage(data.message ?? 'Posted');
+      await loadGratitude();
+    } catch (e: any) {
+      setGratitudeMessage(e.message);
+    } finally {
+      setGratitudePosting(false);
+    }
+  };
 
   // ── Sessions still waiting on a review ───────────────────────────────────────
   // Which completed sessions the caller has not rated. Held as a set of booking
@@ -204,6 +311,225 @@ function DashboardContent() {
   const [assessmentHistory, setAssessmentHistory] = useState<any[]>([]);
   const [latestByType, setLatestByType] = useState<Record<string, any>>({});
   const [assessmentLoading, setAssessmentLoading] = useState(false);
+
+  // ─── DERIVED FROM REAL DATA ───────────────────────────────────────────────
+  // Everything below replaces a fixture. The rule throughout: if nothing in the
+  // system computes a number, it does not get shown. A fabricated "wellbeing
+  // score up 36 points" on a mental health dashboard is not decoration — it is
+  // a claim about someone's recovery.
+
+  /** Distinct local days on which anything was logged, newest first. */
+  const checkInDays = useMemo(() => {
+    const days = new Set<string>();
+    for (const m of moodLogs) days.add(new Date(m.loggedAt ?? m.createdAt).toDateString());
+    for (const j of journalEntries) days.add(new Date(j.createdAt).toDateString());
+    return [...days].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [moodLogs, journalEntries]);
+
+  /**
+   * Consecutive days up to today (or yesterday, so the streak does not appear
+   * broken before you have checked in this morning).
+   */
+  const checkInStreak = useMemo(() => {
+    if (!checkInDays.length) return 0;
+    const dayMs = 86_400_000;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const newest = new Date(checkInDays[0]); newest.setHours(0, 0, 0, 0);
+    const gap = Math.round((today.getTime() - newest.getTime()) / dayMs);
+    if (gap > 1) return 0; // the streak has already lapsed
+
+    let streak = 1;
+    for (let i = 1; i < checkInDays.length; i++) {
+      const prev = new Date(checkInDays[i - 1]); prev.setHours(0, 0, 0, 0);
+      const cur = new Date(checkInDays[i]); cur.setHours(0, 0, 0, 0);
+      if (Math.round((prev.getTime() - cur.getTime()) / dayMs) !== 1) break;
+      streak++;
+    }
+    return streak;
+  }, [checkInDays]);
+
+  /** The last 28 days as booleans, for the check-in calendar. Oldest first. */
+  const checkInCalendar = useMemo(() => {
+    const logged = new Set(checkInDays);
+    return Array.from({ length: 28 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (27 - i));
+      return logged.has(d.toDateString());
+    });
+  }, [checkInDays]);
+
+  /**
+   * Score history per assessment type, oldest first — the real version of the
+   * hardcoded PHQ-9 / GAD-7 / PSS trend lines.
+   */
+  const assessmentTrends = useMemo(() => {
+    const byType = new Map<string, any[]>();
+    for (const r of [...assessmentHistory].reverse()) {
+      if (!byType.has(r.assessmentType)) byType.set(r.assessmentType, []);
+      byType.get(r.assessmentType)!.push(r);
+    }
+    return [...byType.entries()].map(([type, rows]) => {
+      const trend = rows.map(r => r.score);
+      const first = trend[0];
+      const current = trend[trend.length - 1];
+      return {
+        type,
+        label: ASSESSMENTS[type as AssessmentKey]?.title ?? type.replace(/_/g, ' '),
+        trend,
+        current,
+        maxScore: rows[rows.length - 1]?.maxScore ?? Math.max(...trend, 1),
+        severity: rows[rows.length - 1]?.severity ?? null,
+        // Only claim a direction once there is more than one data point to
+        // compare, and lower is better on every instrument here.
+        direction: trend.length < 2 ? null : current < first ? 'improving' : current > first ? 'worsening' : 'steady',
+      };
+    });
+  }, [assessmentHistory]);
+
+  /** Milestones with a real completion test rather than an invented date. */
+  const milestones = useMemo(() => ([
+    { label: 'First assessment completed', done: assessmentHistory.length > 0, at: assessmentHistory[assessmentHistory.length - 1]?.completedAt },
+    { label: '5 sessions with a professional', done: completedSessions.length >= 5, at: completedSessions[4]?.completedAt, progress: `${Math.min(completedSessions.length, 5)}/5` },
+    { label: '10 journal entries written', done: journalEntries.length >= 10, progress: `${Math.min(journalEntries.length, 10)}/10` },
+    { label: '14-day check-in streak', done: checkInStreak >= 14, progress: `${Math.min(checkInStreak, 14)}/14` },
+    { label: 'Complete a full wellbeing programme', done: enrollments.some(e => e.status === 'COMPLETED') },
+  ]), [assessmentHistory, completedSessions, journalEntries, checkInStreak, enrollments]);
+
+  /**
+   * The care journey, built from what has actually happened. The fixture named
+   * an invented therapist ("Dr. Kavita Rao") and claimed a booked Friday
+   * session on accounts with no bookings at all.
+   */
+  const careJourney = useMemo(() => {
+    const steps: { title: string; date: string; desc: string; state: 'done' | 'active' | 'pending' }[] = [];
+
+    const latestAssessment = assessmentHistory[0];
+    steps.push(latestAssessment
+      ? {
+          title: `${ASSESSMENTS[latestAssessment.assessmentType as AssessmentKey]?.title ?? 'Assessment'} completed`,
+          date: new Date(latestAssessment.completedAt).toLocaleDateString(),
+          desc: `Scored ${latestAssessment.score}${latestAssessment.maxScore ? ` of ${latestAssessment.maxScore}` : ''}${latestAssessment.severity ? ` — ${latestAssessment.severity.toLowerCase().replace(/_/g, ' ')}` : ''}.`,
+          state: 'done',
+        }
+      : { title: 'Take your first assessment', date: 'Not started', desc: 'It takes a few minutes and shapes everything we suggest next.', state: 'pending' });
+
+    const activeProgram = enrollments.find(e => e.status === 'ACTIVE');
+    steps.push(activeProgram
+      ? {
+          title: `${activeProgram.programType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())} programme`,
+          date: `Started ${new Date(activeProgram.startedAt).toLocaleDateString()}`,
+          desc: `Week ${activeProgram.currentWeek} · ${Math.round(activeProgram.progressPercent)}% complete.`,
+          state: 'active',
+        }
+      : { title: 'Join a wellbeing programme', date: 'Not enrolled', desc: 'Structured weekly guidance you work through at your own pace.', state: 'pending' });
+
+    const nextSession = upcomingSessions[0];
+    steps.push(nextSession
+      ? {
+          title: `Session with ${nextSession.professional?.name ?? 'your professional'}`,
+          date: new Date(nextSession.scheduledAt).toLocaleString(),
+          desc: `${nextSession.duration}-minute ${nextSession.sessionType} session · ${nextSession.status.toLowerCase()}.`,
+          state: 'active',
+        }
+      : { title: 'Book a session', date: 'None booked', desc: 'One-to-one time with a verified professional.', state: 'pending' });
+
+    const joined = circles.filter((c: any) => c.hasJoined);
+    steps.push(joined.length
+      ? {
+          title: joined.length === 1 ? joined[0].title : `${joined.length} support circles`,
+          date: joined[0].scheduleLabel ?? 'Ongoing',
+          desc: joined.length === 1
+            ? joined[0].description ?? 'A group you have joined.'
+            : `You are a member of ${joined.length} circles.`,
+          state: 'done',
+        }
+      : { title: 'Join a support circle', date: 'Not joined', desc: 'Group support alongside people working through the same thing.', state: 'pending' });
+
+    return steps;
+  }, [assessmentHistory, enrollments, upcomingSessions, circles]);
+
+  /**
+   * The last seven days of mood, oldest first. Days with nothing logged stay
+   * blank rather than being filled in with a cheerful default.
+   */
+  const moodWeek = useMemo(() => {
+    const byDay = new Map<string, any>();
+    for (const m of moodLogs) {
+      const key = new Date(m.loggedAt ?? m.createdAt).toDateString();
+      // moodLogs arrive newest first, so the first hit is the latest that day.
+      if (!byDay.has(key)) byDay.set(key, m);
+    }
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const log = byDay.get(d.toDateString());
+      return {
+        label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()],
+        emoji: log ? MOOD_EMOJI[String(log.mood).toLowerCase()] ?? '🙂' : null,
+        mood: log?.mood ?? null,
+      };
+    });
+  }, [moodLogs]);
+
+  /**
+   * Gratitude notes, pulled back out of the check-in. The check-in writes them
+   * into MoodLog.notes as "… Gratitude: <text>", so that is where they are read
+   * from — there is no separate store and adding one to display four lines
+   * would be building a table to avoid a split.
+   */
+  const gratitudeEntries = useMemo(() =>
+    moodLogs
+      .map(m => {
+        // [\s\S] rather than . with the s flag — the tsconfig target predates it.
+        const match = /Gratitude:\s*([\s\S]+)$/.exec(m.notes ?? '');
+        const text = match?.[1]?.trim();
+        return text ? { at: new Date(m.loggedAt ?? m.createdAt), text } : null;
+      })
+      .filter((g): g is { at: Date; text: string } => !!g)
+      .slice(0, 6),
+    [moodLogs]);
+
+  /**
+   * Nudges worth acting on now, worked out from what is actually outstanding.
+   * The fixture listed five reminders at fixed clock times with two already
+   * ticked off, on an account that had done neither.
+   */
+  const todayNudges = useMemo(() => {
+    const today = new Date().toDateString();
+    const loggedToday = moodLogs.some(m => new Date(m.loggedAt ?? m.createdAt).toDateString() === today);
+    const journalledToday = journalEntries.some(j => new Date(j.createdAt).toDateString() === today);
+    const soon = upcomingSessions.find(
+      b => new Date(b.scheduledAt).getTime() - Date.now() < 24 * 3600_000
+    );
+
+    return [
+      {
+        icon: '🌅', label: 'Log how you are feeling', done: loggedToday,
+        detail: loggedToday ? 'Done today' : 'Takes under a minute', tab: 'Mood Tracker',
+        color: 'bg-amber-50 border-amber-200',
+      },
+      {
+        icon: '📓', label: 'Write a journal entry', done: journalledToday,
+        detail: journalledToday ? 'Done today' : 'Even a line or two helps', tab: 'Journal',
+        color: 'bg-purple-50 border-purple-200',
+      },
+      ...(soon ? [{
+        icon: '💬', label: `Session with ${soon.professional?.name ?? 'your professional'}`, done: false,
+        detail: new Date(soon.scheduledAt).toLocaleString(), tab: 'My Sessions',
+        color: 'bg-blue-50 border-blue-200',
+      }] : []),
+      ...(awaitingReview.size ? [{
+        icon: '⭐', label: `Rate ${awaitingReview.size} finished session${awaitingReview.size === 1 ? '' : 's'}`, done: false,
+        detail: 'Your professional sees this', tab: 'My Sessions',
+        color: 'bg-emerald-50 border-emerald-200',
+      }] : []),
+      ...(assessmentHistory.length === 0 ? [{
+        icon: '📋', label: 'Take your first assessment', done: false,
+        detail: 'It shapes what we suggest next', tab: 'Assessments',
+        color: 'bg-indigo-50 border-indigo-200',
+      }] : []),
+    ];
+  }, [moodLogs, journalEntries, upcomingSessions, awaitingReview, assessmentHistory]);
 
   // Runner state
   const [activeAssessment, setActiveAssessment] = useState<AssessmentKey | null>(null);
@@ -914,18 +1240,16 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)]">A structural care route tailored specifically to your assessment results.</p>
               </div>
 
+              {/* Built from real assessments, enrolments, bookings and circles.
+                  The fixture here named an invented therapist and claimed a
+                  booked Friday session on accounts with no bookings at all. */}
               <div className="relative pl-6 border-l-2 border-[var(--primary-fixed)] space-y-8">
-                {[
-                  { title: "Complete Anxiety Index", date: "Completed May 20, 2026", desc: "Identified mild workplace anxiety. System recommended Sleep Recovery & Support circles.", done: true },
-                  { title: "Start Burnout Recovery Course", date: "Enrolled May 22, 2026", desc: "Ongoing course to rebuild work boundaries. Currently on Module 4.", active: true },
-                  { title: "Weekly 1-on-1 Therapist Support", date: "Booked for Friday", desc: "Scheduled session with verified clinical therapist Dr. Kavita Rao.", pending: true },
-                  { title: "Anxiety Recovery Community Circle", date: "Weekly Meetings", desc: "Support group meets every Wednesday evening for anonymous peer encouragement.", pending: true }
-                ].map((item, i) => (
+                {careJourney.map((item, i) => (
                   <div key={i} className="relative space-y-2">
                     <span className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white ${
-                      item.done ? 'bg-[var(--primary)]' : item.active ? 'bg-indigo-500 animate-pulse' : 'bg-gray-300'
+                      item.state === 'done' ? 'bg-[var(--primary)]' : item.state === 'active' ? 'bg-indigo-500 animate-pulse' : 'bg-gray-300'
                     }`}>
-                      {item.done ? '✓' : i + 1}
+                      {item.state === 'done' ? '✓' : i + 1}
                     </span>
                     <div className="space-y-1">
                       <span className="text-[9px] font-mono text-[var(--outline)]">{item.date}</span>
@@ -1261,41 +1585,67 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)]">Structured wellness courses created by clinical psychologists.</p>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
-                {[
-                  { title: "Burnout Recovery", status: "Active", progress: 68, streak: "7 Day Streak", desc: "Learn to recover from chronic occupational stress and rebuild boundaries.", color: "from-[var(--primary-fixed)]/20 to-[var(--secondary-fixed)]/20" },
-                  { title: "Anxiety Reset Program", status: "Recommended", progress: 0, desc: "Step-by-step cognitive behavioral therapy techniques to manage daily anxiety loops.", color: "from-blue-50 to-indigo-50" },
-                  { title: "Sleep Recovery Course", status: "Available", progress: 0, desc: "Restore natural circadian rhythms through behavioral conditioning.", color: "from-purple-50 to-rose-50" },
-                  { title: "Emotional Healing Mastery", status: "Available", progress: 0, desc: "Process grief, emotional trauma, and restore internal safety.", color: "from-amber-50 to-orange-50" }
-                ].map((p, idx) => (
-                  <div key={idx} className={`card bg-gradient-to-br ${p.color} space-y-4 border-none`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-white px-2 py-0.5 rounded-full shadow-sm">{p.status}</span>
-                        <h3 className="text-sm font-bold mt-2">{p.title}</h3>
-                      </div>
-                      {p.streak && <span className="text-[10px] font-bold text-[var(--primary)]">{p.streak}</span>}
-                    </div>
+              {/* Real enrolments, with the catalogue text reused from
+                  src/data/programs.ts rather than restated here. Progress and
+                  week come from the enrolment row; both buttons used to have no
+                  onClick at all. */}
+              {programsLoading ? (
+                <p className="text-xs text-[var(--on-surface-variant)] py-6">Loading your programmes…</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {PROGRAM_TYPES.map((type, idx) => {
+                    const config = getProgramConfig(programSlug(type));
+                    const enrolled = enrollments.find(e => e.programType === type && e.status !== 'CANCELLED');
+                    const progress = enrolled ? Math.round(enrolled.progressPercent) : 0;
+                    const status = enrolled
+                      ? enrolled.status === 'COMPLETED' ? 'Completed'
+                      : enrolled.status === 'PAUSED' ? 'Paused' : 'Active'
+                      : 'Available';
 
-                    <p className="text-xs text-[var(--on-surface-variant)]">{p.desc}</p>
+                    return (
+                      <div key={type} className={`card bg-gradient-to-br ${PROGRAM_COLORS[idx % PROGRAM_COLORS.length]} space-y-4 border-none`}>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-[var(--primary)] bg-white px-2 py-0.5 rounded-full shadow-sm">{status}</span>
+                            <h3 className="text-sm font-bold mt-2">{config.name}</h3>
+                          </div>
+                          {enrolled && enrolled.status === 'ACTIVE' && (
+                            <span className="text-[10px] font-bold text-[var(--primary)]">Week {enrolled.currentWeek}</span>
+                          )}
+                        </div>
 
-                    {p.progress > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px]">
-                          <span>Progress</span>
-                          <span className="font-bold">{p.progress}% Complete</span>
-                        </div>
-                        <div className="w-full bg-white h-2 rounded-full overflow-hidden">
-                          <div className="bg-[var(--primary)] h-full" style={{ width: `${p.progress}%` }} />
-                        </div>
-                        <button className="w-full btn-primary !py-2.5 !text-xs mt-1">Continue Learning</button>
+                        <p className="text-xs text-[var(--on-surface-variant)]">{config.promise}</p>
+
+                        {enrolled ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px]">
+                              <span>Progress</span>
+                              <span className="font-bold">{progress}% complete</span>
+                            </div>
+                            <div className="w-full bg-white h-2 rounded-full overflow-hidden">
+                              <div className="bg-[var(--primary)] h-full transition-all" style={{ width: `${progress}%` }} />
+                            </div>
+                            <Link
+                              href={`/programs/${programSlug(type)}`}
+                              className="w-full btn-primary !py-2.5 !text-xs mt-1 flex items-center justify-center"
+                            >
+                              {enrolled.status === 'COMPLETED' ? 'Revisit programme' : 'Continue learning'}
+                            </Link>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => enrollInProgram(type)}
+                            disabled={!!programBusy}
+                            className="w-full btn-secondary bg-white !py-2.5 !text-xs disabled:opacity-50"
+                          >
+                            {programBusy === type ? 'Enrolling…' : 'Enroll in programme'}
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <button className="w-full btn-secondary bg-white !py-2.5 !text-xs">Enroll in Program</button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1696,32 +2046,80 @@ function DashboardContent() {
                   <h2 className="text-lg font-bold">Your Human Wellbeing Impact</h2>
                   <p className="text-xs text-emerald-800/80 max-w-md">KleverKlues™ values community kindness. Your active comments and gratitude logs support others who are healing.</p>
                 </div>
+                {/* The "142 Impact Score" that stood here was the same number
+                    on every account and nothing computed it. Notes posted to
+                    the wall is a real count. */}
                 <div className="p-4 bg-white rounded-2xl border border-emerald-100/50 text-center flex-shrink-0 w-32 shadow-sm">
-                  <p className="text-3xl font-bold font-display text-emerald-700">142</p>
-                  <p className="text-[9px] text-[var(--on-surface-variant)] uppercase font-semibold mt-1">Impact Score</p>
+                  <p className="text-3xl font-bold font-display text-emerald-700">{myGratitude.length}</p>
+                  <p className="text-[9px] text-[var(--on-surface-variant)] uppercase font-semibold mt-1">Notes shared</p>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="card space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider">Log Gratitude Reflection</h3>
-                  <input
-                    type="text"
+                  {/* The input here was uncontrolled and the button had no
+                      onClick, so everything typed was thrown away. */}
+                  <textarea
+                    value={gratitudeDraft}
+                    onChange={e => setGratitudeDraft(e.target.value)}
+                    maxLength={500}
+                    rows={3}
                     placeholder="Today I am grateful for..."
-                    className="w-full px-3 py-2 text-xs border border-[var(--outline-variant)]/60 rounded-lg focus:outline-none focus:border-[var(--primary)]"
+                    className="w-full px-3 py-2 text-xs border border-[var(--outline-variant)]/60 rounded-lg focus:outline-none focus:border-[var(--primary)] resize-none"
                   />
-                  <button className="btn-primary !py-2 !text-xs w-full">Lock Reflection in Wall</button>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={gratitudeAnon}
+                      onChange={e => setGratitudeAnon(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-[var(--primary)]"
+                    />
+                    <span className="text-[10px] text-[var(--on-surface-variant)]">Post without my name</span>
+                  </label>
+                  {gratitudeMessage && (
+                    <p className="text-[10px] font-semibold text-[var(--primary)]">{gratitudeMessage}</p>
+                  )}
+                  <button
+                    onClick={postGratitude}
+                    disabled={gratitudeDraft.trim().length < 4 || gratitudePosting}
+                    className="btn-primary !py-2 !text-xs w-full disabled:opacity-40"
+                  >
+                    {gratitudePosting ? 'Posting…' : 'Share on the wall'}
+                  </button>
+                  <p className="text-[10px] text-[var(--on-surface-variant)]">
+                    Notes are checked by our team before they appear publicly.
+                  </p>
                 </div>
 
                 <div className="card space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider">Your Kindness Footprint</h3>
+                  {/* Real counts. "Encouraged 3 people this week" was fixed text
+                      and nothing tracked encouragement at all, so it is gone. */}
                   <div className="space-y-3.5 text-xs text-[var(--on-surface-variant)]">
-                    <p className="flex justify-between"><span>Encouraged users this week</span><strong>3 people 💚</strong></p>
-                    <p className="flex justify-between"><span>Active peer groups supported</span><strong>2 groups</strong></p>
-                    <p className="flex justify-between"><span>Streak of daily check-ins</span><strong>14 days</strong></p>
+                    <p className="flex justify-between"><span>Gratitude notes shared</span><strong>{myGratitude.length}</strong></p>
+                    <p className="flex justify-between"><span>Support circles joined</span><strong>{circles.filter((c: any) => c.hasJoined).length}</strong></p>
+                    <p className="flex justify-between"><span>Check-in streak</span><strong>{checkInStreak} day{checkInStreak === 1 ? '' : 's'}</strong></p>
+                    <p className="flex justify-between"><span>Sessions completed</span><strong>{completedSessions.length}</strong></p>
                   </div>
                 </div>
               </div>
+
+              {myGratitude.length > 0 && (
+                <div className="card space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider">Your Notes</h3>
+                  {myGratitude.map((g: any) => (
+                    <div key={g.id} className="p-3 bg-emerald-50/40 rounded-xl border border-emerald-100">
+                      <p className="text-xs text-[var(--on-surface)]">{g.content}</p>
+                      <p className="text-[9px] text-[var(--on-surface-variant)] mt-1">
+                        {new Date(g.createdAt).toLocaleDateString()}
+                        {g.isAnonymous && ' · anonymous'}
+                        {g.pending && ' · waiting to be reviewed'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1998,92 +2396,112 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Your wellbeing growth journey, streaks, and milestone insights.</p>
               </div>
 
-              {/* Streak banner */}
-              <div className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="text-white">
-                  <div className="flex items-center gap-2 mb-1"><Zap size={18} /><span className="font-bold text-lg">14-Day Growth Streak! 🔥</span></div>
-                  <p className="text-white/80 text-xs">You've checked in every day this fortnight. Keep it going!</p>
+              {/* Streak banner — counted from real mood logs and journal
+                  entries. Every account used to be told it had a 14-day
+                  streak, including one that had never logged anything. */}
+              <div className={`rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                checkInStreak > 0 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-[var(--surface-container)] border border-[var(--outline-variant)]/30'
+              }`}>
+                <div className={checkInStreak > 0 ? 'text-white' : 'text-[var(--on-surface)]'}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap size={18} />
+                    <span className="font-bold text-lg">
+                      {checkInStreak > 0 ? `${checkInStreak}-day check-in streak 🔥` : 'No streak yet'}
+                    </span>
+                  </div>
+                  <p className={`text-xs ${checkInStreak > 0 ? 'text-white/80' : 'text-[var(--on-surface-variant)]'}`}>
+                    {checkInStreak > 0
+                      ? 'Logging a mood or writing a journal entry keeps it going.'
+                      : 'Log a mood or write a journal entry to start one.'}
+                  </p>
                 </div>
-                <div className="text-right text-white">
-                  <p className="font-bold text-3xl font-display">14</p>
-                  <p className="text-[10px] text-white/70 uppercase tracking-wide">Days active</p>
+                <div className={`text-right ${checkInStreak > 0 ? 'text-white' : 'text-[var(--on-surface)]'}`}>
+                  <p className="font-bold text-3xl font-display">{checkInStreak}</p>
+                  <p className={`text-[10px] uppercase tracking-wide ${checkInStreak > 0 ? 'text-white/70' : 'text-[var(--on-surface-variant)]'}`}>Days in a row</p>
                 </div>
               </div>
 
-              {/* 4-week streak calendar */}
+              {/* 4-week check-in calendar, from the same real days */}
               <div className="card p-5 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">28-Day Check-in Calendar</h3>
                 <div className="grid grid-cols-7 gap-1.5">
                   {['M','T','W','T','F','S','S'].map((d, i) => <p key={i} className="text-[9px] text-center text-[var(--on-surface-variant)]/60 font-bold">{d}</p>)}
-                  {[true,true,true,true,true,false,false, true,true,true,true,true,false,false, true,true,true,true,true,true,false, true,true,true,true,true,true,true].map((done, i) => (
+                  {checkInCalendar.map((done, i) => (
                     <div key={i} className={`aspect-square rounded-md flex items-center justify-center text-[8px] font-bold ${ done ? 'bg-[var(--primary)] text-white' : 'bg-[var(--surface-container)] text-[var(--on-surface-variant)]/40' }`}>
                       {done ? '✓' : ''}
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-[var(--on-surface-variant)]">20 of 28 days completed · Longest streak: 14 days</p>
+                <p className="text-[10px] text-[var(--on-surface-variant)]">
+                  {checkInCalendar.filter(Boolean).length} of 28 days checked in
+                </p>
               </div>
 
-              {/* Assessment score trends */}
+              {/* Assessment score trends — real results, not PHQ-9 numbers this
+                  platform does not administer */}
               <div className="card p-5 space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Assessment Score Trends</h3>
-                {[
-                  { label: 'PHQ-9 (Depression)', trend: [14, 12, 10, 9, 7, 6], color: 'bg-[var(--primary)]', current: 6, max: 27, status: 'Improving' },
-                  { label: 'GAD-7 (Anxiety)', trend: [16, 14, 13, 11, 9, 8], color: 'bg-amber-400', current: 8, max: 21, status: 'Improving' },
-                  { label: 'PSS (Stress)', trend: [24, 22, 20, 18, 16, 15], color: 'bg-indigo-400', current: 15, max: 40, status: 'Improving' },
-                ].map((a, i) => (
-                  <div key={i} className="space-y-1.5">
+                {assessmentTrends.length === 0 ? (
+                  <div className="py-4 space-y-2">
+                    <p className="text-xs text-[var(--on-surface-variant)]">
+                      No assessments completed yet. Your scores appear here once you take one.
+                    </p>
+                    <button onClick={() => setActiveTab('Assessments')} className="text-xs font-bold text-[var(--primary)] hover:underline">
+                      Take an assessment →
+                    </button>
+                  </div>
+                ) : assessmentTrends.map((a) => (
+                  <div key={a.type} className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="font-semibold text-[var(--on-surface)]">{a.label}</span>
-                      <span className="text-emerald-600 font-bold text-[10px]">↓ {a.status}</span>
+                      {/* A direction needs two points to be a direction. */}
+                      {a.direction && (
+                        <span className={`font-bold text-[10px] ${
+                          a.direction === 'improving' ? 'text-emerald-600'
+                          : a.direction === 'worsening' ? 'text-rose-600' : 'text-[var(--on-surface-variant)]'
+                        }`}>
+                          {a.direction === 'improving' ? '↓ Improving' : a.direction === 'worsening' ? '↑ Worsening' : '→ Steady'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-end gap-1 h-8">
-                      {a.trend.map((v, j) => (
-                        <div key={j} className="flex-1 rounded-sm" style={{ height: `${(v / a.max) * 100}%`, background: j === a.trend.length - 1 ? 'var(--primary)' : 'var(--surface-container-high)' }} />
+                      {a.trend.map((v: number, j: number) => (
+                        <div key={j} className="flex-1 rounded-sm" style={{ height: `${Math.max((v / (a.maxScore || 1)) * 100, 4)}%`, background: j === a.trend.length - 1 ? 'var(--primary)' : 'var(--surface-container-high)' }} />
                       ))}
                     </div>
                     <div className="flex justify-between text-[9px] text-[var(--on-surface-variant)]">
-                      <span>6 sessions ago</span><span className="font-bold text-[var(--primary)]">Now: {a.current}/{a.max}</span>
+                      <span>{a.trend.length === 1 ? 'First result' : `${a.trend.length} results`}</span>
+                      <span className="font-bold text-[var(--primary)]">Now: {a.current}/{a.maxScore}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Growth milestones */}
+              {/* Growth milestones — each has a real test behind it rather than
+                  an invented achievement date */}
               <div className="card p-5 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Growth Milestones</h3>
-                {[
-                  { icon: '🏆', label: 'First Assessment Completed', date: 'Jun 10', done: true },
-                  { icon: '💬', label: '5 Sessions with a Professional', date: 'Jul 3', done: true },
-                  { icon: '📓', label: '10 Journal Entries Written', date: 'Jul 18', done: true },
-                  { icon: '🔥', label: '14-Day Check-in Streak', date: 'Jul 29', done: true },
-                  { icon: '🌟', label: 'Complete a Full Wellness Program', date: '—', done: false },
-                  { icon: '🧘', label: '30-Day Mindfulness Challenge', date: '—', done: false },
-                ].map((m, i) => (
+                {milestones.map((m, i) => (
                   <div key={i} className={`flex items-center gap-3 p-3 rounded-xl ${m.done ? 'bg-emerald-50/60 border border-emerald-200/50' : 'bg-[var(--surface-container)] border border-[var(--outline-variant)]/20'}`}>
-                    <span className="text-lg">{m.icon}</span>
+                    <span className="text-lg">{['🏆','💬','📓','🔥','🌟'][i] ?? '⭐'}</span>
                     <div className="flex-1">
                       <p className={`text-xs font-semibold ${m.done ? 'text-[var(--on-surface)]' : 'text-[var(--on-surface-variant)]'}`}>{m.label}</p>
-                      <p className="text-[9px] text-[var(--on-surface-variant)]">{m.done ? `Achieved ${m.date}` : 'In progress'}</p>
+                      <p className="text-[9px] text-[var(--on-surface-variant)]">
+                        {m.done
+                          ? m.at ? `Achieved ${new Date(m.at).toLocaleDateString()}` : 'Achieved'
+                          : m.progress ?? 'Not yet'}
+                      </p>
                     </div>
                     {m.done ? <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--outline-variant)] flex-shrink-0" />}
                   </div>
                 ))}
               </div>
 
-              {/* Wellbeing score over time */}
-              <div className="card p-5 space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Overall Wellbeing Score</h3>
-                <div className="flex items-end gap-2 h-16">
-                  {[42, 48, 52, 55, 61, 67, 72, 78].map((v, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full rounded-md" style={{ height: `${(v/100)*100}%`, background: i === 7 ? 'var(--primary)' : 'var(--surface-container-high)' }} />
-                      <span className="text-[8px] text-[var(--on-surface-variant)]">{['W1','W2','W3','W4','W5','W6','W7','W8'][i]}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs font-bold text-emerald-600">+36 points improvement over 8 weeks 🎉</p>
-              </div>
+              {/* The "Overall Wellbeing Score" chart that stood here claimed a
+                  rise from 42 to 78 over eight weeks, on every account, with
+                  nothing anywhere computing such a score. On a mental health
+                  dashboard that is a claim about someone's recovery, so it is
+                  gone rather than approximated. The trends above are measured. */}
             </div>
           )}
 
@@ -2095,87 +2513,88 @@ function DashboardContent() {
                 <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">Stay consistent with gentle daily nudges for check-ins, gratitude, and mindfulness.</p>
               </div>
 
-              {/* Today's nudges */}
+              {/* What is actually outstanding, worked out from real activity.
+                  The fixture listed five reminders at fixed clock times with
+                  two already ticked, on accounts that had done neither. */}
               <div className="card p-5 space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Today's Reminders</h3>
-                {[
-                  { icon: '🌅', label: 'Morning Check-in', time: '8:00 AM', done: true, color: 'bg-amber-50 border-amber-200' },
-                  { icon: '🙏', label: 'Gratitude Moment', time: '12:00 PM', done: true, color: 'bg-emerald-50 border-emerald-200' },
-                  { icon: '🧘', label: 'Breathing Break', time: '3:00 PM', done: false, color: 'bg-blue-50 border-blue-200' },
-                  { icon: '📓', label: 'Evening Journal Entry', time: '9:00 PM', done: false, color: 'bg-purple-50 border-purple-200' },
-                  { icon: '😴', label: 'Sleep Wind-down Reminder', time: '10:30 PM', done: false, color: 'bg-indigo-50 border-indigo-200' },
-                ].map((r, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${r.color}`}>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Today</h3>
+                {todayNudges.map((r, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveTab(r.tab)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all hover:shadow-sm ${r.color}`}
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-lg">{r.icon}</span>
                       <div>
                         <p className={`text-xs font-semibold ${r.done ? 'line-through text-[var(--on-surface-variant)]' : 'text-[var(--on-surface)]'}`}>{r.label}</p>
-                        <p className="text-[10px] text-[var(--on-surface-variant)]">{r.time}</p>
+                        <p className="text-[10px] text-[var(--on-surface-variant)]">{r.detail}</p>
                       </div>
                     </div>
                     {r.done ? <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" /> : <Clock size={16} className="text-[var(--on-surface-variant)]/40 flex-shrink-0" />}
-                  </div>
+                  </button>
                 ))}
+                {todayNudges.every(n => n.done) && (
+                  <p className="text-[11px] text-emerald-600 font-semibold pt-1">Everything is done for today. 🎉</p>
+                )}
               </div>
 
-              {/* Reminder settings */}
-              <div className="card p-5 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Reminder Schedule</h3>
-                {[
-                  { label: 'Daily Emotional Check-in', desc: 'A gentle morning nudge to log how you feel', enabled: true, time: '8:00 AM' },
-                  { label: 'Gratitude Prompt', desc: 'Pause and name one thing you appreciate today', enabled: true, time: '12:00 PM' },
-                  { label: 'Mindfulness Break', desc: '5-minute breathing or body scan reminder', enabled: false, time: '3:00 PM' },
-                  { label: 'Journal Reminder', desc: 'Evening reflection & private journal entry', enabled: true, time: '9:00 PM' },
-                  { label: 'Sleep Hygiene Nudge', desc: 'Wind-down reminder for better sleep quality', enabled: true, time: '10:30 PM' },
-                  { label: 'Weekly Assessment', desc: 'Quick PHQ-2 mood check every Monday', enabled: false, time: 'Mon 9:00 AM' },
-                ].map((r, i) => (
-                  <div key={i} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-[var(--surface-container-low)] border border-[var(--outline-variant)]/20">
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-[var(--on-surface)]">{r.label}</p>
-                      <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">{r.desc}</p>
-                      <p className="text-[10px] text-[var(--primary)] font-semibold mt-1">⏰ {r.time}</p>
-                    </div>
-                    <div className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 cursor-pointer ${ r.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--outline-variant)]' }`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${ r.enabled ? 'left-5' : 'left-0.5' }`} />
-                    </div>
-                  </div>
-                ))}
+              {/* The "Reminder Schedule" that stood here was six toggles at
+                  fixed times that stored nothing and could not be switched —
+                  plain divs with no onClick. Scheduled push and email reminders
+                  are not built, so this says so rather than showing a settings
+                  panel that silently discards every change. */}
+              <div className="card p-5 space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Scheduled Reminders</h3>
+                <p className="text-xs text-[var(--on-surface-variant)]">
+                  Timed reminders by push or email are not switched on yet. The nudges above
+                  are worked out from what you have and have not done, and update as you go.
+                </p>
               </div>
 
-              {/* Gratitude log */}
+              {/* Gratitude log — real notes from your check-ins */}
               <div className="card p-5 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Recent Gratitude Entries</h3>
-                {[
-                  { date: 'Today', entry: 'Grateful for a quiet morning and fresh coffee ☕' },
-                  { date: 'Yesterday', entry: 'Thankful for the support from my team today 🙏' },
-                  { date: 'Jul 27', entry: 'Grateful that my anxiety was lower this week 💚' },
-                  { date: 'Jul 26', entry: 'Appreciated the 10-minute walk I took outside 🌿' },
-                ].map((g, i) => (
+                {gratitudeEntries.length === 0 ? (
+                  <p className="text-xs text-[var(--on-surface-variant)] py-2">
+                    Nothing yet. The daily check-in asks what you are grateful for, and it shows up here.
+                  </p>
+                ) : gratitudeEntries.map((g, i) => (
                   <div key={i} className="flex gap-3 p-3 bg-amber-50/40 rounded-xl border border-amber-100">
                     <span className="text-base flex-shrink-0">🌟</span>
                     <div>
-                      <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wide">{g.date}</p>
-                      <p className="text-xs text-[var(--on-surface)] mt-0.5">{g.entry}</p>
+                      <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wide">
+                        {g.at.toDateString() === new Date().toDateString() ? 'Today' : g.at.toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-[var(--on-surface)] mt-0.5">{g.text}</p>
                     </div>
                   </div>
                 ))}
-                <button className="w-full py-2.5 border-2 border-dashed border-amber-200 text-amber-600 text-xs font-bold rounded-xl hover:bg-amber-50 transition-all">
-                  + Add Today's Gratitude
+                <button
+                  onClick={() => setActiveTab('Overview')}
+                  className="w-full py-2.5 border-2 border-dashed border-amber-200 text-amber-600 text-xs font-bold rounded-xl hover:bg-amber-50 transition-all"
+                >
+                  + Add today's gratitude
                 </button>
               </div>
 
-              {/* Mood streak mini widget */}
+              {/* 7-day mood, from real logs. Days with nothing logged stay blank
+                  rather than being filled in with a cheerful default. */}
               <div className="card p-5 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">7-Day Mood Insights</h3>
                 <div className="grid grid-cols-7 gap-2">
-                  {[{d:'M',m:'😊'},{d:'T',m:'😌'},{d:'W',m:'😰'},{d:'T',m:'😊'},{d:'F',m:'😊'},{d:'S',m:'😌'},{d:'S',m:'😊'}].map((day, i) => (
+                  {moodWeek.map((day, i) => (
                     <div key={i} className="flex flex-col items-center gap-1">
-                      <span className="text-base">{day.m}</span>
-                      <span className="text-[9px] text-[var(--on-surface-variant)] font-bold">{day.d}</span>
+                      <span className={`text-base ${day.emoji ? '' : 'opacity-25'}`}>{day.emoji ?? '·'}</span>
+                      <span className="text-[9px] text-[var(--on-surface-variant)] font-bold">{day.label}</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-emerald-600 font-semibold">Positive mood on 6 of 7 days this week 🎉</p>
+                <p className="text-[10px] text-[var(--on-surface-variant)] font-semibold">
+                  {moodWeek.filter(d => d.emoji).length === 0
+                    ? 'No moods logged this week yet.'
+                    : `Logged on ${moodWeek.filter(d => d.emoji).length} of the last 7 days.`}
+                </p>
               </div>
             </div>
           )}

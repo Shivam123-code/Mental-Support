@@ -91,16 +91,52 @@ tick-box to post without their name.
 - Their dashboard also stopped saying "Verified Specialist" to everyone — it now
   says what their account actually is.
 
+## The five user screens that showed sample numbers
+
+All five were made-up. Every account saw the same numbers no matter what they
+had actually done. They now show your real activity.
+
+- **Programs** — showed 4 courses with one "68% complete, 7 day streak" on
+  accounts that had never enrolled, and *both buttons did nothing*. Now: real
+  enrolment, real progress, and Enroll actually enrolls you.
+- **My Care Journey** — claimed you had a booked Friday session with "Dr. Kavita
+  Rao", who does not exist. Now: your real assessment, programme, next session
+  and circles.
+- **Progress Tracker** — told everyone they had a 14-day streak and showed
+  depression and anxiety scores nobody had taken. Now: your real streak from
+  your real check-ins, your real assessment results, and milestones that have an
+  actual test behind them.
+- **Wellbeing Reminders** — five reminders at fixed times with two already
+  ticked, and six on/off switches that could not be switched. Now: nudges based
+  on what you have and have not done today, and they take you to the right
+  screen when tapped.
+- **Impact & Gratitude** — "Impact Score 142" on every account, and the
+  gratitude box threw away whatever you typed. Now: it really posts.
+
+**Also removed:** a chart claiming your wellbeing score rose from 42 to 78 over
+eight weeks. Nothing anywhere calculated that. On a mental health screen that is
+a claim about someone's recovery, so it is gone rather than guessed at.
+
+## Gratitude Wall
+
+The public wall had nine invented posts under the words "Real stories of
+gratitude from our community", with names like "Priya" and "Raj" describing
+therapy that never happened. The Share button led nowhere.
+
+Now it is real: you write a note from your dashboard, your team approves it, and
+it appears. You can post without your name. Nothing reaches the public wall
+unreviewed.
+
 ## Still to do
 
-- A few user screens still show sample numbers: Programs, Progress Tracker, My Care Journey, Impact & Gratitude, Reminders.
 - **Enterprise screen** is still fake (we agreed to do it later).
 - The public professionals list still shows 8 made-up professionals rather than
   real accounts.
+- The Book Session tab still lists 3 made-up professionals.
 - Real gateway keys (Razorpay or similar) when you are ready.
 
 ## Checks
 
-14 test files, all passing. They run against the real app and clean up after
+15 test files, all passing. They run against the real app and clean up after
 themselves. The payments one alone checks 41 things, including forged payment
 messages, tampered amounts, and two people clicking at the same moment.

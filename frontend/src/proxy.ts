@@ -44,6 +44,9 @@ const PUBLIC_API_ROUTES = new Set([
   // need an account. Writing one, and the ?pending / ?mine views, check the
   // token in the handler.
   '/api/reviews',
+  // The gratitude wall is a public page. Posting to it, and the ?mine view,
+  // check the token in the handler.
+  '/api/gratitude',
   // Public by design: someone in crisis must reach these without an account.
   // Both read the bearer token when present, and are rate limited.
   '/api/sos',
