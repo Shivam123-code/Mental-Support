@@ -19,6 +19,8 @@ interface Toast {
   body?: string;
   tone: 'info' | 'good' | 'warn' | 'critical';
   href?: string;
+  /** Lets a toast be withdrawn when its alert is claimed or closed. */
+  alertId?: string;
 }
 
 const TONES: Record<Toast['tone'], string> = {
@@ -62,6 +64,17 @@ export default function SOSNotifier() {
     }
   }, []);
 
+  /**
+   * Drop every toast for an alert somebody else has taken.
+   *
+   * Without this each admin keeps a permanent critical toast for work that is
+   * already being handled — and critical toasts do not self-dismiss, so at any
+   * volume the screen fills with other people's emergencies.
+   */
+  const dropByAlert = useCallback((alertId: string) => {
+    setToasts(prev => prev.filter(t => t.alertId !== alertId));
+  }, []);
+
   const { socket } = useSocket(user?.id, user?.role, token || undefined, !!token && !!user?.id);
 
   useEffect(() => {
@@ -77,11 +90,30 @@ export default function SOSNotifier() {
     // ── Admin side: the whole board, not just /dashboard/admin ──────────────
     const onNewAlert = (a: any) => push({
       title: `🚨 New ${a?.severity ?? 'CRITICAL'} SOS`,
-      body: a?.message, tone: 'critical', href: '/dashboard/admin',
+      body: a?.message, tone: 'critical', href: '/dashboard/admin', alertId: a?.id,
+    });
+    // Somebody has taken it. It is no longer this admin's to act on, so it
+    // leaves their screen rather than sitting there as an undismissable
+    // critical notice about work already in hand.
+    const onClaimed = (a: any) => {
+      dropByAlert(a?.alertId);
+      if (a?.claimedBy && a.claimedBy !== user.id) {
+        push({
+          title: '✅ Alert taken',
+          body: `${a.claimedByName ?? 'An admin'} is handling ${String(a.alertId ?? '').slice(-6)}`,
+          tone: 'good',
+        });
+      }
+    };
+    // Handed back — it is everyone's again.
+    const onReleased = (a: any) => push({
+      title: '↩️ Alert returned to the queue',
+      body: `Alert ${String(a?.alertId ?? '').slice(-6)} needs an owner`,
+      tone: 'warn', href: '/dashboard/admin', alertId: a?.alertId,
     });
     const onVendorStatus = (a: any) => push({
       title: `🚐 Responder update — ${a?.dispatchStatus ?? ''}`,
-      body: a?.message, tone: 'info', href: '/dashboard/admin',
+      body: a?.message, tone: 'info', href: '/dashboard/admin', alertId: a?.alertId,
     });
     const onVendorAssigned = (a: any) => push({
       title: '📡 Responders alerted',
@@ -92,15 +124,21 @@ export default function SOSNotifier() {
       title: '⚠️ Alert ESCALATED — no responder',
       body: a?.reason, tone: 'critical', href: '/dashboard/admin',
     });
-    const onResolved = (a: any) => push({
-      title: '✅ Alert resolved',
-      body: `Alert ${String(a?.alertId ?? '').slice(-6)}`, tone: 'good', href: '/dashboard/admin',
-    });
-    const onCancelled = () => push({ title: 'Alert cancelled by caller', tone: 'warn', href: '/dashboard/admin' });
+    // A closed alert should not leave a toast asking for attention.
+    const onResolved = (a: any) => {
+      dropByAlert(a?.alertId);
+      push({ title: '✅ Alert resolved', body: `Alert ${String(a?.alertId ?? '').slice(-6)}`, tone: 'good' });
+    };
+    const onCancelled = (a: any) => {
+      dropByAlert(a?.alertId);
+      push({ title: 'Alert cancelled by caller', tone: 'warn' });
+    };
 
     socket.on('sos:status_update', onCallerStatus);
     if (isAdmin) {
       socket.on('emergency:alert', onNewAlert);
+      socket.on('sos:claimed', onClaimed);
+      socket.on('sos:released', onReleased);
       socket.on('sos:vendor_status_update', onVendorStatus);
       socket.on('sos:vendor_assigned', onVendorAssigned);
       socket.on('emergency:escalated', onEscalated);
@@ -111,13 +149,15 @@ export default function SOSNotifier() {
     return () => {
       socket.off('sos:status_update', onCallerStatus);
       socket.off('emergency:alert', onNewAlert);
+      socket.off('sos:claimed', onClaimed);
+      socket.off('sos:released', onReleased);
       socket.off('sos:vendor_status_update', onVendorStatus);
       socket.off('sos:vendor_assigned', onVendorAssigned);
       socket.off('emergency:escalated', onEscalated);
       socket.off('emergency:resolved', onResolved);
       socket.off('emergency:cancelled', onCancelled);
     };
-  }, [socket, user, push]);
+  }, [socket, user, push, dropByAlert]);
 
   if (!toasts.length) return null;
 

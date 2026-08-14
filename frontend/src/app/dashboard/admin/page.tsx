@@ -160,7 +160,7 @@ function AdminDashboardContent() {
   const [addUserModal, setAddUserModal] = useState<{ open: boolean; role: 'USER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'VENDOR' } | null>(null);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded, socket: adminSocket } =
+  const { alerts: liveAlerts, acknowledgeAlert, resolveAlert, patchAlert, isConnected: socketConnected, isAuthenticated: socketAuth, dbLoaded, socket: adminSocket } =
     useEmergencyAlerts(user?.id, token || undefined);
   const [locationLabels, setLocationLabels] = useState<Record<string, string>>({});
 
@@ -219,6 +219,47 @@ function AdminDashboardContent() {
   };
 
   useEffect(() => { if (activeTab === 'Audit Logs') fetchAuditLogs(); }, [activeTab]);
+
+  // ── Claiming an alert ──────────────────────────────────────────────────────
+  // Take ownership so the other admins' queues drop it. The server decides who
+  // wins a race; this only reflects the answer.
+  const [claiming, setClaiming] = useState<string | null>(null);
+
+  const claimAlert = async (alertId: string, release = false) => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!t || claiming) return;
+    setClaiming(alertId);
+    try {
+      const res = await fetch(`/api/admin/sos-alerts/${alertId}/claim`, {
+        method: release ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = await res.json();
+      if (!data.success) {
+        // "Already claimed by Priya" is the useful answer here, not a failure.
+        setAuditLogs(prev => [`Alert ${alertId.slice(-6)}: ${data.error}`, ...prev]);
+        return;
+      }
+      patchAlert(alertId, {
+        acknowledgedBy: release ? null : data.data.claimedBy,
+        status: release ? 'ACTIVE' : 'ACKNOWLEDGED',
+      });
+    } catch { /* the next refresh reconciles */ }
+    finally { setClaiming(null); }
+  };
+
+  // Another admin took or released one — reflect it without a reload.
+  useEffect(() => {
+    if (!adminSocket) return;
+    const onClaimed = (d: any) => patchAlert(d.alertId, { acknowledgedBy: d.claimedBy, status: 'ACKNOWLEDGED' });
+    const onReleased = (d: any) => patchAlert(d.alertId, { acknowledgedBy: null, status: 'ACTIVE' });
+    adminSocket.on('sos:claimed', onClaimed);
+    adminSocket.on('sos:released', onReleased);
+    return () => {
+      adminSocket.off('sos:claimed', onClaimed);
+      adminSocket.off('sos:released', onReleased);
+    };
+  }, [adminSocket]);
 
   useEffect(() => {
     allVendors.forEach((v: any) => {
@@ -289,12 +330,6 @@ function AdminDashboardContent() {
 
 
 
-  // ponytail: local-only. This never persisted — refresh reverted the
-  // assignment and no responder was ever contacted. Real dispatch already runs
-  // server-side via startDispatch; this panel needs to claim an alert through
-  // EmergencyAlert.acknowledgedBy rather than keep its own shadow state.
-  // Ceiling: two admins can each "assign" the same case and neither sees the
-  // other. Upgrade path: POST /api/admin/sos-alerts/[id]/claim.
   const handleAssignSOS = (id: string, responder: string) => {
     setSosCases(prev => prev.map(c => c.id === id ? { ...c, status: "ASSIGNED", assignedTo: responder } : c));
   };
@@ -808,7 +843,29 @@ function AdminDashboardContent() {
                                   <span className="text-[10px] text-slate-400">↗ Maps</span>
                                 </div>
                               </div>
-                              <div className="flex flex-col gap-2 flex-shrink-0">
+                              <div className="flex flex-col gap-2 shrink-0">
+                                {/* Ownership. Unclaimed alerts are everyone's,
+                                    which at volume means nobody's. */}
+                                {alert.status !== 'RESOLVED' && (
+                                  alert.acknowledgedBy
+                                    ? alert.acknowledgedBy === user?.id
+                                      ? (
+                                        <button onClick={() => claimAlert(alert.id, true)} disabled={claiming === alert.id}
+                                          className="px-3 py-1.5 border border-slate-300 text-slate-600 text-[11px] font-bold rounded-xl hover:bg-slate-100 disabled:opacity-50 cursor-pointer">
+                                          Yours — release
+                                        </button>
+                                      ) : (
+                                        <span className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 text-center">
+                                          Claimed by another admin
+                                        </span>
+                                      )
+                                    : (
+                                      <button onClick={() => claimAlert(alert.id)} disabled={claiming === alert.id}
+                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl transition-colors disabled:opacity-50 cursor-pointer">
+                                        {claiming === alert.id ? 'Claiming…' : 'Claim'}
+                                      </button>
+                                    )
+                                )}
                                 {alert.status === 'ACTIVE' && (
                                   <button onClick={() => acknowledgeAlert(alert.id)} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-xl transition-colors cursor-pointer">Acknowledge</button>
                                 )}

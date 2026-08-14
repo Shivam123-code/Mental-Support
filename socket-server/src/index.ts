@@ -139,6 +139,28 @@ app.post('/internal/dispatch', async (req, res) => {
 });
 
 /**
+ * Broadcast an already-authorised admin event to the admin room.
+ *
+ * Used when one admin claims or releases an alert: the others need it to leave
+ * their queue immediately, or two people work the same emergency while a third
+ * goes unattended.
+ */
+app.post('/internal/admin-broadcast', (req, res) => {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret || req.headers['x-internal-secret'] !== secret) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const { event, payload } = req.body ?? {};
+  if (typeof event !== 'string' || !event.startsWith('sos:')) {
+    res.status(400).json({ error: 'event must be an sos:* name' });
+    return;
+  }
+  io.to('admin-room').emit(event, payload ?? {});
+  res.json({ ok: true });
+});
+
+/**
  * Relay a direct message that the Next.js route has already persisted and
  * authorised.
  *

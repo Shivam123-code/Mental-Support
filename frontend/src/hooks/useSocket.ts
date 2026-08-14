@@ -257,10 +257,20 @@ export function useEmergencyAlerts(adminId?: string, token?: string) {
     socket.emit('emergency:resolve', { alertId });
   };
 
+  /**
+   * Patch one alert in place. Claiming happens over REST because it needs a
+   * conditional database write to settle a race, so the result comes back
+   * outside this hook's socket stream and has to be folded in.
+   */
+  const patchAlert = (alertId: string, patch: Record<string, unknown>) => {
+    setAlerts(prev => prev.map(a => (a.id === alertId ? { ...a, ...patch } : a)));
+  };
+
   return {
     alerts,
     acknowledgeAlert,
     resolveAlert,
+    patchAlert,
     isConnected,
     isAuthenticated,
     dbLoaded,
