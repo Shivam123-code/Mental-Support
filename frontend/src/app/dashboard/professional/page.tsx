@@ -160,9 +160,15 @@ function ProfessionalDashboardContent() {
   const [aiInsights] = useState<any[]>([]);
 
   // Settings State
-  const [pricing, setPricing] = useState(120);
-  const [languages, setLanguages] = useState(['English', 'Spanish']);
-  const [specialties, setSpecialties] = useState(['Anxiety Support', 'Burnout Recovery', 'Parenting Guidance', 'Stress Mitigation']);
+  // Settings read from and write to the real profile. These were defaults every
+  // professional saw, and nothing edited here reached the directory clients
+  // search.
+  const [pricing, setPricing] = useState(0);
+  const [currency, setCurrency] = useState('USD');
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [newLanguage, setNewLanguage] = useState('');
   const [newSpecialty, setNewSpecialty] = useState('');
 
   // Handle toast notifications
@@ -276,7 +282,41 @@ function ProfessionalDashboardContent() {
     finally { setNotificationsLoading(false); }
   };
 
-  useEffect(() => { loadCircles(); loadResources(); loadNotifications(); }, []);
+  const loadProfile = async () => {
+    const h = authHeaders();
+    if (!h) return;
+    try {
+      const data = await (await fetch('/api/professional/profile', { headers: h })).json();
+      if (!data.success) return;
+      setPricing(data.data.hourlyRate ?? 0);
+      setCurrency(data.data.currency ?? 'USD');
+      setLanguages(data.data.languages ?? []);
+      setSpecialties(data.data.specializations ?? []);
+      setOnlineStatus(data.data.isAcceptingClients ?? true);
+    } catch { /* the form stays on its current values */ }
+  };
+
+  useEffect(() => { loadCircles(); loadResources(); loadNotifications(); loadProfile(); }, []);
+
+  /** Persist whatever changed. Everything here feeds the client-facing directory. */
+  const saveProfile = async (patch: Record<string, unknown>) => {
+    const h = authHeaders();
+    if (!h) return false;
+    setProfileSaving(true);
+    try {
+      const res = await fetch('/api/professional/profile', {
+        method: 'PATCH', headers: h, body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save failed');
+      return true;
+    } catch (err: any) {
+      triggerToast(`Could not save: ${err?.message ?? 'unknown error'}`);
+      return false;
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const markAllRead = async () => {
     const h = authHeaders();
@@ -361,13 +401,21 @@ function ProfessionalDashboardContent() {
     }
   };
 
-  // Handle adding a specialty
-  const handleAddSpecialty = () => {
-    if (newSpecialty.trim() && !specialties.includes(newSpecialty.trim())) {
-      setSpecialties(prev => [...prev, newSpecialty.trim()]);
+  // Adding a specialty writes through — it changes what clients can find you by.
+  const handleAddSpecialty = async () => {
+    const value = newSpecialty.trim();
+    if (!value || specialties.includes(value)) return;
+    const next = [...specialties, value];
+    if (await saveProfile({ specializations: next })) {
+      setSpecialties(next);
       setNewSpecialty('');
       triggerToast('Specialization added 🛡️');
     }
+  };
+
+  const handleRemoveSpecialty = async (value: string) => {
+    const next = specialties.filter(s => s !== value);
+    if (await saveProfile({ specializations: next })) setSpecialties(next);
   };
 
   // Sidebar Items Definition
@@ -1778,12 +1826,18 @@ function ProfessionalDashboardContent() {
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold uppercase text-slate-500 block">Your Specializations</label>
                           <div className="flex flex-wrap gap-2">
+                              {specialties.length === 0 && (
+                              <span className="text-[10px] text-[var(--on-surface-variant)]">
+                                None set — clients search by these, so add at least one.
+                              </span>
+                            )}
                             {specialties.map((spec, index) => (
                               <span key={index} className="chip text-[10px] flex items-center gap-1.5 py-1 px-3 bg-emerald-50 rounded-full font-bold">
                                 {spec} 
-                                <button 
-                                  onClick={() => setSpecialties(prev => prev.filter((_, idx) => idx !== index))}
-                                  className="text-red-500 hover:text-red-700 font-bold"
+                                <button
+                                  onClick={() => handleRemoveSpecialty(spec)}
+                                  disabled={profileSaving}
+                                  className="text-red-500 hover:text-red-700 font-bold disabled:opacity-40"
                                 >
                                   ×
                                 </button>
@@ -1810,10 +1864,55 @@ function ProfessionalDashboardContent() {
 
                         <div className="space-y-2 border-t pt-4">
                           <label className="text-[10px] font-bold uppercase text-slate-500 block">Supported Languages</label>
+                          {/* Was display-only with no way to change it, while the
+                              matcher scores heavily on language. */}
                           <div className="flex flex-wrap gap-2 text-xs">
-                            {languages.map((lang, idx) => (
-                              <span key={idx} className="bg-slate-100 text-slate-700 px-3 py-1 rounded-xl font-semibold">{lang}</span>
+                            {languages.length === 0 && (
+                              <span className="text-[10px] text-[var(--on-surface-variant)]">
+                                None set — matching scores heavily on language.
+                              </span>
+                            )}
+                            {languages.map((lang) => (
+                              <span key={lang} className="bg-slate-100 text-slate-700 px-3 py-1 rounded-xl font-semibold flex items-center gap-1.5">
+                                {lang}
+                                <button
+                                  onClick={async () => {
+                                    const next = languages.filter(l => l !== lang);
+                                    if (next.length === 0) { triggerToast('Keep at least one language'); return; }
+                                    if (await saveProfile({ languages: next })) setLanguages(next);
+                                  }}
+                                  disabled={profileSaving}
+                                  className="text-red-500 hover:text-red-700 font-bold disabled:opacity-40"
+                                >
+                                  ×
+                                </button>
+                              </span>
                             ))}
+                          </div>
+                          <div className="flex gap-2 pt-1.5">
+                            <input
+                              type="text"
+                              placeholder="Add language e.g. Hindi"
+                              value={newLanguage}
+                              onChange={e => setNewLanguage(e.target.value)}
+                              className="text-xs p-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[var(--primary)] bg-slate-50/50"
+                            />
+                            <button
+                              disabled={profileSaving}
+                              onClick={async () => {
+                                const value = newLanguage.trim();
+                                if (!value || languages.includes(value)) return;
+                                const next = [...languages, value];
+                                if (await saveProfile({ languages: next })) {
+                                  setLanguages(next);
+                                  setNewLanguage('');
+                                  triggerToast('Language added');
+                                }
+                              }}
+                              className="px-3.5 py-1 bg-[var(--primary)] text-white text-xs font-semibold rounded-xl disabled:opacity-50"
+                            >
+                              Add
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1827,18 +1926,29 @@ function ProfessionalDashboardContent() {
                         <div className="space-y-1.5">
                           <label className="text-[9px] font-bold uppercase text-slate-500">Hourly Pricing (USD)</label>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-500">$</span>
-                            <input 
+                            <span className="text-sm font-bold text-slate-500">{currency}</span>
+                            <input
                               type="number"
+                              min={0}
                               value={pricing}
-                              onChange={(e) => setPricing(parseInt(e.target.value))}
+                              // parseInt on an emptied field yields NaN, which
+                              // React renders as a blank that never recovers.
+                              onChange={(e) => setPricing(Number(e.target.value) || 0)}
                               className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[var(--primary)]"
                             />
                           </div>
+                          <p className="text-[9px] text-[var(--on-surface-variant)] mt-1">
+                            Sessions are priced from this rate, pro-rata by duration.
+                          </p>
                         </div>
 
-                        <button 
-                          onClick={() => triggerToast(`Consultation price set to $${pricing}/hr 💰`)}
+                        <button
+                          disabled={profileSaving}
+                          onClick={async () => {
+                            if (await saveProfile({ hourlyRate: pricing })) {
+                              triggerToast(`Rate saved: ${currency} ${pricing}/hr 💰`);
+                            }
+                          }}
                           className="w-full py-2.5 bg-[var(--primary)] hover:bg-[#00685c] text-white text-xs font-bold rounded-xl transition-all"
                         >
                           Update Rate
