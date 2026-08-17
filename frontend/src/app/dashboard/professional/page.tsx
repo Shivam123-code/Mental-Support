@@ -174,6 +174,15 @@ function ProfessionalDashboardContent() {
   // Settings read from and write to the real profile. These were defaults every
   // professional saw, and nothing edited here reached the directory clients
   // search.
+  // The public-facing half of the profile. The API has always accepted these;
+  // nothing in the UI ever sent them, so the directory showed placeholders.
+  const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState('');
+  const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
+  const [sessionModes, setSessionModes] = useState<string[]>([]);
+  const [yearsExperience, setYearsExperience] = useState(0);
+
   const [pricing, setPricing] = useState(0);
   const [currency, setCurrency] = useState('USD');
   const [languages, setLanguages] = useState<string[]>([]);
@@ -305,6 +314,12 @@ function ProfessionalDashboardContent() {
       setSpecialties(data.data.specializations ?? []);
       setOnlineStatus(data.data.isAcceptingClients ?? true);
       setVerification(data.data.verificationStatus ?? '');
+      setDisplayName(data.data.displayName ?? '');
+      setBio(data.data.bio ?? '');
+      setCity(data.data.city ?? '');
+      setRegion(data.data.region ?? '');
+      setSessionModes(data.data.sessionModes ?? []);
+      setYearsExperience(data.data.yearsOfExperience ?? 0);
       // Reviews hang off the profile id, which is only known once this returns
       // — hence the chain rather than another top-level loader.
       await loadReviews(data.data.id);
@@ -1912,8 +1927,130 @@ function ProfessionalDashboardContent() {
                     <p className="text-xs text-[var(--on-surface-variant)]">Update Specializations, pricing structures, languages spoken, and notification channels.</p>
                   </div>
 
+                  {/* Public profile.
+                      Without this there was no way to set a display name from
+                      the dashboard, so every professional appeared in the client
+                      directory as "Professional #c731" with no bio and no
+                      location — permanently, since the API accepted these fields
+                      and nothing sent them. */}
+                  <div className="card space-y-4">
+                    <div className="border-b pb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">Public Profile</h3>
+                      <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">
+                        This is what clients see in the directory and when they are matched with you.
+                      </p>
+                    </div>
+
+                    {!displayName && (
+                      <p className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        You have no display name yet, so clients see a placeholder. Add one below.
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-bold uppercase text-slate-500">Display Name</label>
+                        <input
+                          type="text"
+                          value={displayName}
+                          onChange={e => setDisplayName(e.target.value)}
+                          maxLength={120}
+                          placeholder="e.g. Dr. Anita Sharma"
+                          className="w-full text-xs p-2.5 border border-[var(--outline-variant)]/40 rounded-xl bg-[var(--surface-container-low)] focus:outline-none focus:border-[var(--primary)]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-bold uppercase text-slate-500">Years of Experience</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={80}
+                          value={yearsExperience}
+                          onChange={e => setYearsExperience(Number(e.target.value) || 0)}
+                          className="w-full text-xs p-2.5 border border-[var(--outline-variant)]/40 rounded-xl bg-[var(--surface-container-low)] focus:outline-none focus:border-[var(--primary)]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-bold uppercase text-slate-500">City</label>
+                        <input
+                          type="text"
+                          value={city}
+                          onChange={e => setCity(e.target.value)}
+                          maxLength={80}
+                          placeholder="e.g. Mumbai"
+                          className="w-full text-xs p-2.5 border border-[var(--outline-variant)]/40 rounded-xl bg-[var(--surface-container-low)] focus:outline-none focus:border-[var(--primary)]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-bold uppercase text-slate-500">Region</label>
+                        <select
+                          value={region}
+                          onChange={e => setRegion(e.target.value)}
+                          className="w-full text-xs p-2.5 border border-[var(--outline-variant)]/40 rounded-xl bg-[var(--surface-container-low)] focus:outline-none focus:border-[var(--primary)]"
+                        >
+                          <option value="">Select region…</option>
+                          {['North India', 'South India', 'East India', 'West India', 'International'].map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase text-slate-500">Session Modes</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Online', 'In-person'].map(mode => {
+                          const on = sessionModes.includes(mode);
+                          return (
+                            <button
+                              key={mode}
+                              onClick={() => setSessionModes(on ? sessionModes.filter(m => m !== mode) : [...sessionModes, mode])}
+                              className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                                on ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-white text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {on && '✓ '}{mode}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase text-slate-500">About You</label>
+                      <textarea
+                        value={bio}
+                        onChange={e => setBio(e.target.value)}
+                        maxLength={2000}
+                        rows={4}
+                        placeholder="How you work, who you tend to help, what a first session looks like…"
+                        className="w-full text-xs p-2.5 border border-[var(--outline-variant)]/40 rounded-xl bg-[var(--surface-container-low)] focus:outline-none focus:border-[var(--primary)] resize-none"
+                      />
+                      <p className="text-[9px] text-[var(--on-surface-variant)]">{bio.length}/2000</p>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (await saveProfile({
+                          displayName: displayName.trim(),
+                          bio: bio.trim(),
+                          city: city.trim(),
+                          region,
+                          sessionModes,
+                          yearsOfExperience: yearsExperience,
+                        })) {
+                          triggerToast('Public profile saved ✅');
+                        }
+                      }}
+                      disabled={profileSaving}
+                      className="btn-primary !py-2 !text-xs disabled:opacity-40"
+                    >
+                      {profileSaving ? 'Saving…' : 'Save public profile'}
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
+
                     {/* Specialties & languages */}
                     <div className="card lg:col-span-2 space-y-4">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] border-b pb-3">Specializations & Languages</h3>

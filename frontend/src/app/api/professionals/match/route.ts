@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { successResponse, errorResponse, unauthorizedResponse } from '@/lib/api-response';
-import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
 import { automatchRequiresPayment, automatchPrice, CURRENCY, formatMinor } from '@/lib/server/payments/provider';
 
 // Region → states mapping for regional filtering
@@ -42,7 +41,36 @@ interface QuizAnswers {
   sessionMode?: string;         // "Online" | "In-person" | "Either"
 }
 
-type Professional = typeof STATIC_PROFESSIONALS[0];
+/**
+ * A candidate to score.
+ *
+ * This used to be `typeof STATIC_PROFESSIONALS[0]` — the shape of a fixture
+ * array of eight invented people. The data fallback went when matching was
+ * limited to real accounts, and keeping the file behind just to borrow a type
+ * left it sitting there for somebody to import as data again.
+ */
+interface Professional {
+  id: string;
+  userId: string;
+  displayName: string;
+  type: string;
+  specializations: string[];
+  languages: string[];
+  yearsOfExperience?: number;
+  averageRating: number;
+  totalReviews: number;
+  profileImage?: string;
+  isAcceptingClients: boolean;
+  city?: string;
+  state?: string;
+  region?: string;
+  country: string;
+  gender?: string;
+  sessionModes: string[];
+  hourlyRate?: number;
+  currency: string;
+  bio?: string;
+}
 
 function scoreProfessional(prof: Professional, quiz: QuizAnswers): number {
   let score = 0;
@@ -149,8 +177,12 @@ export async function POST(request: NextRequest) {
     let candidates: Professional[] = [];
 
     const dbProfs = await prisma.professional.findMany({
-      where: { verificationStatus: 'VERIFIED', isAcceptingClients: true },
+      // Same rule as the public directory: a match has to be somebody the
+      // caller can actually reach. Matching them to a suspended account would
+      // be taking payment for an introduction that cannot happen.
+      where: { verificationStatus: 'VERIFIED', isAcceptingClients: true, user: { status: 'ACTIVE' } },
       take: 100,
+      include: { user: { select: { firstName: true, lastName: true } } },
     });
 
     {
@@ -165,7 +197,10 @@ export async function POST(request: NextRequest) {
         // messaging keys on User.id, and without this the caller has no way to
         // reach the person they matched with.
         userId: p.userId,
-        displayName: p.displayName || `Professional #${p.id.slice(-4)}`,
+        displayName:
+          p.displayName ||
+          `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim() ||
+          'KleverKlues Professional',
         type: p.type as string,
         specializations: p.specializations,
         languages: p.languages,

@@ -148,16 +148,49 @@ memory on a long-running server. It now holds 2,000 entries and drops the oldest
 And: a known security hole in a library the website uses (the same one fixed in
 the chat server earlier) is now patched here too. **Zero known vulnerabilities.**
 
+## A real bug: you could book a therapist who did not exist
+
+This one was serious, and it was hiding behind the fake screens.
+
+When an account was deleted, the professional's **profile stayed behind** — still
+marked verified, still marked "accepting clients", still listed to the public.
+**45 of the 46 professionals in the database were these ghosts.** I tested it: a
+client could book one. The booking went through, sat in their dashboard as a real
+upcoming session, and on the day nobody would have turned up.
+
+Fixed properly:
+
+- The profile is now **tied to the account**, so deleting one deletes the other.
+  The database itself enforces it — it can't drift again.
+- The 45 dead profiles are gone.
+- A **suspended** professional (account still there, just switched off) can no
+  longer be listed, booked, or matched with either.
+
+## The public pages are real now
+
+- **Find a Professional** listed 8 invented people with invented ratings and
+  invented experience, and every "Book Session" button led to a page that could
+  not book any of them. It shows real verified professionals now, and says so
+  plainly when there are none.
+- The category counts ("Counsellors 120+", "Psychologists 85+") were numbers
+  nobody had ever counted. They are counted now.
+- Anyone without a photo used to be shown wearing **a stock photo of one of the
+  invented therapists**. Now it's their initial.
+- **Book a Session** collected your type, date and time, listed 3 more invented
+  professionals, quoted a fixed price whoever you picked — and then Confirm
+  Booking *did nothing at all*. It books for real now, at the professional's own
+  rate, and tells you when a slot is already taken.
+- Professionals can finally set their **display name, bio, city, region, session
+  modes and experience** from their dashboard. The API always accepted these;
+  no screen ever sent them, which is why everyone showed as "Professional #c731".
+
 ## Still to do
 
 - **Enterprise screen** is still fake (we agreed to do it later).
-- The public professionals list still shows 8 made-up professionals rather than
-  real accounts.
-- The Book Session tab still lists 3 made-up professionals.
 - Real gateway keys (Razorpay or similar) when you are ready.
 
 ## Checks
 
-16 test files, all passing. They run against the real app and clean up after
+17 test files, all passing. They run against the real app and clean up after
 themselves. The payments one alone checks 41 things, including forged payment
 messages, tampered amounts, and two people clicking at the same moment.

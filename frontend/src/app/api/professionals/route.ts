@@ -13,10 +13,16 @@ export async function GET(request: NextRequest) {
     const gender = searchParams.get('gender');
     const type = searchParams.get('type');
 
-    // Try DB first
     const whereClause: Record<string, any> = {
       verificationStatus: 'VERIFIED',
       isAcceptingClients: true,
+      // Being listed means being bookable, so the account behind the profile has
+      // to be usable. A suspended professional would otherwise keep taking
+      // bookings they cannot attend. Deleted accounts can no longer strand a
+      // profile at all — Professional.userId is a cascading foreign key now —
+      // but this is the check that still holds when the account merely stops
+      // being active.
+      user: { status: 'ACTIVE' },
     };
     if (region) whereClause.region = region;
     if (language) whereClause.languages = { has: language };
@@ -27,6 +33,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       orderBy: [{ averageRating: 'desc' }, { totalSessions: 'desc' }],
       take: 50,
+      include: { user: { select: { firstName: true, lastName: true } } },
     });
 
     // No static fallback. Those entries have no user account behind them, so a
@@ -40,7 +47,13 @@ export async function GET(request: NextRequest) {
         // messaging and "is this me?" checks key on User.id, and without it a
         // directory entry cannot be tied back to a person.
         userId: p.userId,
-        displayName: p.displayName || `Professional #${p.id.slice(-4)}`,
+        // Their own name beats an id fragment. "Professional #c731" is what a
+        // client saw for anyone who had not filled in a display name, which is
+        // nobody's idea of a therapist they want to talk to.
+        displayName:
+          p.displayName ||
+          `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim() ||
+          'KleverKlues Professional',
         type: p.type,
         specializations: p.specializations,
         languages: p.languages,

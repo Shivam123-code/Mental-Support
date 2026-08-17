@@ -76,6 +76,7 @@ model User {
   organizationApplications OrganizationApplication[]
   passwordResetTokens PasswordResetToken[]
   paymentIntents    PaymentIntent[]
+  professionalProfile Professional?
 
   @@index([email])
   @@index([role])
@@ -149,8 +150,17 @@ enum VerificationStatus {
 
 model Professional {
   id                    String              @id @default(cuid())
+  /// The account this profile belongs to.
+  ///
+  /// This was a bare String with no relation, so deleting a user left the
+  /// profile behind — still VERIFIED, still isAcceptingClients, still listed in
+  /// the public directory. 45 of the 46 rows in this database were such ghosts,
+  /// and a client could book one: the booking succeeded and sat in their
+  /// dashboard as a real upcoming session that nobody would ever attend.
+  /// Cascade so the profile goes when the account does.
   userId                String              @unique
-  
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Professional Details
   type                  ProfessionalType
   licenseNumber         String?

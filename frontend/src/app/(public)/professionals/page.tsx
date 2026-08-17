@@ -1,22 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, CheckCircle, Globe, Clock, Video, MessageCircle, ArrowRight, MapPin } from 'lucide-react';
 import SafetyDisclaimer from '@/components/ui/SafetyDisclaimer';
 import AutoMatchButton from '@/components/AutoMatchButton';
-import { STATIC_PROFESSIONALS } from '@/lib/professionals-data';
 
-const categories = [
-  { name: 'Counsellors', count: '120+' },
-  { name: 'Psychologists', count: '85+' },
-  { name: 'Clinical Psychologists', count: '45+' },
-  { name: 'Coaches', count: '60+' },
-  { name: 'Mentors', count: '90+' },
-  { name: 'Wellness Experts', count: '50+' },
-  { name: 'Trainers', count: '35+' },
-];
+/**
+ * The public directory.
+ *
+ * This listed eight people from a hardcoded file — invented names, invented
+ * ratings, invented experience — and every "Book Session" button went to a page
+ * that could not book any of them, because none had an account behind them.
+ * It is the first thing a stranger sees, and all of it was made up.
+ *
+ * These are real verified professionals from /api/professionals now. If there
+ * are none, it says so.
+ */
+
+interface Professional {
+  id: string;
+  userId: string;
+  displayName: string;
+  type: string;
+  specializations: string[];
+  languages: string[];
+  yearsOfExperience: number | null;
+  averageRating: number;
+  totalReviews: number;
+  profileImage: string | null;
+  isAcceptingClients: boolean;
+  city: string | null;
+  state: string | null;
+  region: string | null;
+  country: string;
+  sessionModes: string[];
+  hourlyRate: number | null;
+  currency: string;
+  bio: string | null;
+}
 
 const REGIONS = ['All India', 'North India', 'South India', 'East India', 'West India', 'International'];
 
@@ -32,10 +55,42 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function Professionals() {
   const [activeRegion, setActiveRegion] = useState('All India');
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/professionals');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Could not load professionals');
+        setProfessionals(data.data ?? []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = activeRegion === 'All India'
-    ? STATIC_PROFESSIONALS
-    : STATIC_PROFESSIONALS.filter((p) => p.region === activeRegion);
+    ? professionals
+    : professionals.filter((p) => p.region === activeRegion);
+
+  /**
+   * Category chips counted from the real directory. These read "Counsellors
+   * (120+)", "Psychologists (85+)" and so on — figures nobody had ever
+   * counted, on a directory that contained eight fictional entries.
+   */
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of professionals) {
+      const label = TYPE_LABELS[p.type] ?? p.type;
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [professionals]);
 
   return (
     <div>
@@ -60,9 +115,9 @@ export default function Professionals() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {categories.map((cat) => (
-                  <span key={cat.name} className="chip">
-                    {cat.name} <span className="opacity-60">({cat.count})</span>
+                {categories.map(([name, count]) => (
+                  <span key={name} className="chip">
+                    {name} <span className="opacity-60">({count})</span>
                   </span>
                 ))}
               </div>
@@ -111,10 +166,33 @@ export default function Professionals() {
             ))}
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
             <div className="text-center py-16">
-              <p className="text-[var(--on-surface-variant)] text-sm">No professionals found for this region yet.</p>
-              <button onClick={() => setActiveRegion('All India')} className="mt-3 text-[var(--primary)] text-sm font-semibold hover:underline">Show all</button>
+              <p className="text-[var(--on-surface-variant)] text-sm">Loading professionals…</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <p className="text-[var(--on-surface-variant)] text-sm">{error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 space-y-3">
+              <p className="text-[var(--on-surface)] text-sm font-semibold">
+                {professionals.length === 0
+                  ? 'No professionals are listed yet'
+                  : 'Nobody is listed for this region yet'}
+              </p>
+              <p className="text-[var(--on-surface-variant)] text-sm max-w-md mx-auto">
+                {professionals.length === 0
+                  ? 'Professionals appear here once their credentials have been verified. In the meantime, emergency support is always available.'
+                  : 'Try another region, or let us match you.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-3 pt-1">
+                {professionals.length === 0 ? (
+                  <Link href="/sos" className="text-[var(--primary)] text-sm font-semibold hover:underline">Get emergency support</Link>
+                ) : (
+                  <button onClick={() => setActiveRegion('All India')} className="text-[var(--primary)] text-sm font-semibold hover:underline">Show all</button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -122,7 +200,17 @@ export default function Professionals() {
                 <div key={prof.id} className="card group hover:-translate-y-1 transition-all duration-300">
                   <div className="flex items-start gap-4 mb-5">
                     <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-[var(--primary-fixed)]">
-                      <Image src={prof.profileImage || '/images/prof-dr-ananya.png'} alt={prof.displayName} fill sizes="56px" className="object-cover" />
+                      {prof.profileImage ? (
+                        <Image src={prof.profileImage} alt={prof.displayName} fill sizes="56px" className="object-cover" />
+                      ) : (
+                        // Their initial, not a stock photograph. The fallback
+                        // here used to be a picture of one of the invented
+                        // professionals, so anyone without an avatar was shown
+                        // to clients wearing a stranger's face.
+                        <div className="w-full h-full bg-gradient-to-br from-[var(--primary)] to-[var(--tertiary)] flex items-center justify-center text-white font-bold">
+                          {prof.displayName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -130,24 +218,39 @@ export default function Professionals() {
                         <CheckCircle size={14} className="text-[var(--primary-bright)] flex-shrink-0" />
                       </div>
                       <p className="text-xs text-[var(--primary)]">{TYPE_LABELS[prof.type] || prof.type}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star size={12} className="text-[var(--tertiary-bright)] fill-[var(--tertiary-bright)]" />
-                        <span className="text-xs font-medium text-[var(--on-surface)]">{prof.averageRating}</span>
-                        <span className="text-xs text-[var(--on-surface-variant)]">({prof.totalReviews})</span>
-                      </div>
+                      {/* No stars until somebody has actually left one. A "0.0"
+                          under a name reads as a bad review rather than none. */}
+                      {prof.totalReviews > 0 ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star size={12} className="text-[var(--tertiary-bright)] fill-[var(--tertiary-bright)]" />
+                          <span className="text-xs font-medium text-[var(--on-surface)]">{prof.averageRating.toFixed(1)}</span>
+                          <span className="text-xs text-[var(--on-surface-variant)]">({prof.totalReviews})</span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[var(--on-surface-variant)] mt-1">No reviews yet</p>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-2 mb-4 text-sm text-[var(--on-surface-variant)]">
-                    <p><span className="font-medium text-[var(--on-surface)]">Specializations:</span> {prof.specializations.slice(0, 3).join(', ')}</p>
-                    <p className="flex items-center gap-1.5"><Globe size={13} /> {prof.languages.join(', ')}</p>
-                    <p className="flex items-center gap-1.5"><Clock size={13} /> {prof.yearsOfExperience} years experience</p>
+                    {prof.specializations.length > 0 && (
+                      <p><span className="font-medium text-[var(--on-surface)]">Specializations:</span> {prof.specializations.slice(0, 3).join(', ')}</p>
+                    )}
+                    {prof.languages.length > 0 && (
+                      <p className="flex items-center gap-1.5"><Globe size={13} /> {prof.languages.join(', ')}</p>
+                    )}
+                    {prof.yearsOfExperience != null && prof.yearsOfExperience > 0 && (
+                      <p className="flex items-center gap-1.5"><Clock size={13} /> {prof.yearsOfExperience} years experience</p>
+                    )}
                     {(prof.city || prof.state) && (
                       <p className="flex items-center gap-1.5"><MapPin size={13} /> {prof.city || prof.state}, {prof.country}</p>
                     )}
+                    {prof.hourlyRate != null && prof.hourlyRate > 0 && (
+                      <p className="font-medium text-[var(--on-surface)]">{prof.currency} {prof.hourlyRate}/hr</p>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 mb-5">
+                  <div className="flex items-center gap-2 mb-5 flex-wrap">
                     {prof.sessionModes.map((m) => (
                       <span key={m} className="chip !py-1 !px-2.5 text-xs">
                         {m === 'Online' ? <Video size={11} /> : <MessageCircle size={11} />} {m}
@@ -158,7 +261,11 @@ export default function Professionals() {
                     )}
                   </div>
 
-                  <Link href="/book-session" className="block w-full btn-primary !py-3 text-sm text-center">
+                  {/* Carries who was picked, so the booking page does not ask again. */}
+                  <Link
+                    href={`/book-session?professional=${prof.id}`}
+                    className="block w-full btn-primary !py-3 text-sm text-center"
+                  >
                     Book Session
                   </Link>
                 </div>

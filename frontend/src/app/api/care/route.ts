@@ -106,10 +106,18 @@ export async function POST(request: NextRequest) {
 
     const professional = await prisma.professional.findUnique({
       where: { id: professionalId },
-      select: { id: true, userId: true, displayName: true, verificationStatus: true, isAcceptingClients: true },
+      select: {
+        id: true, userId: true, displayName: true, verificationStatus: true, isAcceptingClients: true,
+        user: { select: { status: true } },
+      },
     });
     if (!professional) return errorResponse('Professional not found', 404);
     if (professional.userId === user.id) return errorResponse('You cannot start care with yourself', 400);
+    // Spending a paid entitlement on somebody unreachable is the worst version
+    // of this bug, so it is checked before the payment is consumed below.
+    if (professional.user.status !== 'ACTIVE') {
+      return errorResponse('This professional is not currently available', 409);
+    }
     if (professional.verificationStatus !== 'VERIFIED') {
       return errorResponse('This professional is not yet verified', 409);
     }

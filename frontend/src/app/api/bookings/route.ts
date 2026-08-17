@@ -199,9 +199,18 @@ export async function POST(request: NextRequest) {
       select: {
         id: true, userId: true, isAcceptingClients: true, verificationStatus: true,
         hourlyRate: true, currency: true,
+        user: { select: { status: true } },
       },
     });
     if (!professional) return errorResponse('Professional not found', 404);
+    // A booking is a promise that somebody turns up. Profiles used to outlive
+    // the accounts behind them, so this endpoint would happily book a therapist
+    // who no longer existed — the session sat in the client's dashboard looking
+    // real until the day nobody arrived. Deleted accounts cascade now; this
+    // covers the suspended and deactivated ones, which still have a row.
+    if (professional.user.status !== 'ACTIVE') {
+      return errorResponse('This professional is not currently available', 409);
+    }
     if (professional.verificationStatus !== 'VERIFIED') {
       return errorResponse('This professional is not yet verified', 409);
     }
